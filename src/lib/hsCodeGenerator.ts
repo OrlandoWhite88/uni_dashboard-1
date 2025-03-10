@@ -1,7 +1,5 @@
 
 import { useState } from "react";
-import { toast } from "sonner";
-import { classifyProduct } from "./pythonService";
 
 // Types
 export type GeneratorState = "idle" | "analyzing" | "questioning" | "generating" | "complete";
@@ -18,7 +16,7 @@ export interface Question {
   options?: string[];
 }
 
-// Mock questions for demonstration purposes
+// Mock data for demonstration purposes
 const MOCK_QUESTIONS: Question[] = [
   {
     id: "material",
@@ -41,7 +39,21 @@ const MOCK_QUESTIONS: Question[] = [
   }
 ];
 
-// Helper for simulated delay
+// Mock HS code result generation
+const generateMockHSCode = (): HSResult => {
+  // This would be replaced with actual API call
+  const codes = [
+    { code: "6204.49.10", description: "Women's dresses, of artificial fibers", confidence: 95 },
+    { code: "8517.12.00", description: "Telephones for cellular networks or other wireless networks", confidence: 88 },
+    { code: "3926.20.90", description: "Articles of apparel and clothing accessories of plastic", confidence: 76 },
+    { code: "9403.60.80", description: "Other wooden furniture", confidence: 92 },
+    { code: "8471.30.01", description: "Portable automatic data processing machines", confidence: 89 },
+  ];
+  
+  return codes[Math.floor(Math.random() * codes.length)];
+};
+
+// Simulated delay for API calls
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const useHSCodeGenerator = () => {
@@ -57,21 +69,11 @@ export const useHSCodeGenerator = () => {
     setState("analyzing");
     setProductDescription(description);
     
-    try {
-      // In a more advanced implementation, we'd analyze the product and
-      // determine if we need to ask questions or can proceed directly
-      // For now, we'll simulate a delay and move to questioning
-      await delay(1500);
-      
-      // Later, this logic can be enhanced to decide whether to ask questions
-      // or proceed directly to classification based on the product description
-      setState("questioning");
-      setCurrentQuestion(MOCK_QUESTIONS[0]);
-    } catch (error) {
-      console.error("Error starting analysis:", error);
-      toast.error("Failed to start analysis. Please try again.");
-      setState("idle");
-    }
+    // Simulated analysis delay
+    await delay(1500);
+    
+    setState("questioning");
+    setCurrentQuestion(MOCK_QUESTIONS[0]);
   };
   
   // Handle answering a question
@@ -84,44 +86,22 @@ export const useHSCodeGenerator = () => {
       [questionId]: answer
     }));
     
-    try {
-      // Simulated processing delay
-      await delay(1000);
+    // Simulated processing delay
+    await delay(1000);
+    
+    // Move to next question or generate result
+    if (questionIndex < MOCK_QUESTIONS.length - 1) {
+      setQuestionIndex(questionIndex + 1);
+      setCurrentQuestion(MOCK_QUESTIONS[questionIndex + 1]);
+      setState("questioning");
+    } else {
+      // Final question answered, generate result
+      setState("generating");
+      await delay(2000);
       
-      // Move to next question or generate result
-      if (questionIndex < MOCK_QUESTIONS.length - 1) {
-        setQuestionIndex(questionIndex + 1);
-        setCurrentQuestion(MOCK_QUESTIONS[questionIndex + 1]);
-        setState("questioning");
-      } else {
-        // Final question answered, generate result
-        setState("generating");
-        
-        try {
-          // Use collected answers to enhance the classification
-          const enhancedDescription = `
-            Product: ${productDescription}
-            
-            Additional Information:
-            ${Object.entries(answers).map(([key, value]) => {
-              const question = MOCK_QUESTIONS.find(q => q.id === key);
-              return `${question?.text}: ${value}`;
-            }).join('\n')}
-          `;
-          
-          const hsResult = await classifyProduct(enhancedDescription);
-          setResult(hsResult);
-          setState("complete");
-        } catch (error) {
-          console.error("Error classifying product:", error);
-          toast.error("Failed to generate HS code. Please try again.");
-          setState("idle");
-        }
-      }
-    } catch (error) {
-      console.error("Error processing answer:", error);
-      toast.error("Failed to process your answer. Please try again.");
-      setState("idle");
+      const hsResult = generateMockHSCode();
+      setResult(hsResult);
+      setState("complete");
     }
   };
   
