@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 // Types
 export type GeneratorState = "idle" | "analyzing" | "questioning" | "generating" | "complete";
@@ -16,7 +17,45 @@ export interface Question {
   options?: string[];
 }
 
-// Mock data for demonstration purposes
+// OpenAI API client
+const callOpenAI = async (prompt: string) => {
+  try {
+    const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    
+    if (!OPENAI_API_KEY) {
+      throw new Error("OpenAI API key is not defined");
+    }
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: "You are a customs classification expert helping to assign HS codes." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || "Failed to communicate with OpenAI API");
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error("OpenAI API error:", error);
+    throw error;
+  }
+};
+
+// Mock questions for demonstration purposes
 const MOCK_QUESTIONS: Question[] = [
   {
     id: "material",
@@ -39,22 +78,50 @@ const MOCK_QUESTIONS: Question[] = [
   }
 ];
 
-// Mock HS code result generation
-const generateMockHSCode = (): HSResult => {
-  // This would be replaced with actual API call
-  const codes = [
-    { code: "6204.49.10", description: "Women's dresses, of artificial fibers", confidence: 95 },
-    { code: "8517.12.00", description: "Telephones for cellular networks or other wireless networks", confidence: 88 },
-    { code: "3926.20.90", description: "Articles of apparel and clothing accessories of plastic", confidence: 76 },
-    { code: "9403.60.80", description: "Other wooden furniture", confidence: 92 },
-    { code: "8471.30.01", description: "Portable automatic data processing machines", confidence: 89 },
-  ];
-  
-  return codes[Math.floor(Math.random() * codes.length)];
-};
-
-// Simulated delay for API calls
+// Helper for simulated delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Main classification function that uses OpenAI to determine HS code
+const classifyProduct = async (productDescription: string): Promise<HSResult> => {
+  try {
+    // Create a prompt for OpenAI to classify the product
+    const prompt = `
+    Determine the appropriate Harmonized System (HS) code for the following product:
+    
+    PRODUCT: ${productDescription}
+    
+    Please provide:
+    1. The most specific HS code (at least 6 digits)
+    2. A brief description of the classification
+    3. Your confidence level (as a percentage)
+    
+    Format your response exactly like this:
+    CODE: [HS code]
+    DESCRIPTION: [brief description]
+    CONFIDENCE: [number]%
+    `;
+
+    const response = await callOpenAI(prompt);
+    
+    // Parse the response to extract code, description, and confidence
+    const codeMatch = response.match(/CODE:\s*([^\n]+)/);
+    const descriptionMatch = response.match(/DESCRIPTION:\s*([^\n]+)/);
+    const confidenceMatch = response.match(/CONFIDENCE:\s*(\d+)%/);
+    
+    if (!codeMatch || !descriptionMatch || !confidenceMatch) {
+      throw new Error("Failed to parse classification response");
+    }
+    
+    const code = codeMatch[1].trim();
+    const description = descriptionMatch[1].trim();
+    const confidence = parseInt(confidenceMatch[1], 10);
+    
+    return { code, description, confidence };
+  } catch (error) {
+    console.error("Classification error:", error);
+    throw error;
+  }
+};
 
 export const useHSCodeGenerator = () => {
   const [state, setState] = useState<GeneratorState>("idle");
@@ -69,11 +136,21 @@ export const useHSCodeGenerator = () => {
     setState("analyzing");
     setProductDescription(description);
     
-    // Simulated analysis delay
-    await delay(1500);
-    
-    setState("questioning");
-    setCurrentQuestion(MOCK_QUESTIONS[0]);
+    try {
+      // In a more advanced implementation, we'd analyze the product and
+      // determine if we need to ask questions or can proceed directly
+      // For now, we'll simulate a delay and move to questioning
+      await delay(1500);
+      
+      // Later, this logic can be enhanced to decide whether to ask questions
+      // or proceed directly to classification based on the product description
+      setState("questioning");
+      setCurrentQuestion(MOCK_QUESTIONS[0]);
+    } catch (error) {
+      console.error("Error starting analysis:", error);
+      toast.error("Failed to start analysis. Please try again.");
+      setState("idle");
+    }
   };
   
   // Handle answering a question
@@ -86,22 +163,44 @@ export const useHSCodeGenerator = () => {
       [questionId]: answer
     }));
     
-    // Simulated processing delay
-    await delay(1000);
-    
-    // Move to next question or generate result
-    if (questionIndex < MOCK_QUESTIONS.length - 1) {
-      setQuestionIndex(questionIndex + 1);
-      setCurrentQuestion(MOCK_QUESTIONS[questionIndex + 1]);
-      setState("questioning");
-    } else {
-      // Final question answered, generate result
-      setState("generating");
-      await delay(2000);
+    try {
+      // Simulated processing delay
+      await delay(1000);
       
-      const hsResult = generateMockHSCode();
-      setResult(hsResult);
-      setState("complete");
+      // Move to next question or generate result
+      if (questionIndex < MOCK_QUESTIONS.length - 1) {
+        setQuestionIndex(questionIndex + 1);
+        setCurrentQuestion(MOCK_QUESTIONS[questionIndex + 1]);
+        setState("questioning");
+      } else {
+        // Final question answered, generate result
+        setState("generating");
+        
+        try {
+          // Use collected answers to enhance the classification
+          const enhancedDescription = `
+            Product: ${productDescription}
+            
+            Additional Information:
+            ${Object.entries(answers).map(([key, value]) => {
+              const question = MOCK_QUESTIONS.find(q => q.id === key);
+              return `${question?.text}: ${value}`;
+            }).join('\n')}
+          `;
+          
+          const hsResult = await classifyProduct(enhancedDescription);
+          setResult(hsResult);
+          setState("complete");
+        } catch (error) {
+          console.error("Error classifying product:", error);
+          toast.error("Failed to generate HS code. Please try again.");
+          setState("idle");
+        }
+      }
+    } catch (error) {
+      console.error("Error processing answer:", error);
+      toast.error("Failed to process your answer. Please try again.");
+      setState("idle");
     }
   };
   
