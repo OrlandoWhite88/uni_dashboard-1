@@ -21,12 +21,12 @@ const Layout = ({ children, className }: LayoutProps) => {
       {/* Sidebar for bulk imports */}
       <div 
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-sidebar-background border-r border-border/40 shadow-lg transform transition-transform duration-300 ease-out-expo",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-white/95 dark:bg-gray-900/95 border-r border-border shadow-lg transform transition-transform duration-300 ease-out-expo",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-border/30">
-          <h2 className="text-lg font-medium">Operations</h2>
+        <div className="flex items-center justify-between h-16 px-6 border-b border-border/50">
+          <h2 className="text-lg font-semibold text-foreground">Operations</h2>
           <button 
             onClick={() => setSidebarOpen(false)}
             className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-secondary/80 transition-colors"
