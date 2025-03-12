@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { MenuIcon, X } from "lucide-react";
+import { MenuIcon, X, Home, FileText, BarChart, Package, ChevronRight } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -21,40 +21,69 @@ const Layout = ({ children, className }: LayoutProps) => {
       {/* Sidebar for bulk imports */}
       <div 
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-background border-r border-border transform transition-transform duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-sidebar-background border-r border-border/40 shadow-lg transform transition-transform duration-300 ease-out-expo",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          <h2 className="text-lg font-medium">Bulk Operations</h2>
+        <div className="flex items-center justify-between h-16 px-6 border-b border-border/30">
+          <h2 className="text-lg font-medium">Operations</h2>
           <button 
             onClick={() => setSidebarOpen(false)}
-            className="p-2 rounded-full hover:bg-secondary/80 transition-colors"
+            className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-secondary/80 transition-colors"
+            aria-label="Close menu"
           >
             <X size={18} />
           </button>
         </div>
         
-        <div className="p-4">
+        <div className="px-3 py-5">
           <nav className="space-y-1">
             <Link 
-              to="/bulk-import" 
-              className="block px-3 py-2 rounded-md hover:bg-secondary transition-colors"
+              to="/"
+              className="flex items-center px-3 py-2.5 rounded-lg text-foreground hover:bg-secondary transition-colors group"
             >
-              CSV Import
+              <Home size={18} className="mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+              <span>Home</span>
             </Link>
-            <Link 
-              to="/batch-classify" 
-              className="block px-3 py-2 rounded-md hover:bg-secondary transition-colors"
-            >
-              Batch Classification
-            </Link>
-            <Link 
-              to="/export-results" 
-              className="block px-3 py-2 rounded-md hover:bg-secondary transition-colors"
-            >
-              Export Results
-            </Link>
+            
+            <div className="pt-2">
+              <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Bulk Operations
+              </h3>
+              
+              <Link 
+                to="/bulk-import" 
+                className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors group"
+              >
+                <div className="flex items-center">
+                  <FileText size={18} className="mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span>CSV Import</span>
+                </div>
+                <ChevronRight size={16} className="text-muted-foreground opacity-60" />
+              </Link>
+              
+              <Link 
+                to="/batch-classify" 
+                className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors group"
+              >
+                <div className="flex items-center">
+                  <BarChart size={18} className="mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span>Batch Classification</span>
+                </div>
+                <ChevronRight size={16} className="text-muted-foreground opacity-60" />
+              </Link>
+              
+              <Link 
+                to="/export-results" 
+                className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-secondary transition-colors group"
+              >
+                <div className="flex items-center">
+                  <Package size={18} className="mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span>Export Results</span>
+                </div>
+                <ChevronRight size={16} className="text-muted-foreground opacity-60" />
+              </Link>
+            </div>
           </nav>
         </div>
       </div>
@@ -62,17 +91,18 @@ const Layout = ({ children, className }: LayoutProps) => {
       {/* Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      <header className="w-full border-b border-border/40 backdrop-blur-sm bg-background/80 fixed top-0 z-50">
+      <header className="w-full border-b border-border/40 backdrop-blur-md bg-background/90 fixed top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
             <button 
               onClick={() => setSidebarOpen(true)}
               className="mr-4 p-2 rounded-full hover:bg-secondary/80 transition-colors md:flex"
+              aria-label="Open menu"
             >
               <MenuIcon size={18} />
             </button>
