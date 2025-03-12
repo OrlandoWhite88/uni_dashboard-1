@@ -35,7 +35,7 @@
 
     --radius: 0.75rem;
 
-    --sidebar: 0 0% 100%;
+    --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5% 26%;
     --sidebar-primary: 240 6% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
@@ -73,15 +73,6 @@
     --border: 217 33% 18%;
     --input: 217 33% 18%;
     --ring: 210 100% 60%;
-    
-    --sidebar: 215 25% 10%;
-    --sidebar-foreground: 210 10% 95%;
-    --sidebar-primary: 210 100% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 15%;
-    --sidebar-accent-foreground: 210 10% 98%;
-    --sidebar-border: 217 33% 18%;
-    --sidebar-ring: 210 100% 70%;
   }
 }
 
@@ -94,7 +85,6 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply scroll-smooth;
   }
 
   body {
@@ -106,10 +96,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight;
   }
 
   /* Custom scrollbar */
@@ -128,11 +114,11 @@
 
   /* Glass effect */
   .glass {
-    @apply bg-white/90 dark:bg-black/40 backdrop-blur-lg border border-white/30 dark:border-white/10;
+    @apply bg-white/80 dark:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10;
   }
 
   .glass-card {
-    @apply bg-white/95 dark:bg-black/40 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-glass;
+    @apply bg-white/90 dark:bg-black/40 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-glass;
   }
 
   /* Loading shimmer effect */
@@ -141,52 +127,7 @@
   }
 
   .shimmer::after {
-    @apply absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer;
+    @apply absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer;
     content: '';
-  }
-  
-  /* Animations */
-  .fade-up {
-    animation: fadeUp 0.5s ease forwards;
-  }
-  
-  @keyframes fadeUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-}
-
-/* Custom shadows */
-@layer utilities {
-  .shadow-soft {
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05),
-                0 4px 6px -1px rgba(0, 0, 0, 0.03);
-  }
-  
-  .shadow-glass {
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08),
-                0 1px 3px rgba(0, 0, 0, 0.05),
-                0 0 0 1px rgba(255, 255, 255, 0.1);
-  }
-  
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
-/* Animations */
-@layer utilities {
-  .bg-gradient-primary {
-    @apply bg-gradient-to-br from-primary to-primary/80;
-  }
-  
-  .text-gradient {
-    @apply bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent;
   }
 }

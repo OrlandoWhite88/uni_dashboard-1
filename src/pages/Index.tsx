@@ -17,7 +17,7 @@ const Index = () => {
   } = useHSCodeGenerator();
 
   return (
-    <Layout className="pt-20 pb-16">
+    <Layout className="pt-28 pb-16">
       {state === "idle" && (
         <ProductInput 
           onSubmit={startAnalysis} 
@@ -26,10 +26,10 @@ const Index = () => {
       )}
       
       {state === "analyzing" && (
-        <div className="h-60 flex items-center justify-center">
-          <div className="flex flex-col items-center animate-fade-in">
-            <div className="h-12 w-12 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-            <p className="mt-5 text-muted-foreground">Analyzing product information...</p>
+        <div className="h-40 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+            <p className="mt-4 text-muted-foreground">Analyzing product information...</p>
           </div>
         </div>
       )}
@@ -43,10 +43,10 @@ const Index = () => {
       )}
       
       {state === "generating" && (
-        <div className="h-60 flex items-center justify-center">
-          <div className="flex flex-col items-center animate-fade-in">
-            <div className="h-12 w-12 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
-            <p className="mt-5 text-muted-foreground">Generating HS code...</p>
+        <div className="h-40 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+            <p className="mt-4 text-muted-foreground">Generating HS code...</p>
           </div>
         </div>
       )}
