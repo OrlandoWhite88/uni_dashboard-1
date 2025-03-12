@@ -3,8 +3,8 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 interface CustomButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "outline" | "ghost" | "link";
-  size?: "sm" | "md" | "lg";
+  variant?: "default" | "outline" | "ghost" | "link" | "secondary";
+  size?: "sm" | "md" | "lg" | "icon";
   isLoading?: boolean;
   icon?: React.ReactNode;
 }
@@ -17,13 +17,15 @@ const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
       default: "bg-primary text-primary-foreground hover:brightness-105 active:brightness-95 shadow-sm",
       outline: "border border-input bg-transparent hover:bg-secondary text-foreground",
       ghost: "bg-transparent hover:bg-secondary text-foreground",
-      link: "bg-transparent underline-offset-4 hover:underline text-primary"
+      link: "bg-transparent underline-offset-4 hover:underline text-primary p-0 h-auto",
+      secondary: "bg-secondary text-foreground hover:bg-secondary/80 active:bg-secondary/60"
     };
     
     const sizeStyles = {
-      sm: "h-9 px-3 text-sm rounded-md",
-      md: "h-10 px-4 rounded-md",
-      lg: "h-11 px-5 rounded-md"
+      sm: "h-8 px-3 text-xs rounded-md",
+      md: "h-10 px-4 text-sm rounded-md",
+      lg: "h-11 px-5 rounded-md",
+      icon: "h-10 w-10 rounded-full p-0"
     };
     
     return (
@@ -46,10 +48,6 @@ const CustomButton = React.forwardRef<HTMLButtonElement, CustomButtonProps>(
         ) : null}
         
         {children}
-
-        {variant === "default" && (
-          <span className="absolute inset-0 rounded-md bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></span>
-        )}
       </button>
     );
   }

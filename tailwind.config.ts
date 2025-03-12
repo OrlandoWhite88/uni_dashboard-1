@@ -54,7 +54,7 @@ export default {
 					foreground: 'hsl(var(--card-foreground))'
 				},
 				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
+					DEFAULT: 'hsl(var(--sidebar))',
 					foreground: 'hsl(var(--sidebar-foreground))',
 					primary: 'hsl(var(--sidebar-primary))',
 					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
@@ -105,6 +105,10 @@ export default {
 				'shimmer': {
 					'0%': { backgroundPosition: '-300px 0' },
 					'100%': { backgroundPosition: '300px 0' }
+				},
+				'bounce-soft': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-5px)' }
 				}
 			},
 			animation: {
@@ -116,7 +120,8 @@ export default {
 				'slide-up': 'slide-up 0.4s ease-out',
 				'slide-down': 'slide-down 0.4s ease-out',
 				'pulse-light': 'pulse-light 2s ease-in-out infinite',
-				'shimmer': 'shimmer 2s infinite linear'
+				'shimmer': 'shimmer 2s infinite linear',
+				'bounce-soft': 'bounce-soft 3s infinite ease-in-out'
 			},
 			transitionTimingFunction: {
 				'in-expo': 'cubic-bezier(0.95, 0.05, 0.795, 0.035)',
@@ -126,7 +131,10 @@ export default {
 			boxShadow: {
 				'soft': '0 2px 15px rgba(0, 0, 0, 0.05)',
 				'glass': '0 8px 32px rgba(0, 0, 0, 0.06)',
-				'neomorphic': '8px 8px 16px #ebebeb, -8px -8px 16px #ffffff'
+				'neomorphic': '8px 8px 16px #ebebeb, -8px -8px 16px #ffffff',
+				'button': '0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 1px rgba(0, 0, 0, 0.1)',
+				'card': '0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 15px -5px rgba(0, 0, 0, 0.1)',
+				'elevated': '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)'
 			},
 			gridTemplateColumns: {
 				'auto-fit': 'repeat(auto-fit, minmax(280px, 1fr))'
