@@ -105,10 +105,6 @@ export default {
 				'shimmer': {
 					'0%': { backgroundPosition: '-300px 0' },
 					'100%': { backgroundPosition: '300px 0' }
-				},
-				'float': {
-					'0%, 100%': { transform: 'translateY(0)' },
-					'50%': { transform: 'translateY(-5px)' }
 				}
 			},
 			animation: {
@@ -120,8 +116,7 @@ export default {
 				'slide-up': 'slide-up 0.4s ease-out',
 				'slide-down': 'slide-down 0.4s ease-out',
 				'pulse-light': 'pulse-light 2s ease-in-out infinite',
-				'shimmer': 'shimmer 2s infinite linear',
-				'float': 'float 3s ease-in-out infinite'
+				'shimmer': 'shimmer 2s infinite linear'
 			},
 			transitionTimingFunction: {
 				'in-expo': 'cubic-bezier(0.95, 0.05, 0.795, 0.035)',

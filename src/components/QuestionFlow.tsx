@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
-import { ArrowRight, MessageCircle, Check, X, HelpCircle, LightbulbIcon } from "lucide-react";
+import { ArrowRight, MessageCircle, Check, X, HelpCircle } from "lucide-react";
 
 interface Question {
   id: string;
@@ -39,20 +39,20 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
 
   return (
     <div className="w-full max-w-2xl mx-auto animate-slide-up">
-      <div className="mb-6 bg-white dark:bg-gray-800 shadow-lg rounded-xl relative overflow-hidden border border-slate-200 dark:border-slate-700">
+      <div className="mb-6 glass-card p-6 rounded-xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-primary/20">
           <div className="h-full bg-primary w-1/3 animate-pulse"></div>
         </div>
         
-        <div className="flex items-start gap-4 p-6">
+        <div className="flex items-start gap-4">
           <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary shrink-0 mt-1">
             <MessageCircle size={17} />
           </div>
           
           <div className="flex-1">
             <div className="flex items-center mb-3">
-              <h3 className="text-base font-semibold">Product Classification Assistant</h3>
-              <div className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              <h3 className="font-medium">Product Classification Assistant</h3>
+              <div className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded ml-2">
                 Analyzing
               </div>
             </div>
@@ -88,7 +88,7 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
                 <div className="relative">
                   <input
                     type="text"
-                    className="w-full p-3.5 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary/30 focus-visible:outline-none pr-12"
+                    className="w-full p-3.5 rounded-lg border border-border bg-transparent focus:ring-2 focus:ring-primary/30 focus-visible:outline-none pr-12"
                     placeholder="Type your answer..."
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
@@ -103,9 +103,9 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
                   </button>
                 </div>
                 
-                <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 p-2.5 rounded-lg text-xs text-amber-800 dark:text-amber-300">
-                  <LightbulbIcon size={12} className="shrink-0" />
-                  <span>Provide as much detail as possible about materials, uses, and components for accurate classification</span>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <HelpCircle size={12} className="mr-1" />
+                  <span>Provide as much detail as possible for accurate classification</span>
                 </div>
               </form>
             )}
