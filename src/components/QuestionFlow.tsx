@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
-import { ArrowRight, MessageCircle, Check, X } from "lucide-react";
+import { ArrowRight, MessageCircle, Check, X, HelpCircle } from "lucide-react";
 
 interface Question {
   id: string;
@@ -45,26 +45,32 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
         </div>
         
         <div className="flex items-start gap-4">
-          <div className="h-8 w-8 rounded-full flex items-center justify-center bg-primary/10 text-primary shrink-0 mt-1">
-            <MessageCircle size={15} />
+          <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary shrink-0 mt-1">
+            <MessageCircle size={17} />
           </div>
           
           <div className="flex-1">
-            <h3 className="font-medium mb-3">AI Assistant</h3>
+            <div className="flex items-center mb-3">
+              <h3 className="font-medium">Product Classification Assistant</h3>
+              <div className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded ml-2">
+                Analyzing
+              </div>
+            </div>
+            
             <p className="text-foreground leading-relaxed mb-4">{question.text}</p>
             
             {question.options ? (
-              <div className="space-y-2 mb-4">
+              <div className="space-y-2.5 mb-4">
                 {question.options.map((option) => (
                   <button
                     key={option}
                     type="button"
                     onClick={() => handleOptionSelect(option)}
                     className={cn(
-                      "w-full text-left p-3 rounded-lg border border-border transition-all duration-200",
+                      "w-full text-left p-3.5 rounded-lg border transition-all duration-200",
                       selectedOption === option 
-                        ? "bg-primary/10 border-primary/30" 
-                        : "hover:bg-secondary"
+                        ? "bg-primary/10 border-primary/30 shadow-sm" 
+                        : "border-border hover:bg-secondary hover:border-muted"
                     )}
                     disabled={isLoading}
                   >
@@ -79,24 +85,27 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                  type="text"
-                  className="w-full p-3 rounded-lg border border-border bg-transparent focus:ring-2 focus:ring-primary/30 focus-visible:outline-none"
-                  placeholder="Type your answer..."
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  disabled={isLoading}
-                />
-                
-                <div className="flex justify-end">
-                  <CustomButton
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="w-full p-3.5 rounded-lg border border-border bg-transparent focus:ring-2 focus:ring-primary/30 focus-visible:outline-none pr-12"
+                    placeholder="Type your answer..."
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <button 
                     type="submit"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center bg-primary/10 text-primary disabled:opacity-50 disabled:text-muted-foreground disabled:bg-secondary/50"
                     disabled={!answer.trim() || isLoading}
-                    size="sm"
-                    className="rounded-full px-4"
                   >
-                    Submit <ArrowRight size={16} className="ml-1" />
-                  </CustomButton>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+                
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <HelpCircle size={12} className="mr-1" />
+                  <span>Provide as much detail as possible for accurate classification</span>
                 </div>
               </form>
             )}

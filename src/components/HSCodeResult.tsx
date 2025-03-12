@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import CustomButton from "./ui/CustomButton";
-import { CheckCircle, Copy, DownloadCloud, RefreshCw } from "lucide-react";
+import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HSCodeResultProps {
@@ -13,6 +13,7 @@ interface HSCodeResultProps {
 
 const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResultProps) => {
   const [copied, setCopied] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(hsCode);
@@ -93,7 +94,42 @@ const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResult
               <DownloadCloud size={16} className="mr-2" />
               Download
             </CustomButton>
+            
+            <CustomButton 
+              onClick={() => setShowExplanation(!showExplanation)} 
+              variant={showExplanation ? "default" : "outline"}
+              className="flex-1 min-w-[120px]"
+            >
+              <HelpCircle size={16} className="mr-2" />
+              Explain
+            </CustomButton>
           </div>
+          
+          {/* Explanation Panel */}
+          {showExplanation && (
+            <div className="mt-6 p-4 bg-secondary/50 border border-border rounded-lg w-full animate-fade-in">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-medium">HS Code Explanation</h3>
+                <button 
+                  onClick={() => setShowExplanation(false)}
+                  className="p-1 rounded-full hover:bg-secondary"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="text-sm space-y-3">
+                <p>
+                  <strong>What is HS Code {hsCode}?</strong> The Harmonized System (HS) is an international nomenclature for the classification of products. It allows participating countries to classify traded goods on a common basis for customs purposes.
+                </p>
+                <p>
+                  <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. The specific subheading {hsCode} is used for {description.toLowerCase()}.
+                </p>
+                <p>
+                  <strong>Import Requirements:</strong> Products under this classification may be subject to specific import duties, taxes, and regulatory requirements which vary by country. We recommend checking with your local customs authority for detailed information.
+                </p>
+              </div>
+            </div>
+          )}
           
           <button 
             onClick={onReset}
@@ -105,6 +141,36 @@ const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResult
       </div>
     </div>
   );
+};
+
+// Helper function to get chapter descriptions
+const getChapterDescription = (chapter: string): string => {
+  const chapters: Record<string, string> = {
+    "01": "Live Animals",
+    "02": "Meat and Edible Meat Offal",
+    "03": "Fish and Crustaceans",
+    "04": "Dairy Produce; Birds' Eggs; Natural Honey",
+    "05": "Products of Animal Origin",
+    "06": "Live Trees and Other Plants",
+    "07": "Edible Vegetables",
+    "08": "Edible Fruits and Nuts",
+    "09": "Coffee, Tea, and Spices",
+    "10": "Cereals",
+    "11": "Products of the Milling Industry",
+    "12": "Oil Seeds and Oleaginous Fruits",
+    "39": "Plastics and Articles Thereof",
+    "40": "Rubber and Articles Thereof",
+    "61": "Articles of Apparel and Clothing Accessories, Knitted",
+    "62": "Articles of Apparel and Clothing Accessories, Not Knitted",
+    "63": "Other Made Up Textile Articles",
+    "84": "Machinery and Mechanical Appliances",
+    "85": "Electrical Machinery and Equipment",
+    "90": "Optical, Photographic, Measuring, and Medical Instruments",
+    "94": "Furniture; Bedding, Mattresses, Cushions",
+    "95": "Toys, Games and Sports Requisites",
+  };
+  
+  return chapters[chapter] || "various products based on international trade classifications";
 };
 
 export default HSCodeResult;
