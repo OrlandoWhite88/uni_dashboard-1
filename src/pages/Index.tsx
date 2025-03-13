@@ -1,7 +1,25 @@
-import React from "react";
+// src/pages/ImprovedIndex.tsx
+
+import React, { useState } from "react";
 import Layout from "@/components/Layout";
-import { useSimpleClassifier } from "@/lib/useSimpleClassifier";
-import { AlertCircle, AlertTriangle, ArrowRight, CheckCircle, Loader2, RefreshCw } from "lucide-react";
+import { useImprovedClassifier } from "@/lib/improvedUseClassifier";
+import { 
+  AlertCircle, 
+  AlertTriangle, 
+  CheckCircle, 
+  Loader2, 
+  MessageCircle,
+  RefreshCw, 
+  ArrowRight, 
+  Bug, 
+  Copy, 
+  ChevronDown, 
+  ChevronUp
+} from "lucide-react";
+import ProductInput from "@/components/ProductInput";
+import QuestionFlow from "@/components/QuestionFlow";
+import HSCodeResult from "@/components/HSCodeResult";
+import CustomButton from "@/components/ui/CustomButton";
 
 // Simple wrapper component to ensure any errors are contained
 class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
@@ -18,18 +36,23 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-6 max-w-md mx-auto mt-10 bg-red-50 border border-red-200 rounded-lg">
-          <h2 className="text-red-700 text-lg font-medium mb-2">Application Error</h2>
-          <p className="text-red-600 mb-4">Something went wrong with the application.</p>
-          <pre className="p-2 bg-red-100 rounded text-xs overflow-auto max-h-40">
-            {this.state.error?.toString()}
-          </pre>
-          <button 
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md"
-            onClick={() => window.location.reload()}
-          >
-            Reload Page
-          </button>
+        <div className="p-6 max-w-xl mx-auto mt-10 glass-card rounded-lg">
+          <div className="flex items-start">
+            <AlertCircle className="h-6 w-6 text-destructive mr-3 mt-0.5" />
+            <div>
+              <h2 className="text-xl font-medium text-destructive mb-2">Application Error</h2>
+              <p className="text-muted-foreground mb-4">An unexpected error occurred in the application.</p>
+              <pre className="p-3 bg-secondary/50 rounded text-xs overflow-auto max-h-40 mb-4 font-mono">
+                {this.state.error?.toString()}
+              </pre>
+              <CustomButton 
+                onClick={() => window.location.reload()}
+                className="flex items-center"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" /> Reload Application
+              </CustomButton>
+            </div>
+          </div>
         </div>
       );
     }
@@ -37,171 +60,145 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
   }
 }
 
-// The main application
-const Index = () => {
-  const { state, classify, continueWithAnswer, reset } = useSimpleClassifier();
-  const [productInput, setProductInput] = React.useState("");
-  const [userAnswer, setUserAnswer] = React.useState("");
+// The main application with improved debugging and error handling
+const ImprovedIndex = () => {
+  const { state, classify, continueWithAnswer, reset, debugInfo } = useImprovedClassifier();
+  const [productInput, setProductInput] = useState("");
+  const [showDebug, setShowDebug] = useState(false);
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (productInput.trim()) {
-      classify(productInput.trim());
-    }
+  // Handle product submission
+  const handleClassify = (description: string) => {
+    classify(description);
   };
 
   // Handle answer submission
-  const handleAnswerSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userAnswer.trim()) {
-      continueWithAnswer(userAnswer.trim());
-      setUserAnswer("");
-    }
+  const handleAnswer = (questionId: string, answer: string) => {
+    continueWithAnswer(answer);
   };
 
-  // Handle option selection
-  const handleOptionSelect = (option: string) => {
-    continueWithAnswer(option);
+  // Copy debug info to clipboard
+  const copyDebugInfo = () => {
+    if (debugInfo && debugInfo.length > 0) {
+      navigator.clipboard.writeText(debugInfo.join('\n'));
+    }
   };
 
   return (
     <ErrorBoundary>
       <Layout className="pt-28 pb-16">
-        <div className="max-w-2xl mx-auto">
-          {/* Status indicator */}
-          <div className="mb-6 flex items-center justify-center">
-            <div className={`px-4 py-2 rounded-full text-sm font-medium flex items-center ${
-              state.status === 'idle' ? 'bg-blue-100 text-blue-800' :
-              state.status === 'loading' ? 'bg-yellow-100 text-yellow-800' :
-              state.status === 'question' ? 'bg-purple-100 text-purple-800' :
-              state.status === 'result' ? 'bg-green-100 text-green-800' :
-              'bg-red-100 text-red-800'
-            }`}>
-              {state.status === 'idle' && <AlertCircle className="h-4 w-4 mr-2" />}
-              {state.status === 'loading' && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {state.status === 'question' && <AlertTriangle className="h-4 w-4 mr-2" />}
-              {state.status === 'result' && <CheckCircle className="h-4 w-4 mr-2" />}
-              {state.status === 'error' && <AlertCircle className="h-4 w-4 mr-2" />}
-              Status: {state.status}
+        <div className="w-full max-w-2xl mx-auto">
+          {/* Status indicator for developers */}
+          <div className="mb-4 text-center">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors bg-secondary text-muted-foreground">
+              HS Code Classification Service
             </div>
           </div>
 
-          {/* Initial product input */}
+          {/* Product Input */}
           {state.status === 'idle' && (
-            <div className="glass-card p-6 rounded-lg">
-              <h2 className="text-xl font-medium mb-4">Enter Product Description</h2>
-              <form onSubmit={handleSubmit}>
-                <textarea
-                  className="w-full p-3 border border-gray-300 rounded-md mb-4"
-                  rows={4}
-                  placeholder="Describe your product in detail..."
-                  value={productInput}
-                  onChange={(e) => setProductInput(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center justify-center"
-                  disabled={!productInput.trim()}
-                >
-                  Classify Product <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
-              </form>
-            </div>
+            <ProductInput onSubmit={handleClassify} isLoading={false} />
           )}
 
-          {/* Loading state */}
+          {/* Loading State */}
           {state.status === 'loading' && (
-            <div className="glass-card p-8 rounded-lg flex flex-col items-center justify-center h-60">
-              <div className="h-10 w-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p>Processing your request...</p>
+            <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60 animate-pulse">
+              <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Processing your request...</p>
             </div>
           )}
 
-          {/* Question state */}
+          {/* Question Flow */}
           {state.status === 'question' && (
-            <div className="glass-card p-6 rounded-lg">
-              <h2 className="text-xl font-medium mb-4">Additional Information Needed</h2>
-              <p className="mb-4">{state.question}</p>
-              
-              {state.options && state.options.length > 0 ? (
-                <div className="space-y-2 mb-4">
-                  {state.options.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => handleOptionSelect(option)}
-                      className="w-full p-3 border border-gray-300 rounded-md text-left hover:bg-gray-50"
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <form onSubmit={handleAnswerSubmit}>
-                  <input
-                    type="text"
-                    className="w-full p-3 border border-gray-300 rounded-md mb-4"
-                    placeholder="Your answer..."
-                    value={userAnswer}
-                    onChange={(e) => setUserAnswer(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md"
-                    disabled={!userAnswer.trim()}
-                  >
-                    Submit Answer
-                  </button>
-                </form>
-              )}
-            </div>
+            <QuestionFlow 
+              question={{
+                id: 'clarification', 
+                text: state.question,
+                options: state.options
+              }}
+              onAnswer={handleAnswer}
+              isLoading={false}
+            />
           )}
 
-          {/* Result state */}
+          {/* Result View */}
           {state.status === 'result' && (
-            <div className="glass-card p-6 rounded-lg">
-              <h2 className="text-xl font-medium mb-4">Classification Result</h2>
-              <div className="mb-4 p-4 bg-gray-50 rounded-md">
-                <div className="text-2xl font-bold mb-2">{state.code}</div>
-                <div className="text-gray-700">{state.description}</div>
-                {state.path && (
-                  <div className="mt-2 text-sm text-gray-500">
-                    Classification Path: {state.path}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={reset}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md flex items-center"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" /> Start New Classification
-              </button>
-            </div>
+            <HSCodeResult 
+              hsCode={state.code}
+              description={state.description || 'Product'}
+              confidence={state.confidence}
+              fullPath={state.path}
+              onReset={reset}
+            />
           )}
 
-          {/* Error state */}
+          {/* Error View */}
           {state.status === 'error' && (
-            <div className="glass-card p-6 rounded-lg">
+            <div className="glass-card p-6 rounded-xl animate-scale-in">
               <div className="flex items-start">
-                <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+                <AlertCircle className="h-5 w-5 text-destructive mr-3 mt-0.5" />
                 <div>
-                  <h3 className="font-medium text-red-600 mb-2">Error</h3>
-                  <p className="text-gray-700 mb-2">{state.message}</p>
+                  <h3 className="font-medium text-destructive mb-2">Error Processing Request</h3>
+                  <p className="text-muted-foreground mb-4">{state.message}</p>
                   
                   {state.details && (
-                    <div className="mb-4 p-2 bg-red-50 border border-red-100 rounded-md overflow-auto max-h-40 text-xs font-mono">
+                    <div className="mb-6 p-3 bg-secondary/50 border border-border rounded-md overflow-auto max-h-40 text-xs font-mono">
                       {state.details}
                     </div>
                   )}
                   
-                  <button
-                    onClick={reset}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md flex items-center"
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" /> Try Again
-                  </button>
+                  <div className="flex gap-3">
+                    <CustomButton
+                      onClick={reset}
+                      className="flex items-center"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" /> Try Again
+                    </CustomButton>
+                  </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Debug Panel - shows debug info for developers */}
+          {debugInfo && debugInfo.length > 0 && (
+            <div className="mt-8 rounded-xl border border-border">
+              <div 
+                className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 rounded-t-xl"
+                onClick={() => setShowDebug(!showDebug)}
+              >
+                <div className="flex items-center text-sm font-medium">
+                  <Bug className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Debug Information
+                </div>
+                <div className="flex items-center">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyDebugInfo();
+                    }}
+                    className="p-1.5 rounded-md hover:bg-secondary mr-1"
+                    title="Copy debug info"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  {showDebug ? 
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" /> : 
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  }
+                </div>
+              </div>
+              
+              {showDebug && (
+                <div className="p-3 border-t border-border bg-background/50 rounded-b-xl">
+                  <div className="max-h-60 overflow-auto p-2 bg-muted/30 rounded-md font-mono text-xs">
+                    {debugInfo.map((line, i) => (
+                      <div key={i} className="py-0.5 border-b border-secondary last:border-0">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -210,4 +207,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default ImprovedIndex;
