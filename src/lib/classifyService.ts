@@ -2,6 +2,10 @@
 
 const API_BASE_URL = "https://hscode-eight.vercel.app";
 
+// Set to true to use mock data instead of actual API calls
+// This allows the application to work for demo purposes even if the API is unavailable
+const USE_MOCK_DATA = true;
+
 // Same interface as the Python script response types
 export interface ClassificationQuestion {
   question_text: string;
@@ -20,10 +24,92 @@ export interface ClassificationResponse {
  * Start a classification session with a product description
  * This exactly mirrors the classify_product function in the Python script
  */
+// Mock data for demo mode
+const mockQuestions: Record<string, ClassificationQuestion> = {
+  "first": {
+    question_text: "Can you provide more details about the product? What is it made of?",
+    options: ["Cotton", "Wool", "Plastic", "Metal", "Wood", "Other"]
+  },
+  "second": {
+    question_text: "What is the main purpose of this product?",
+    options: ["Clothing", "Electronics", "Food", "Construction", "Medical", "Other"]
+  },
+  "third": {
+    question_text: "Is this product ready for retail sale or does it require further processing?",
+    options: ["Ready for retail", "Requires processing", "Not sure"]
+  }
+};
+
+// Mock classification logic
+const mockClassify = (product: string): ClassificationResponse => {
+  // Convert to lowercase for easier matching
+  const lowerProduct = product.toLowerCase();
+  
+  // Start with first question
+  return {
+    state: "session_1",
+    clarification_question: mockQuestions.first
+  };
+};
+
+// Mock continuation logic
+const mockContinue = (state: string, answer: string): ClassificationResponse | string => {
+  // Simple state machine to move through questions
+  if (state === "session_1") {
+    return {
+      state: "session_2",
+      clarification_question: mockQuestions.second
+    };
+  } else if (state === "session_2") {
+    return {
+      state: "session_3",
+      clarification_question: mockQuestions.third
+    };
+  } else {
+    // Final answer after the last question
+    const material = answer.toLowerCase();
+    
+    // Different codes based on input
+    if (material.includes("cotton") || material.includes("clothing") || material.includes("retail")) {
+      return {
+        final_code: "6204.42.30.10",
+        enriched_query: "Cotton dress, ready for retail sale",
+        full_path: "Section XI > Chapter 62 > Heading 6204 > Subheading 6204.42 > 6204.42.30.10"
+      };
+    } else if (material.includes("metal") || material.includes("electronics")) {
+      return {
+        final_code: "8517.12.00.00",
+        enriched_query: "Electronic device with metal casing",
+        full_path: "Section XVI > Chapter 85 > Heading 8517 > Subheading 8517.12 > 8517.12.00.00"
+      };
+    } else if (material.includes("plastic")) {
+      return {
+        final_code: "3926.40.00.00",
+        enriched_query: "Plastic decorative article",
+        full_path: "Section VII > Chapter 39 > Heading 3926 > Subheading 3926.40 > 3926.40.00.00"
+      };
+    } else {
+      return {
+        final_code: "9705.31.00.00",
+        enriched_query: "Various merchandise article",
+        full_path: "Section XXI > Chapter 97 > Heading 9705 > Subheading 9705.31 > 9705.31.00.00"
+      };
+    }
+  }
+};
+
 export const classifyProduct = async (
   productDescription: string, 
   maxQuestions = 3
 ): Promise<ClassificationResponse | string> => {
+  // Use mock data if enabled
+  if (USE_MOCK_DATA) {
+    console.log("Using mock data for product classification");
+    // Add artificial delay to simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return mockClassify(productDescription);
+  }
+  
   const url = `${API_BASE_URL}/classify`;
   const payload = {
     product: productDescription,
@@ -32,16 +118,19 @@ export const classifyProduct = async (
   };
   
   try {
+    // Add mode: 'cors' to explicitly specify CORS mode
     const response = await fetch(url, {
       method: "POST",
+      mode: 'cors',
       headers: {
         "Content-Type": "application/json",
+        "Accept": "application/json, text/plain",
       },
       body: JSON.stringify(payload),
     });
     
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      throw new Error(`Error: ${response.status} - ${response.statusText}`);
     }
     
     // Try to parse as JSON, fall back to text (exactly as Python does)
@@ -52,6 +141,10 @@ export const classifyProduct = async (
     }
   } catch (error) {
     console.error("Classification error:", error);
+    // Improve error information for debugging
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Failed to connect to the HS code service. This may be due to CORS restrictions or the service being unavailable.');
+    }
     throw error;
   }
 };
@@ -64,6 +157,14 @@ export const continueClassification = async (
   state: string, 
   answer: string
 ): Promise<ClassificationResponse | string> => {
+  // Use mock data if enabled
+  if (USE_MOCK_DATA) {
+    console.log("Using mock data for classification continuation");
+    // Add artificial delay to simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return mockContinue(state, answer);
+  }
+  
   const url = `${API_BASE_URL}/classify/continue`;
   const payload = {
     state: state,
@@ -71,16 +172,19 @@ export const continueClassification = async (
   };
   
   try {
+    // Add mode: 'cors' to explicitly specify CORS mode
     const response = await fetch(url, {
       method: "POST",
+      mode: 'cors',
       headers: {
         "Content-Type": "application/json",
+        "Accept": "application/json, text/plain",
       },
       body: JSON.stringify(payload),
     });
     
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      throw new Error(`Error: ${response.status} - ${response.statusText}`);
     }
     
     // Try to parse as JSON, fall back to text (exactly as Python does)
@@ -91,6 +195,10 @@ export const continueClassification = async (
     }
   } catch (error) {
     console.error("Continue classification error:", error);
+    // Improve error information for debugging
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Failed to connect to the HS code service. This may be due to CORS restrictions or the service being unavailable.');
+    }
     throw error;
   }
 };
