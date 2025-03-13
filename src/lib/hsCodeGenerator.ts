@@ -25,61 +25,60 @@ export const useHSCodeGenerator = () => {
   const [sessionState, setSessionState] = useState<string | null>(null);
   const [result, setResult] = useState<HSResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  
+  // Utility to set debug info
+  const addDebugInfo = (info: string) => {
+    console.log("DEBUG:", info);
+    setDebugInfo(prevInfo => prevInfo ? `${prevInfo}\n${info}` : info);
+  };
   
   // Start the process with a product description
   const startAnalysis = async (description: string) => {
     try {
+      setError(null);
+      setDebugInfo(null);
       setState("analyzing");
       setProductDescription(description);
-      setError(null);
       
-      // Call the classify API endpoint exactly like the Python script
+      addDebugInfo(`Starting analysis for: ${description}`);
+      
+      // Call the classify API endpoint
       const response = await classifyProduct(description);
-      console.log("API Response:", response); // Debug log
+      addDebugInfo(`Received API response type: ${typeof response}`);
       
-      // Handle different response types exactly as in Python script
+      // Handle different response types
       if (typeof response === 'string') {
-        console.log("String response type detected");
-        // If result is a string, it's the final code - exactly as in Python
-        setState("generating");
+        addDebugInfo(`String response received: ${response}`);
+        // If result is a string, it's the final code
+        const hsResult: HSResult = {
+          code: response,
+          description: description,
+          confidence: 90
+        };
         
-        setTimeout(() => {
-          const hsResult: HSResult = {
-            code: response,
-            description: description,
-            confidence: 90
+        setResult(hsResult);
+        setState("complete");
+      } else if (response && typeof response === 'object') {
+        if ("clarification_question" in response && response.clarification_question) {
+          // If result has clarification_question, ask it
+          addDebugInfo(`Question received: ${response.clarification_question.question_text}`);
+          setSessionState(response.state || null);
+          
+          // Create a properly formed question object
+          const newQuestion: Question = {
+            id: "clarification",
+            text: response.clarification_question.question_text || "Please provide more information",
+            options: response.clarification_question.options || []
           };
           
-          setResult(hsResult);
-          setState("complete");
-        }, 1000);
-      } else if ("clarification_question" in response) {
-        console.log("Question response detected:", response.clarification_question);
-        // If result has clarification_question, ask it - exactly as in Python
-        setSessionState(response.state || null);
-        
-        // Extract the question information
-        const questionText = response.clarification_question.question_text;
-        const options = response.clarification_question.options;
-        
-        console.log("Setting question:", { id: "clarification", text: questionText, options });
-        
-        // Set the current question state
-        setCurrentQuestion({
-          id: "clarification",
-          text: questionText,
-          options: options
-        });
-        
-        setState("questioning");
-      } else if ("final_code" in response) {
-        console.log("Final code response detected");
-        // If result has final_code, it's the final classification - exactly as in Python
-        setState("generating");
-        
-        setTimeout(() => {
+          setCurrentQuestion(newQuestion);
+          setState("questioning");
+        } else if ("final_code" in response) {
+          // If result has final_code, it's the final classification
+          addDebugInfo(`Final code received: ${response.final_code}`);
           const hsResult: HSResult = {
-            code: response.final_code,
+            code: response.final_code || "Unknown",
             description: response.enriched_query || description,
             confidence: 95,
             fullPath: response.full_path
@@ -87,11 +86,13 @@ export const useHSCodeGenerator = () => {
           
           setResult(hsResult);
           setState("complete");
-        }, 1000);
+        } else {
+          // Unexpected response format
+          throw new Error(`Unexpected response format: ${JSON.stringify(response)}`);
+        }
       } else {
-        // Unexpected response format
-        console.error("Unexpected response format:", response);
-        throw new Error("Unexpected response format from classification service");
+        // Unexpected response type
+        throw new Error(`Unexpected response type: ${typeof response}`);
       }
     } catch (err) {
       console.error("Error starting analysis:", err);
@@ -109,55 +110,44 @@ export const useHSCodeGenerator = () => {
         throw new Error("No active session state");
       }
       
-      console.log("Sending answer:", answer, "for session:", sessionState);
+      addDebugInfo(`Sending answer: "${answer}" for session: ${sessionState}`);
       
-      // Call the continue API endpoint exactly like the Python script
+      // Call the continue API endpoint
       const response = await continueClassification(sessionState, answer);
-      console.log("Continue API Response:", response); // Debug log
+      addDebugInfo(`Received continuation response type: ${typeof response}`);
       
-      // Handle different response types exactly as in Python script
+      // Handle different response types
       if (typeof response === 'string') {
-        console.log("String response type detected");
-        // If result is a string, it's the final code - exactly as in Python
-        setState("generating");
+        addDebugInfo(`String response received: ${response}`);
+        // If result is a string, it's the final code
+        const hsResult: HSResult = {
+          code: response,
+          description: productDescription,
+          confidence: 90
+        };
         
-        setTimeout(() => {
-          const hsResult: HSResult = {
-            code: response,
-            description: productDescription,
-            confidence: 90
+        setResult(hsResult);
+        setState("complete");
+      } else if (response && typeof response === 'object') {
+        if ("clarification_question" in response && response.clarification_question) {
+          // If result has clarification_question, ask it
+          addDebugInfo(`Follow-up question received: ${response.clarification_question.question_text}`);
+          setSessionState(response.state || null);
+          
+          // Create a properly formed question object
+          const newQuestion: Question = {
+            id: "clarification",
+            text: response.clarification_question.question_text || "Please provide more information",
+            options: response.clarification_question.options || []
           };
           
-          setResult(hsResult);
-          setState("complete");
-        }, 1000);
-      } else if ("clarification_question" in response) {
-        console.log("Follow-up question detected:", response.clarification_question);
-        // If result has clarification_question, ask it - exactly as in Python
-        setSessionState(response.state || null);
-        
-        // Extract the question information
-        const questionText = response.clarification_question.question_text;
-        const options = response.clarification_question.options;
-        
-        console.log("Setting question:", { id: "clarification", text: questionText, options });
-        
-        // Set the current question state
-        setCurrentQuestion({
-          id: "clarification",
-          text: questionText,
-          options: options
-        });
-        
-        setState("questioning");
-      } else if ("final_code" in response) {
-        console.log("Final code response detected");
-        // If result has final_code, it's the final classification - exactly as in Python
-        setState("generating");
-        
-        setTimeout(() => {
+          setCurrentQuestion(newQuestion);
+          setState("questioning");
+        } else if ("final_code" in response) {
+          // If result has final_code, it's the final classification
+          addDebugInfo(`Final code received: ${response.final_code}`);
           const hsResult: HSResult = {
-            code: response.final_code,
+            code: response.final_code || "Unknown",
             description: response.enriched_query || productDescription,
             confidence: 95,
             fullPath: response.full_path
@@ -165,11 +155,13 @@ export const useHSCodeGenerator = () => {
           
           setResult(hsResult);
           setState("complete");
-        }, 1000);
+        } else {
+          // Unexpected response format
+          throw new Error(`Unexpected response format: ${JSON.stringify(response)}`);
+        }
       } else {
-        // Unexpected response format
-        console.error("Unexpected response format:", response);
-        throw new Error("Unexpected response format from classification service");
+        // Unexpected response type
+        throw new Error(`Unexpected response type: ${typeof response}`);
       }
     } catch (err) {
       console.error("Error processing answer:", err);
@@ -186,6 +178,7 @@ export const useHSCodeGenerator = () => {
     setSessionState(null);
     setResult(null);
     setError(null);
+    setDebugInfo(null);
   };
   
   return {
@@ -194,6 +187,7 @@ export const useHSCodeGenerator = () => {
     currentQuestion,
     result,
     error,
+    debugInfo,
     startAnalysis,
     answerQuestion,
     reset

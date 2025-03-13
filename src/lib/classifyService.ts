@@ -23,10 +23,6 @@ export interface ClassificationResponse {
   full_path?: string;
 }
 
-/**
- * Start a classification session with a product description
- * This exactly mirrors the classify_product function in the Python script
- */
 // Mock data for demo mode
 const mockQuestions: Record<string, ClassificationQuestion> = {
   "first": {
@@ -101,6 +97,9 @@ const mockContinue = (state: string, answer: string): ClassificationResponse | s
   }
 };
 
+/**
+ * Start a classification session with a product description
+ */
 export const classifyProduct = async (
   productDescription: string, 
   maxQuestions = 3
@@ -108,13 +107,15 @@ export const classifyProduct = async (
   // Use mock data if enabled
   if (USE_MOCK_DATA) {
     console.log("Using mock data for product classification");
-    // Add artificial delay to simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Short delay for realistic feel
+    await new Promise(resolve => setTimeout(resolve, 500));
     return mockClassify(productDescription);
   }
   
   // Use CORS proxy with the API URL
   const url = `${CORS_PROXY}${API_BASE_URL}/classify`;
+  console.log(`Making API request to: ${url}`);
+  
   const payload = {
     product: productDescription,
     interactive: true,
@@ -136,11 +137,19 @@ export const classifyProduct = async (
       throw new Error(`Error: ${response.status} - ${response.statusText}`);
     }
     
-    // Try to parse as JSON, fall back to text (exactly as Python does)
+    // Log raw response for debugging
+    const responseText = await response.text();
+    console.log("Raw API response:", responseText);
+    
+    // Try to parse as JSON
     try {
-      return await response.json();
+      // We need to parse the response text since we already consumed it above
+      const parsedResponse = JSON.parse(responseText);
+      console.log("Parsed response:", parsedResponse);
+      return parsedResponse;
     } catch (e) {
-      return await response.text();
+      console.log("Response is not JSON, treating as text");
+      return responseText;
     }
   } catch (error) {
     console.error("Classification error:", error);
@@ -150,7 +159,6 @@ export const classifyProduct = async (
 
 /**
  * Continue an ongoing classification session with an answer
- * This exactly mirrors the continue_classification function in the Python script
  */
 export const continueClassification = async (
   state: string, 
@@ -159,13 +167,15 @@ export const continueClassification = async (
   // Use mock data if enabled
   if (USE_MOCK_DATA) {
     console.log("Using mock data for classification continuation");
-    // Add artificial delay to simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Short delay for realistic feel
+    await new Promise(resolve => setTimeout(resolve, 500));
     return mockContinue(state, answer);
   }
   
   // Use CORS proxy with the API URL
   const url = `${CORS_PROXY}${API_BASE_URL}/classify/continue`;
+  console.log(`Making continuation API request to: ${url}`);
+  
   const payload = {
     state: state,
     answer: answer
@@ -186,11 +196,19 @@ export const continueClassification = async (
       throw new Error(`Error: ${response.status} - ${response.statusText}`);
     }
     
-    // Try to parse as JSON, fall back to text (exactly as Python does)
+    // Log raw response for debugging
+    const responseText = await response.text();
+    console.log("Raw API response:", responseText);
+    
+    // Try to parse as JSON
     try {
-      return await response.json();
+      // We need to parse the response text since we already consumed it above
+      const parsedResponse = JSON.parse(responseText);
+      console.log("Parsed response:", parsedResponse);
+      return parsedResponse;
     } catch (e) {
-      return await response.text();
+      console.log("Response is not JSON, treating as text");
+      return responseText;
     }
   } catch (error) {
     console.error("Continue classification error:", error);
