@@ -1,10 +1,13 @@
 // src/lib/classifyService.ts
 
+// Original API URL
 const API_BASE_URL = "https://hscode-eight.vercel.app";
 
-// Set to true to use mock data instead of actual API calls
-// This allows the application to work for demo purposes even if the API is unavailable
-const USE_MOCK_DATA = true;
+// Use a CORS proxy to avoid CORS issues when calling from a browser
+const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
+
+// Set to false to use the real API with a CORS proxy
+const USE_MOCK_DATA = false;
 
 // Same interface as the Python script response types
 export interface ClassificationQuestion {
@@ -110,7 +113,8 @@ export const classifyProduct = async (
     return mockClassify(productDescription);
   }
   
-  const url = `${API_BASE_URL}/classify`;
+  // Use CORS proxy with the API URL
+  const url = `${CORS_PROXY}${API_BASE_URL}/classify`;
   const payload = {
     product: productDescription,
     interactive: true,
@@ -118,13 +122,12 @@ export const classifyProduct = async (
   };
   
   try {
-    // Add mode: 'cors' to explicitly specify CORS mode
     const response = await fetch(url, {
       method: "POST",
-      mode: 'cors',
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain",
+        "X-Requested-With": "XMLHttpRequest", // Required by some CORS proxies
       },
       body: JSON.stringify(payload),
     });
@@ -141,10 +144,6 @@ export const classifyProduct = async (
     }
   } catch (error) {
     console.error("Classification error:", error);
-    // Improve error information for debugging
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Failed to connect to the HS code service. This may be due to CORS restrictions or the service being unavailable.');
-    }
     throw error;
   }
 };
@@ -165,20 +164,20 @@ export const continueClassification = async (
     return mockContinue(state, answer);
   }
   
-  const url = `${API_BASE_URL}/classify/continue`;
+  // Use CORS proxy with the API URL
+  const url = `${CORS_PROXY}${API_BASE_URL}/classify/continue`;
   const payload = {
     state: state,
     answer: answer
   };
   
   try {
-    // Add mode: 'cors' to explicitly specify CORS mode
     const response = await fetch(url, {
       method: "POST",
-      mode: 'cors',
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain",
+        "X-Requested-With": "XMLHttpRequest", // Required by some CORS proxies
       },
       body: JSON.stringify(payload),
     });
@@ -195,10 +194,6 @@ export const continueClassification = async (
     }
   } catch (error) {
     console.error("Continue classification error:", error);
-    // Improve error information for debugging
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Failed to connect to the HS code service. This may be due to CORS restrictions or the service being unavailable.');
-    }
     throw error;
   }
 };
