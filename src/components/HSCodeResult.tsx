@@ -8,10 +8,19 @@ interface HSCodeResultProps {
   hsCode: string;
   description: string;
   confidence: number;
+  fullPath?: string;
+  enrichedQuery?: string;
   onReset: () => void;
 }
 
-const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResultProps) => {
+const HSCodeResult = ({ 
+  hsCode, 
+  description, 
+  confidence, 
+  fullPath, 
+  enrichedQuery,
+  onReset 
+}: HSCodeResultProps) => {
   const [copied, setCopied] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -121,9 +130,19 @@ const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResult
                 <p>
                   <strong>What is HS Code {hsCode}?</strong> The Harmonized System (HS) is an international nomenclature for the classification of products. It allows participating countries to classify traded goods on a common basis for customs purposes.
                 </p>
-                <p>
-                  <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. The specific subheading {hsCode} is used for {description.toLowerCase()}.
-                </p>
+                
+                {enrichedQuery && (
+                  <p>
+                    <strong>Product:</strong> {enrichedQuery}
+                  </p>
+                )}
+                
+                {fullPath && (
+                  <p>
+                    <strong>Classification Path:</strong> {fullPath}
+                  </p>
+                )}
+                
                 <p>
                   <strong>Import Requirements:</strong> Products under this classification may be subject to specific import duties, taxes, and regulatory requirements which vary by country. We recommend checking with your local customs authority for detailed information.
                 </p>
@@ -141,36 +160,6 @@ const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResult
       </div>
     </div>
   );
-};
-
-// Helper function to get chapter descriptions
-const getChapterDescription = (chapter: string): string => {
-  const chapters: Record<string, string> = {
-    "01": "Live Animals",
-    "02": "Meat and Edible Meat Offal",
-    "03": "Fish and Crustaceans",
-    "04": "Dairy Produce; Birds' Eggs; Natural Honey",
-    "05": "Products of Animal Origin",
-    "06": "Live Trees and Other Plants",
-    "07": "Edible Vegetables",
-    "08": "Edible Fruits and Nuts",
-    "09": "Coffee, Tea, and Spices",
-    "10": "Cereals",
-    "11": "Products of the Milling Industry",
-    "12": "Oil Seeds and Oleaginous Fruits",
-    "39": "Plastics and Articles Thereof",
-    "40": "Rubber and Articles Thereof",
-    "61": "Articles of Apparel and Clothing Accessories, Knitted",
-    "62": "Articles of Apparel and Clothing Accessories, Not Knitted",
-    "63": "Other Made Up Textile Articles",
-    "84": "Machinery and Mechanical Appliances",
-    "85": "Electrical Machinery and Equipment",
-    "90": "Optical, Photographic, Measuring, and Medical Instruments",
-    "94": "Furniture; Bedding, Mattresses, Cushions",
-    "95": "Toys, Games and Sports Requisites",
-  };
-  
-  return chapters[chapter] || "various products based on international trade classifications";
 };
 
 export default HSCodeResult;
