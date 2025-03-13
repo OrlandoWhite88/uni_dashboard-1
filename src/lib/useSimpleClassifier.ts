@@ -7,7 +7,7 @@ type ClassifierState =
   | { status: 'loading' }
   | { status: 'question', question: string, options?: string[], state: string }
   | { status: 'result', code: string, description?: string, path?: string }
-  | { status: 'error', message: string };
+  | { status: 'error', message: string, details?: string };
 
 /**
  * A simplified React hook for HS code classification
@@ -31,7 +31,8 @@ export function useSimpleClassifier() {
       console.error('Classification error:', err);
       setState({ 
         status: 'error', 
-        message: err instanceof Error ? err.message : 'Unknown error occurred' 
+        message: err instanceof Error ? err.message : 'Unknown error occurred',
+        details: err instanceof Error ? err.stack : undefined
       });
     }
   }, []);
@@ -58,7 +59,8 @@ export function useSimpleClassifier() {
       console.error('Continue error:', err);
       setState({ 
         status: 'error', 
-        message: err instanceof Error ? err.message : 'Unknown error occurred' 
+        message: err instanceof Error ? err.message : 'Unknown error occurred',
+        details: err instanceof Error ? err.stack : undefined
       });
     }
   }, [state]);
@@ -92,7 +94,8 @@ export function useSimpleClassifier() {
       if (response.state === 'error') {
         setState({
           status: 'error',
-          message: 'Service error occurred'
+          message: 'Service error occurred',
+          details: response.error || 'No additional details provided'
         });
         return;
       }
@@ -123,7 +126,8 @@ export function useSimpleClassifier() {
     // Fallback for unexpected response format
     setState({
       status: 'error',
-      message: 'Received unexpected response format'
+      message: 'Received unexpected response format',
+      details: JSON.stringify(response)
     });
   }, []);
   

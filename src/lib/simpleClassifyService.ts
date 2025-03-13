@@ -5,13 +5,14 @@
 // Original API URL
 const API_BASE_URL = "https://hscode-eight.vercel.app";
 
-// Alternative CORS proxies - we'll try multiple if needed
+// CORS proxy configuration - Heroku CORS Anywhere worked well
 const CORS_PROXIES = [
-  "https://corsproxy.io/?",  // Try a different proxy first
-  "https://cors-anywhere.herokuapp.com/"
+  "https://cors-anywhere.herokuapp.com/", // Primary (working) proxy
+  "https://corsproxy.io/?",               // Backup option 1
+  "https://api.allorigins.win/raw?url="   // Backup option 2
 ];
 
-// For safety, keep mock mode available
+// For safety, keep mock mode available but disabled by default
 const USE_MOCK_MODE = false;
 
 // Basic types for the responses
@@ -26,6 +27,7 @@ export interface ClassificationResponse {
   final_code?: string;
   enriched_query?: string;
   full_path?: string;
+  error?: string; // Added for error details
 }
 
 // Simple mock implementation
@@ -48,14 +50,17 @@ const getMockContinuation = (answer: string): ClassificationResponse => {
 };
 
 /**
- * Attempt to call the API with multiple CORS proxies if needed
+ * Attempt to call the API with CORS proxy
  */
 async function attemptApiCall(endpoint: string, data: any): Promise<any> {
   let lastError = null;
+  console.log(`Attempting API call to ${endpoint} with data:`, data);
   
-  // Try without proxy first (in case CORS is configured on server)
+  // Try direct call first - though unlikely to work due to CORS
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const directUrl = `${API_BASE_URL}${endpoint}`;
+    console.log(`Trying direct API call to: ${directUrl}`);
+    const response = await fetch(directUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -67,11 +72,11 @@ async function attemptApiCall(endpoint: string, data: any): Promise<any> {
       return await parseApiResponse(response);
     }
   } catch (err) {
-    console.log("Direct API call failed, trying proxies...");
+    console.log("Direct API call failed, trying proxy...");
     lastError = err;
   }
   
-  // Try with each proxy
+  // Try with each proxy, prioritizing the Heroku CORS Anywhere that worked
   for (const proxy of CORS_PROXIES) {
     try {
       const url = `${proxy}${API_BASE_URL}${endpoint}`;
@@ -107,19 +112,21 @@ async function parseApiResponse(response: Response): Promise<any> {
   console.log("Raw API response:", text);
   
   try {
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+    console.log("Parsed JSON response:", parsed);
+    return parsed;
   } catch (e) {
+    console.log("Response is not JSON, treating as text:", text);
     return text;
   }
 }
 
 /**
- * Start a classification session with minimal error surface
+ * Start a classification session
  */
 export async function simpleClassify(product: string): Promise<ClassificationResponse> {
   try {
     if (USE_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network
       return getMockResponse(product);
     }
     
@@ -129,36 +136,37 @@ export async function simpleClassify(product: string): Promise<ClassificationRes
       max_questions: 3
     });
     
-    // Extra validation to ensure we have a usable response
+    // Handle string response (direct HS code)
     if (typeof result === "string") {
       return { final_code: result };
     }
     
-    if (!result || typeof result !== "object") {
-      throw new Error("Invalid response format");
+    // Handle object response
+    if (result && typeof result === "object") {
+      return result;
     }
     
-    return result;
+    throw new Error("Unexpected response format");
   } catch (error) {
     console.error("Classification error:", error);
-    // Return a fail-safe response rather than throwing
+    // Return a fail-safe response with error details
     return {
       state: "error",
+      error: error instanceof Error ? error.message : 'Unknown error',
       clarification_question: {
         question_text: "There was an error connecting to the classification service. Would you like to try again?",
-        options: ["Yes", "No"]
+        options: ["Try Again", "Cancel"]
       }
     };
   }
 }
 
 /**
- * Continue classification with minimal error surface
+ * Continue classification with an answer
  */
 export async function simpleContinue(state: string, answer: string): Promise<ClassificationResponse> {
   try {
     if (USE_MOCK_MODE) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network
       return getMockContinuation(answer);
     }
     
@@ -167,24 +175,26 @@ export async function simpleContinue(state: string, answer: string): Promise<Cla
       answer
     });
     
-    // Extra validation to ensure we have a usable response
+    // Handle string response (direct HS code)
     if (typeof result === "string") {
       return { final_code: result };
     }
     
-    if (!result || typeof result !== "object") {
-      throw new Error("Invalid response format");
+    // Handle object response
+    if (result && typeof result === "object") {
+      return result;
     }
     
-    return result;
+    throw new Error("Unexpected response format");
   } catch (error) {
     console.error("Continue classification error:", error);
-    // Return a fail-safe response rather than throwing
+    // Return a fail-safe response with error details
     return {
       state: "error",
+      error: error instanceof Error ? error.message : 'Unknown error',
       clarification_question: {
-        question_text: "There was an error connecting to the classification service. Would you like to try again?",
-        options: ["Yes", "No"]
+        question_text: "There was an error continuing the classification. Would you like to try again?",
+        options: ["Try Again", "Cancel"]
       }
     };
   }

@@ -186,7 +186,14 @@ const Index = () => {
                 <AlertCircle className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
                 <div>
                   <h3 className="font-medium text-red-600 mb-2">Error</h3>
-                  <p className="text-gray-700 mb-4">{state.message}</p>
+                  <p className="text-gray-700 mb-2">{state.message}</p>
+                  
+                  {state.details && (
+                    <div className="mb-4 p-2 bg-red-50 border border-red-100 rounded-md overflow-auto max-h-40 text-xs font-mono">
+                      {state.details}
+                    </div>
+                  )}
+                  
                   <button
                     onClick={reset}
                     className="px-4 py-2 bg-red-600 text-white rounded-md flex items-center"
