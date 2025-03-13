@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import CustomButton from "./ui/CustomButton";
 import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X } from "lucide-react";
@@ -8,10 +7,11 @@ interface HSCodeResultProps {
   hsCode: string;
   description: string;
   confidence: number;
+  fullPath?: string; // Added fullPath prop
   onReset: () => void;
 }
 
-const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResultProps) => {
+const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HSCodeResultProps) => {
   const [copied, setCopied] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -22,7 +22,7 @@ const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResult
   };
 
   const handleDownload = () => {
-    const content = `HS Code: ${hsCode}\nDescription: ${description}\nConfidence: ${confidence}%`;
+    const content = `HS Code: ${hsCode}\nDescription: ${description}\nConfidence: ${confidence}%${fullPath ? `\nClassification Path: ${fullPath}` : ''}`;
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     
@@ -121,6 +121,14 @@ const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResult
                 <p>
                   <strong>What is HS Code {hsCode}?</strong> The Harmonized System (HS) is an international nomenclature for the classification of products. It allows participating countries to classify traded goods on a common basis for customs purposes.
                 </p>
+                
+                {/* Display full classification path if available */}
+                {fullPath && (
+                  <p>
+                    <strong>Classification Path:</strong> {fullPath}
+                  </p>
+                )}
+                
                 <p>
                   <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. The specific subheading {hsCode} is used for {description.toLowerCase()}.
                 </p>

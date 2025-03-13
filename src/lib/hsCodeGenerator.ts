@@ -1,13 +1,15 @@
-
+// src/lib/hsCodeGenerator.ts
 import { useState } from "react";
+import { classifyProduct, continueClassification, ClassificationResponse } from "./classifyService";
 
 // Types
-export type GeneratorState = "idle" | "analyzing" | "questioning" | "generating" | "complete";
+export type GeneratorState = "idle" | "analyzing" | "questioning" | "generating" | "complete" | "error";
 
 export interface HSResult {
   code: string;
   description: string;
   confidence: number;
+  fullPath?: string;
 }
 
 export interface Question {
@@ -16,92 +18,133 @@ export interface Question {
   options?: string[];
 }
 
-// Mock data for demonstration purposes
-const MOCK_QUESTIONS: Question[] = [
-  {
-    id: "material",
-    text: "What is the primary material of the product?",
-    options: ["Cotton", "Polyester", "Leather", "Metal", "Plastic", "Other"]
-  },
-  {
-    id: "purpose",
-    text: "What is the main purpose or use of this product?",
-    options: ["Clothing", "Industrial", "Electronic", "Medical", "Food", "Other"]
-  },
-  {
-    id: "processing",
-    text: "Has the product undergone any specific processing or treatment?",
-  },
-  {
-    id: "components",
-    text: "Does the product contain any electronic components or batteries?",
-    options: ["Yes", "No"]
-  }
-];
-
-// Mock HS code result generation
-const generateMockHSCode = (): HSResult => {
-  // This would be replaced with actual API call
-  const codes = [
-    { code: "6204.49.10", description: "Women's dresses, of artificial fibers", confidence: 95 },
-    { code: "8517.12.00", description: "Telephones for cellular networks or other wireless networks", confidence: 88 },
-    { code: "3926.20.90", description: "Articles of apparel and clothing accessories of plastic", confidence: 76 },
-    { code: "9403.60.80", description: "Other wooden furniture", confidence: 92 },
-    { code: "8471.30.01", description: "Portable automatic data processing machines", confidence: 89 },
-  ];
-  
-  return codes[Math.floor(Math.random() * codes.length)];
-};
-
-// Simulated delay for API calls
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 export const useHSCodeGenerator = () => {
   const [state, setState] = useState<GeneratorState>("idle");
   const [productDescription, setProductDescription] = useState("");
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [sessionState, setSessionState] = useState<string | null>(null);
   const [result, setResult] = useState<HSResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   // Start the process with a product description
   const startAnalysis = async (description: string) => {
-    setState("analyzing");
-    setProductDescription(description);
-    
-    // Simulated analysis delay
-    await delay(1500);
-    
-    setState("questioning");
-    setCurrentQuestion(MOCK_QUESTIONS[0]);
+    try {
+      setState("analyzing");
+      setProductDescription(description);
+      setError(null);
+      
+      // Call the classify API endpoint exactly like the Python script
+      const response = await classifyProduct(description);
+      
+      // Handle different response types exactly as in Python script
+      if (typeof response === 'string') {
+        // If result is a string, it's the final code - exactly as in Python
+        setState("generating");
+        
+        setTimeout(() => {
+          const hsResult: HSResult = {
+            code: response,
+            description: description,
+            confidence: 90
+          };
+          
+          setResult(hsResult);
+          setState("complete");
+        }, 1000);
+      } else if ("clarification_question" in response) {
+        // If result has clarification_question, ask it - exactly as in Python
+        setSessionState(response.state || null);
+        setCurrentQuestion({
+          id: "clarification",
+          text: response.clarification_question.question_text,
+          options: response.clarification_question.options
+        });
+        setState("questioning");
+      } else if ("final_code" in response) {
+        // If result has final_code, it's the final classification - exactly as in Python
+        setState("generating");
+        
+        setTimeout(() => {
+          const hsResult: HSResult = {
+            code: response.final_code,
+            description: response.enriched_query || description,
+            confidence: 95,
+            fullPath: response.full_path
+          };
+          
+          setResult(hsResult);
+          setState("complete");
+        }, 1000);
+      } else {
+        // Unexpected response format
+        throw new Error("Unexpected response format from classification service");
+      }
+    } catch (err) {
+      console.error("Error starting analysis:", err);
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      setState("error");
+    }
   };
   
   // Handle answering a question
   const answerQuestion = async (questionId: string, answer: string) => {
-    setState("analyzing");
-    
-    // Save the answer
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: answer
-    }));
-    
-    // Simulated processing delay
-    await delay(1000);
-    
-    // Move to next question or generate result
-    if (questionIndex < MOCK_QUESTIONS.length - 1) {
-      setQuestionIndex(questionIndex + 1);
-      setCurrentQuestion(MOCK_QUESTIONS[questionIndex + 1]);
-      setState("questioning");
-    } else {
-      // Final question answered, generate result
-      setState("generating");
-      await delay(2000);
+    try {
+      setState("analyzing");
       
-      const hsResult = generateMockHSCode();
-      setResult(hsResult);
-      setState("complete");
+      if (!sessionState) {
+        throw new Error("No active session state");
+      }
+      
+      // Call the continue API endpoint exactly like the Python script
+      const response = await continueClassification(sessionState, answer);
+      
+      // Handle different response types exactly as in Python script
+      if (typeof response === 'string') {
+        // If result is a string, it's the final code - exactly as in Python
+        setState("generating");
+        
+        setTimeout(() => {
+          const hsResult: HSResult = {
+            code: response,
+            description: productDescription,
+            confidence: 90
+          };
+          
+          setResult(hsResult);
+          setState("complete");
+        }, 1000);
+      } else if ("clarification_question" in response) {
+        // If result has clarification_question, ask it - exactly as in Python
+        setSessionState(response.state || null);
+        setCurrentQuestion({
+          id: "clarification",
+          text: response.clarification_question.question_text,
+          options: response.clarification_question.options
+        });
+        setState("questioning");
+      } else if ("final_code" in response) {
+        // If result has final_code, it's the final classification - exactly as in Python
+        setState("generating");
+        
+        setTimeout(() => {
+          const hsResult: HSResult = {
+            code: response.final_code,
+            description: response.enriched_query || productDescription,
+            confidence: 95,
+            fullPath: response.full_path
+          };
+          
+          setResult(hsResult);
+          setState("complete");
+        }, 1000);
+      } else {
+        // Unexpected response format
+        throw new Error("Unexpected response format from classification service");
+      }
+    } catch (err) {
+      console.error("Error processing answer:", err);
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      setState("error");
     }
   };
   
@@ -110,17 +153,17 @@ export const useHSCodeGenerator = () => {
     setState("idle");
     setProductDescription("");
     setCurrentQuestion(null);
-    setQuestionIndex(0);
-    setAnswers({});
+    setSessionState(null);
     setResult(null);
+    setError(null);
   };
   
   return {
     state,
     productDescription,
     currentQuestion,
-    answers,
     result,
+    error,
     startAnalysis,
     answerQuestion,
     reset
