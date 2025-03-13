@@ -8,12 +8,10 @@ interface HSCodeResultProps {
   hsCode: string;
   description: string;
   confidence: number;
-  enrichedQuery?: string;
-  fullPath?: string;
   onReset: () => void;
 }
 
-const HSCodeResult = ({ hsCode, description, confidence, enrichedQuery, fullPath, onReset }: HSCodeResultProps) => {
+const HSCodeResult = ({ hsCode, description, confidence, onReset }: HSCodeResultProps) => {
   const [copied, setCopied] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -24,7 +22,7 @@ const HSCodeResult = ({ hsCode, description, confidence, enrichedQuery, fullPath
   };
 
   const handleDownload = () => {
-    const content = `HS Code: ${hsCode}\nDescription: ${description}\nConfidence: ${confidence}%${enrichedQuery ? `\nProduct: ${enrichedQuery}` : ''}${fullPath ? `\nClassification Path: ${fullPath}` : ''}`;
+    const content = `HS Code: ${hsCode}\nDescription: ${description}\nConfidence: ${confidence}%`;
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     
@@ -59,13 +57,6 @@ const HSCodeResult = ({ hsCode, description, confidence, enrichedQuery, fullPath
         
         <div className="flex flex-col items-center">
           <div className="text-5xl font-bold tracking-tight mb-4 text-center">{hsCode}</div>
-          
-          {enrichedQuery && (
-            <div className="text-center mb-6">
-              <div className="text-sm font-medium text-muted-foreground mb-1">Product Description</div>
-              <p className="max-w-lg">{enrichedQuery}</p>
-            </div>
-          )}
           
           <div className="text-center mb-6">
             <div className="text-sm font-medium text-muted-foreground mb-1">Classification Description</div>
@@ -130,11 +121,9 @@ const HSCodeResult = ({ hsCode, description, confidence, enrichedQuery, fullPath
                 <p>
                   <strong>What is HS Code {hsCode}?</strong> The Harmonized System (HS) is an international nomenclature for the classification of products. It allows participating countries to classify traded goods on a common basis for customs purposes.
                 </p>
-                {fullPath && (
-                  <p>
-                    <strong>Classification Path:</strong> {fullPath}
-                  </p>
-                )}
+                <p>
+                  <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. The specific subheading {hsCode} is used for {description.toLowerCase()}.
+                </p>
                 <p>
                   <strong>Import Requirements:</strong> Products under this classification may be subject to specific import duties, taxes, and regulatory requirements which vary by country. We recommend checking with your local customs authority for detailed information.
                 </p>
@@ -152,6 +141,36 @@ const HSCodeResult = ({ hsCode, description, confidence, enrichedQuery, fullPath
       </div>
     </div>
   );
+};
+
+// Helper function to get chapter descriptions
+const getChapterDescription = (chapter: string): string => {
+  const chapters: Record<string, string> = {
+    "01": "Live Animals",
+    "02": "Meat and Edible Meat Offal",
+    "03": "Fish and Crustaceans",
+    "04": "Dairy Produce; Birds' Eggs; Natural Honey",
+    "05": "Products of Animal Origin",
+    "06": "Live Trees and Other Plants",
+    "07": "Edible Vegetables",
+    "08": "Edible Fruits and Nuts",
+    "09": "Coffee, Tea, and Spices",
+    "10": "Cereals",
+    "11": "Products of the Milling Industry",
+    "12": "Oil Seeds and Oleaginous Fruits",
+    "39": "Plastics and Articles Thereof",
+    "40": "Rubber and Articles Thereof",
+    "61": "Articles of Apparel and Clothing Accessories, Knitted",
+    "62": "Articles of Apparel and Clothing Accessories, Not Knitted",
+    "63": "Other Made Up Textile Articles",
+    "84": "Machinery and Mechanical Appliances",
+    "85": "Electrical Machinery and Equipment",
+    "90": "Optical, Photographic, Measuring, and Medical Instruments",
+    "94": "Furniture; Bedding, Mattresses, Cushions",
+    "95": "Toys, Games and Sports Requisites",
+  };
+  
+  return chapters[chapter] || "various products based on international trade classifications";
 };
 
 export default HSCodeResult;

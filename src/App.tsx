@@ -12,7 +12,6 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import BulkImport from "./pages/BulkImport";
 import BatchClassify from "./pages/BatchClassify";
-import ExportResults from "./pages/ExportResults";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +28,6 @@ const App = () => (
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/bulk-import" element={<BulkImport />} />
           <Route path="/batch-classify" element={<BatchClassify />} />
-          <Route path="/export-results" element={<ExportResults />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

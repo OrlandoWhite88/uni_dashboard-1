@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
-import { ArrowRight, MessageCircle, Check, X, HelpCircle, Loader2 } from "lucide-react";
+import { ArrowRight, MessageCircle, Check, X, HelpCircle } from "lucide-react";
 
 interface Question {
   id: string;
@@ -59,7 +59,7 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
             
             <p className="text-foreground leading-relaxed mb-4">{question.text}</p>
             
-            {question.options && question.options.length > 0 ? (
+            {question.options ? (
               <div className="space-y-2.5 mb-4">
                 {question.options.map((option) => (
                   <button
@@ -99,11 +99,7 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
                     className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center bg-primary/10 text-primary disabled:opacity-50 disabled:text-muted-foreground disabled:bg-secondary/50"
                     disabled={!answer.trim() || isLoading}
                   >
-                    {isLoading ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <ArrowRight size={14} />
-                    )}
+                    <ArrowRight size={14} />
                   </button>
                 </div>
                 
