@@ -1,16 +1,13 @@
 
 import { useState } from "react";
-import { classifyProduct, continueClassification, ClassificationResponse } from "./api";
 
 // Types
-export type GeneratorState = "idle" | "analyzing" | "questioning" | "generating" | "complete" | "error";
+export type GeneratorState = "idle" | "analyzing" | "questioning" | "generating" | "complete";
 
 export interface HSResult {
   code: string;
   description: string;
   confidence: number;
-  enrichedQuery?: string;
-  fullPath?: string;
 }
 
 export interface Question {
@@ -19,91 +16,92 @@ export interface Question {
   options?: string[];
 }
 
+// Mock data for demonstration purposes
+const MOCK_QUESTIONS: Question[] = [
+  {
+    id: "material",
+    text: "What is the primary material of the product?",
+    options: ["Cotton", "Polyester", "Leather", "Metal", "Plastic", "Other"]
+  },
+  {
+    id: "purpose",
+    text: "What is the main purpose or use of this product?",
+    options: ["Clothing", "Industrial", "Electronic", "Medical", "Food", "Other"]
+  },
+  {
+    id: "processing",
+    text: "Has the product undergone any specific processing or treatment?",
+  },
+  {
+    id: "components",
+    text: "Does the product contain any electronic components or batteries?",
+    options: ["Yes", "No"]
+  }
+];
+
+// Mock HS code result generation
+const generateMockHSCode = (): HSResult => {
+  // This would be replaced with actual API call
+  const codes = [
+    { code: "6204.49.10", description: "Women's dresses, of artificial fibers", confidence: 95 },
+    { code: "8517.12.00", description: "Telephones for cellular networks or other wireless networks", confidence: 88 },
+    { code: "3926.20.90", description: "Articles of apparel and clothing accessories of plastic", confidence: 76 },
+    { code: "9403.60.80", description: "Other wooden furniture", confidence: 92 },
+    { code: "8471.30.01", description: "Portable automatic data processing machines", confidence: 89 },
+  ];
+  
+  return codes[Math.floor(Math.random() * codes.length)];
+};
+
+// Simulated delay for API calls
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const useHSCodeGenerator = () => {
   const [state, setState] = useState<GeneratorState>("idle");
   const [productDescription, setProductDescription] = useState("");
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [sessionState, setSessionState] = useState<string | null>(null);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<HSResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
   
   // Start the process with a product description
   const startAnalysis = async (description: string) => {
-    setError(null);
     setState("analyzing");
     setProductDescription(description);
     
-    try {
-      const response = await classifyProduct(description);
-      
-      if (response.final_code) {
-        // Direct result without questions
-        setResult({
-          code: response.final_code,
-          description: response.enriched_query || description,
-          confidence: 90, // Default confidence
-          enrichedQuery: response.enriched_query,
-          fullPath: response.full_path
-        });
-        setState("complete");
-      } else if (response.clarification_question) {
-        // Need to ask questions
-        setCurrentQuestion({
-          id: "question",
-          text: response.clarification_question.question_text,
-          options: response.clarification_question.options
-        });
-        setSessionState(response.state || null);
-        setState("questioning");
-      } else {
-        throw new Error("Unexpected response format");
-      }
-    } catch (err) {
-      console.error("Error starting analysis:", err);
-      setError("Failed to analyze product. Please try again.");
-      setState("error");
-    }
+    // Simulated analysis delay
+    await delay(1500);
+    
+    setState("questioning");
+    setCurrentQuestion(MOCK_QUESTIONS[0]);
   };
   
   // Handle answering a question
   const answerQuestion = async (questionId: string, answer: string) => {
-    if (!sessionState) {
-      setError("Session state is missing. Please start over.");
-      setState("error");
-      return;
-    }
-    
     setState("analyzing");
     
-    try {
-      const response = await continueClassification(sessionState, answer);
+    // Save the answer
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+    
+    // Simulated processing delay
+    await delay(1000);
+    
+    // Move to next question or generate result
+    if (questionIndex < MOCK_QUESTIONS.length - 1) {
+      setQuestionIndex(questionIndex + 1);
+      setCurrentQuestion(MOCK_QUESTIONS[questionIndex + 1]);
+      setState("questioning");
+    } else {
+      // Final question answered, generate result
+      setState("generating");
+      await delay(2000);
       
-      if (response.final_code) {
-        // Got final result
-        setResult({
-          code: response.final_code,
-          description: response.enriched_query || productDescription,
-          confidence: 90, // Default confidence
-          enrichedQuery: response.enriched_query,
-          fullPath: response.full_path
-        });
-        setState("complete");
-      } else if (response.clarification_question) {
-        // More questions
-        setCurrentQuestion({
-          id: "question",
-          text: response.clarification_question.question_text,
-          options: response.clarification_question.options
-        });
-        setSessionState(response.state || null);
-        setState("questioning");
-      } else {
-        throw new Error("Unexpected response format");
-      }
-    } catch (err) {
-      console.error("Error processing answer:", err);
-      setError("Failed to process your answer. Please try again.");
-      setState("error");
+      const hsResult = generateMockHSCode();
+      setResult(hsResult);
+      setState("complete");
     }
   };
   
@@ -112,17 +110,17 @@ export const useHSCodeGenerator = () => {
     setState("idle");
     setProductDescription("");
     setCurrentQuestion(null);
-    setSessionState(null);
+    setQuestionIndex(0);
+    setAnswers({});
     setResult(null);
-    setError(null);
   };
   
   return {
     state,
     productDescription,
     currentQuestion,
+    answers,
     result,
-    error,
     startAnalysis,
     answerQuestion,
     reset
