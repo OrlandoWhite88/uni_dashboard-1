@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
 import { ArrowRight, MessageCircle, Check, X, HelpCircle } from "lucide-react";
@@ -20,16 +19,24 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
   const [answer, setAnswer] = useState("");
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
+  // Debug log when question changes
+  useEffect(() => {
+    console.log("QuestionFlow received question:", question);
+  }, [question]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (question.options && selectedOption) {
+      console.log("Submitting selected option:", selectedOption);
       onAnswer(question.id, selectedOption);
     } else if (answer.trim()) {
+      console.log("Submitting text answer:", answer);
       onAnswer(question.id, answer);
     }
   };
 
   const handleOptionSelect = (option: string) => {
+    console.log("Option selected:", option);
     setSelectedOption(option);
     // Auto-submit after a brief delay when an option is selected
     setTimeout(() => {
@@ -59,7 +66,7 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
             
             <p className="text-foreground leading-relaxed mb-4">{question.text}</p>
             
-            {question.options ? (
+            {question.options && question.options.length > 0 ? (
               <div className="space-y-2.5 mb-4">
                 {question.options.map((option) => (
                   <button

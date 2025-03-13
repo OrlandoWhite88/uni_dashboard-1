@@ -35,9 +35,11 @@ export const useHSCodeGenerator = () => {
       
       // Call the classify API endpoint exactly like the Python script
       const response = await classifyProduct(description);
+      console.log("API Response:", response); // Debug log
       
       // Handle different response types exactly as in Python script
       if (typeof response === 'string') {
+        console.log("String response type detected");
         // If result is a string, it's the final code - exactly as in Python
         setState("generating");
         
@@ -52,15 +54,26 @@ export const useHSCodeGenerator = () => {
           setState("complete");
         }, 1000);
       } else if ("clarification_question" in response) {
+        console.log("Question response detected:", response.clarification_question);
         // If result has clarification_question, ask it - exactly as in Python
         setSessionState(response.state || null);
+        
+        // Extract the question information
+        const questionText = response.clarification_question.question_text;
+        const options = response.clarification_question.options;
+        
+        console.log("Setting question:", { id: "clarification", text: questionText, options });
+        
+        // Set the current question state
         setCurrentQuestion({
           id: "clarification",
-          text: response.clarification_question.question_text,
-          options: response.clarification_question.options
+          text: questionText,
+          options: options
         });
+        
         setState("questioning");
       } else if ("final_code" in response) {
+        console.log("Final code response detected");
         // If result has final_code, it's the final classification - exactly as in Python
         setState("generating");
         
@@ -77,6 +90,7 @@ export const useHSCodeGenerator = () => {
         }, 1000);
       } else {
         // Unexpected response format
+        console.error("Unexpected response format:", response);
         throw new Error("Unexpected response format from classification service");
       }
     } catch (err) {
@@ -95,11 +109,15 @@ export const useHSCodeGenerator = () => {
         throw new Error("No active session state");
       }
       
+      console.log("Sending answer:", answer, "for session:", sessionState);
+      
       // Call the continue API endpoint exactly like the Python script
       const response = await continueClassification(sessionState, answer);
+      console.log("Continue API Response:", response); // Debug log
       
       // Handle different response types exactly as in Python script
       if (typeof response === 'string') {
+        console.log("String response type detected");
         // If result is a string, it's the final code - exactly as in Python
         setState("generating");
         
@@ -114,15 +132,26 @@ export const useHSCodeGenerator = () => {
           setState("complete");
         }, 1000);
       } else if ("clarification_question" in response) {
+        console.log("Follow-up question detected:", response.clarification_question);
         // If result has clarification_question, ask it - exactly as in Python
         setSessionState(response.state || null);
+        
+        // Extract the question information
+        const questionText = response.clarification_question.question_text;
+        const options = response.clarification_question.options;
+        
+        console.log("Setting question:", { id: "clarification", text: questionText, options });
+        
+        // Set the current question state
         setCurrentQuestion({
           id: "clarification",
-          text: response.clarification_question.question_text,
-          options: response.clarification_question.options
+          text: questionText,
+          options: options
         });
+        
         setState("questioning");
       } else if ("final_code" in response) {
+        console.log("Final code response detected");
         // If result has final_code, it's the final classification - exactly as in Python
         setState("generating");
         
@@ -139,6 +168,7 @@ export const useHSCodeGenerator = () => {
         }, 1000);
       } else {
         // Unexpected response format
+        console.error("Unexpected response format:", response);
         throw new Error("Unexpected response format from classification service");
       }
     } catch (err) {

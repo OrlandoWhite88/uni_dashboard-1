@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Layout from "@/components/Layout";
 import ProductInput from "@/components/ProductInput";
 import QuestionFlow from "@/components/QuestionFlow";
@@ -17,6 +17,12 @@ const Index = () => {
     answerQuestion,
     reset
   } = useHSCodeGenerator();
+
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log("Current state:", state);
+    console.log("Current question:", currentQuestion);
+  }, [state, currentQuestion]);
 
   return (
     <Layout className="pt-28 pb-16">
@@ -37,11 +43,21 @@ const Index = () => {
       )}
       
       {state === "questioning" && currentQuestion && (
-        <QuestionFlow 
-          question={currentQuestion} 
-          onAnswer={answerQuestion}
-          isLoading={false} 
-        />
+        <>
+          {/* Debug info */}
+          <div className="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded-md">
+            <p>Debug - Displaying question: {currentQuestion.text}</p>
+            {currentQuestion.options && (
+              <p>Options: {currentQuestion.options.join(", ")}</p>
+            )}
+          </div>
+          
+          <QuestionFlow 
+            question={currentQuestion} 
+            onAnswer={answerQuestion}
+            isLoading={false} 
+          />
+        </>
       )}
       
       {state === "generating" && (
@@ -76,6 +92,16 @@ const Index = () => {
           fullPath={result.fullPath}
           onReset={reset}
         />
+      )}
+      
+      {/* Fallback case for when state doesn't match any expected values */}
+      {!["idle", "analyzing", "questioning", "generating", "complete", "error"].includes(state) && (
+        <div className="max-w-2xl mx-auto p-6 glass-card rounded-xl">
+          <p>Unexpected application state: {state}</p>
+          <CustomButton onClick={reset} className="mt-4">
+            Reset Application
+          </CustomButton>
+        </div>
       )}
     </Layout>
   );
