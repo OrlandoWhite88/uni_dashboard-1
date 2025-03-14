@@ -108,7 +108,7 @@ const Index = () => {
             <QuestionFlow 
               question={{
                 id: 'clarification', 
-                text: state.question,
+                text: state.question || "Please provide more information",
                 options: state.options
               }}
               onAnswer={handleAnswer}

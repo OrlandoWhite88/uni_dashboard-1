@@ -44,6 +44,18 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
     }, 500);
   };
 
+  // Guard against invalid question objects to prevent rendering errors
+  if (!question || typeof question !== 'object' || !question.text) {
+    console.error("Invalid question object received:", question);
+    return (
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="mb-6 glass-card p-6 rounded-xl">
+          <div className="text-destructive">Error: Invalid question format</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-2xl mx-auto animate-slide-up">
       <div className="mb-6 glass-card p-6 rounded-xl relative overflow-hidden">
