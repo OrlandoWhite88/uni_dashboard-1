@@ -21,22 +21,25 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
 
   // Debug log when question changes
   useEffect(() => {
-    console.log("QuestionFlow received question:", question);
+    console.log("[QuestionFlow] Received question:", question);
+    console.log("[QuestionFlow] Question text type:", typeof question.text);
+    console.log("[QuestionFlow] Question options:", question.options);
+    console.log("[QuestionFlow] Question options type:", Array.isArray(question.options) ? "array" : typeof question.options);
   }, [question]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (question.options && selectedOption) {
-      console.log("Submitting selected option:", selectedOption);
+      console.log("[QuestionFlow] Submitting selected option:", selectedOption);
       onAnswer(question.id, selectedOption);
     } else if (answer.trim()) {
-      console.log("Submitting text answer:", answer);
+      console.log("[QuestionFlow] Submitting text answer:", answer);
       onAnswer(question.id, answer);
     }
   };
 
   const handleOptionSelect = (option: string) => {
-    console.log("Option selected:", option);
+    console.log("[QuestionFlow] Option selected:", option);
     setSelectedOption(option);
     // Auto-submit after a brief delay when an option is selected
     setTimeout(() => {
@@ -45,12 +48,33 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
   };
 
   // Guard against invalid question objects to prevent rendering errors
-  if (!question || typeof question !== 'object' || !question.text) {
-    console.error("Invalid question object received:", question);
+  if (!question || typeof question !== 'object') {
+    console.error("[QuestionFlow] Invalid question object received:", question);
     return (
       <div className="w-full max-w-2xl mx-auto">
         <div className="mb-6 glass-card p-6 rounded-xl">
           <div className="text-destructive">Error: Invalid question format</div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The system received an invalid question object. Please try again or contact support if the issue persists.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Guard specifically against non-string text
+  if (typeof question.text !== 'string') {
+    console.error("[QuestionFlow] Invalid question text type:", typeof question.text, "Value:", question.text);
+    return (
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="mb-6 glass-card p-6 rounded-xl">
+          <div className="text-destructive">Error: Invalid question text format</div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The system received a question with an invalid text format. Please try again or contact support if the issue persists.
+          </p>
+          <pre className="mt-4 p-2 bg-secondary/50 text-xs rounded overflow-auto max-h-20">
+            {JSON.stringify(question, null, 2)}
+          </pre>
         </div>
       </div>
     );
@@ -78,29 +102,33 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
             
             <p className="text-foreground leading-relaxed mb-4">{question.text}</p>
             
-            {question.options && question.options.length > 0 ? (
+            {question.options && Array.isArray(question.options) && question.options.length > 0 ? (
               <div className="space-y-2.5 mb-4">
-                {question.options.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => handleOptionSelect(option)}
-                    className={cn(
-                      "w-full text-left p-3.5 rounded-lg border transition-all duration-200",
-                      selectedOption === option 
-                        ? "bg-primary/10 border-primary/30 shadow-sm" 
-                        : "border-border hover:bg-secondary hover:border-muted"
-                    )}
-                    disabled={isLoading}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{option}</span>
-                      {selectedOption === option && (
-                        <Check size={16} className="text-primary" />
+                {question.options.map((option, index) => {
+                  // Ensure option is a string
+                  const optionStr = typeof option === 'string' ? option : String(option);
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleOptionSelect(optionStr)}
+                      className={cn(
+                        "w-full text-left p-3.5 rounded-lg border transition-all duration-200",
+                        selectedOption === optionStr 
+                          ? "bg-primary/10 border-primary/30 shadow-sm" 
+                          : "border-border hover:bg-secondary hover:border-muted"
                       )}
-                    </div>
-                  </button>
-                ))}
+                      disabled={isLoading}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{optionStr}</span>
+                        {selectedOption === optionStr && (
+                          <Check size={16} className="text-primary" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">

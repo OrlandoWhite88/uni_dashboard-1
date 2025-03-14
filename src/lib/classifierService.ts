@@ -167,7 +167,8 @@ export function useClassifier() {
       
       // Call the API to classify the product
       const result = await classifyProduct(product);
-      addDebug(`Received response: ${JSON.stringify(result)}`);
+      addDebug(`Received API response: ${JSON.stringify(result, null, 2)}`);
+      addDebug(`Response type: ${typeof result}`);
       
       // Process the result exactly like the Python script does
       processApiResponse(result, product);
@@ -202,7 +203,8 @@ export function useClassifier() {
       
       // Call the API to continue classification
       const result = await continueClassification(state.state, answer);
-      addDebug(`Received continuation response: ${JSON.stringify(result)}`);
+      addDebug(`Received continuation response: ${JSON.stringify(result, null, 2)}`);
+      addDebug(`Response type: ${typeof result}`);
       
       // Process the result exactly like the Python script does
       processApiResponse(result);
@@ -223,6 +225,9 @@ export function useClassifier() {
    * Process the API response following the same logic as the Python script
    */
   const processApiResponse = useCallback((result: any, productDescription?: string) => {
+    // Detailed logging of the result for debugging
+    addDebug(`Processing API response: ${JSON.stringify(result, null, 2)}`);
+    
     // If result is a string, it's the final code
     if (typeof result === 'string') {
       addDebug(`Received final code as string: ${result}`);
@@ -236,19 +241,59 @@ export function useClassifier() {
     }
     
     // If result has clarification_question, ask it
-    if (result && "clarification_question" in result) {
-      addDebug(`Received question: ${result.clarification_question.question_text}`);
+    if (result && typeof result === 'object' && "clarification_question" in result) {
+      // Log the structure of the clarification question
+      addDebug(`Clarification question structure: ${JSON.stringify(result.clarification_question, null, 2)}`);
+      addDebug(`Question text type: ${typeof result.clarification_question?.question_text}`);
+      
+      // Get the question text safely
+      let questionText = "Please provide more information about your product";
+      if (result.clarification_question && 
+          typeof result.clarification_question.question_text === 'string') {
+        questionText = result.clarification_question.question_text;
+      } else if (result.clarification_question) {
+        // If it's not a string, try to make a string representation
+        try {
+          questionText = JSON.stringify(result.clarification_question.question_text);
+          addDebug(`Converted non-string question to: ${questionText}`);
+        } catch (e) {
+          addDebug(`Could not stringify question: ${e}`);
+        }
+      }
+      
+      // Get options safely
+      let options: string[] = [];
+      if (result.clarification_question && 
+          Array.isArray(result.clarification_question.options)) {
+        options = result.clarification_question.options
+          .filter(opt => opt !== null && opt !== undefined)
+          .map(opt => typeof opt === 'string' ? opt : String(opt));
+      }
+      
+      // Get state safely
+      let sessionState = "";
+      if (typeof result.state === 'string') {
+        sessionState = result.state;
+      } else if (result.state !== null && result.state !== undefined) {
+        try {
+          sessionState = String(result.state);
+        } catch (e) {
+          addDebug(`Could not convert state to string: ${e}`);
+        }
+      }
+      
       setState({
         status: 'question',
-        question: result.clarification_question.question_text,
-        options: result.clarification_question.options,
-        state: result.state
+        question: questionText,
+        options: options,
+        state: sessionState
       });
+      
       return;
     }
     
     // If result has final_code, it's the final classification
-    if (result && "final_code" in result) {
+    if (result && typeof result === 'object' && "final_code" in result) {
       addDebug(`Received final code in JSON: ${result.final_code}`);
       
       // Calculate a confidence score based on available information
@@ -260,20 +305,22 @@ export function useClassifier() {
       
       setState({
         status: 'result',
-        code: result.final_code,
-        description: result.enriched_query || productDescription || "Product",
-        path: result.full_path,
+        code: typeof result.final_code === 'string' ? result.final_code : String(result.final_code || "Unknown"),
+        description: typeof result.enriched_query === 'string' 
+          ? result.enriched_query 
+          : (productDescription || "Product"),
+        path: typeof result.full_path === 'string' ? result.full_path : undefined,
         confidence
       });
       return;
     }
     
     // If we get here, we don't understand the response format
-    addDebug(`Unexpected response format: ${JSON.stringify(result)}`);
+    addDebug(`Unexpected response format: ${JSON.stringify(result, null, 2)}`);
     setState({
       status: 'error',
       message: 'Unexpected Response',
-      details: `The API returned a response in an unexpected format: ${JSON.stringify(result)}`
+      details: `The API returned a response in an unexpected format: ${JSON.stringify(result, null, 2)}`
     });
   }, [addDebug]);
   

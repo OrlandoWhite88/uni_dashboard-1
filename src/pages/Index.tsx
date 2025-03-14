@@ -64,11 +64,13 @@ const Index = () => {
 
   // Handle product submission
   const handleClassify = (description: string) => {
+    console.log("[Index] Starting classification for:", description);
     classify(description);
   };
 
   // Handle answer submission
   const handleAnswer = (questionId: string, answer: string) => {
+    console.log("[Index] Submitting answer:", { questionId, answer });
     continueWithAnswer(answer);
   };
 
@@ -78,6 +80,11 @@ const Index = () => {
       navigator.clipboard.writeText(debugInfo.join('\n'));
     }
   };
+
+  // Log the current state for debugging purposes
+  React.useEffect(() => {
+    console.log("[Index] Current classifier state:", state);
+  }, [state]);
 
   return (
     <ErrorBoundary>
@@ -105,15 +112,27 @@ const Index = () => {
 
           {/* Question Flow */}
           {state.status === 'question' && (
-            <QuestionFlow 
-              question={{
-                id: 'clarification', 
-                text: state.question || "Please provide more information",
-                options: state.options
-              }}
-              onAnswer={handleAnswer}
-              isLoading={false}
-            />
+            <>
+              {/* Debug info to show what's being passed to QuestionFlow */}
+              {console.log("[Index] Passing question to QuestionFlow:", {
+                questionText: state.question,
+                questionTextType: typeof state.question,
+                options: state.options,
+                optionsType: Array.isArray(state.options) ? "array" : typeof state.options
+              })}
+              
+              <QuestionFlow 
+                question={{
+                  id: 'clarification', 
+                  text: typeof state.question === 'string' 
+                    ? state.question 
+                    : "Please provide more information about your product",
+                  options: Array.isArray(state.options) ? state.options : []
+                }}
+                onAnswer={handleAnswer}
+                isLoading={false}
+              />
+            </>
           )}
 
           {/* Result View */}
