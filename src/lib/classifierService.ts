@@ -1,14 +1,17 @@
 // src/lib/classifierService.ts
 
 /**
- * A clean, simplified classification service without CORS workarounds,
- * but with good error handling.
+ * A direct implementation of the HS Code classification service
+ * that matches the Python implementation exactly.
  */
 
-// API configuration
+// API configuration - The endpoint for the classification service
 const API_BASE_URL = "https://hscode-eight.vercel.app";
 
-// Response types
+// Enable debug logs for development
+const DEBUG = true;
+
+// Response type definitions
 export interface ClassificationQuestion {
   question_text: string;
   options?: string[];
@@ -20,140 +23,112 @@ export interface ClassificationResponse {
   final_code?: string;
   enriched_query?: string;
   full_path?: string;
-  error?: string;
 }
-
-// Interface for the request payload
-interface ClassifyRequest {
-  product: string;
-  interactive?: boolean;
-  max_questions?: number;
-}
-
-interface ContinueRequest {
-  state: string;
-  answer: string;
-}
-
-// Debug mode - can be disabled in production
-const DEBUG = true;
 
 /**
- * Log debug information if DEBUG is enabled
+ * Log debug information
  */
-const debug = (message: string, data?: any) => {
+const logDebug = (message: string, data?: any) => {
   if (!DEBUG) return;
-  console.log(`[HS-API] ${message}`, data !== undefined ? data : '');
+  if (data) {
+    console.log(`[HS-API] ${message}`, data);
+  } else {
+    console.log(`[HS-API] ${message}`);
+  }
 };
 
 /**
- * Make a direct API request to the classification service
+ * Start a classification session - this mimics the Python classify_product function
  */
-async function makeApiRequest(endpoint: string, data: any): Promise<ClassificationResponse> {
-  debug(`API Request to ${endpoint}`, data);
+export async function classifyProduct(productDescription: string, maxQuestions: number = 3): Promise<any> {
+  logDebug(`Starting classification for: "${productDescription}"`);
+  
+  const url = `${API_BASE_URL}/classify`;
+  const payload = {
+    product: productDescription,
+    interactive: true,
+    max_questions: maxQuestions
+  };
   
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    // Use POST request with JSON body exactly like the Python implementation
+    const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
     
-    debug(`Response status: ${response.status}`);
+    logDebug(`Response status: ${response.status}`);
     
-    // Handle non-OK responses
+    // Handle error responses
     if (!response.ok) {
-      const errorText = await response.text();
-      debug(`Error response: ${errorText}`);
-      throw new Error(`HTTP Error ${response.status}: ${errorText}`);
+      throw new Error(`${response.status} - ${response.statusText}`);
     }
     
-    // Try to parse the response
-    const responseText = await response.text();
-    debug(`Raw response: ${responseText}`);
-    
-    // If the response is empty, that's a problem
-    if (!responseText.trim()) {
-      throw new Error("Empty response received");
-    }
+    // Try to parse as JSON first (most responses will be JSON)
+    const text = await response.text();
+    logDebug(`Raw response: ${text}`);
     
     try {
-      // Attempt to parse as JSON
-      const jsonResponse = JSON.parse(responseText);
-      debug(`Parsed response:`, jsonResponse);
-      return jsonResponse;
-    } catch (parseError) {
-      // If it's not valid JSON, return as a final code string
-      debug(`Response is not JSON, treating as code:`, responseText);
-      return { final_code: responseText.trim() };
+      return JSON.parse(text);
+    } catch (e) {
+      // If not JSON, return as plain text (could be a direct HS code)
+      return text;
     }
   } catch (error) {
-    debug(`API request failed:`, error);
+    logDebug(`Classification error: ${error.message}`);
     throw error;
   }
 }
 
 /**
- * Start a classification process for a product
+ * Continue classification with answer - this mimics the Python continue_classification function
  */
-export async function classifyProduct(product: string): Promise<ClassificationResponse> {
+export async function continueClassification(state: string, answer: string): Promise<any> {
+  logDebug(`Continuing classification with answer: "${answer}"`);
+  
+  const url = `${API_BASE_URL}/classify/continue`;
+  const payload = {
+    state: state,
+    answer: answer
+  };
+  
   try {
-    const payload: ClassifyRequest = {
-      product,
-      interactive: true,
-      max_questions: 3
-    };
+    // Use POST request with JSON body exactly like the Python implementation
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
     
-    return await makeApiRequest("/classify", payload);
+    logDebug(`Response status: ${response.status}`);
+    
+    // Handle error responses
+    if (!response.ok) {
+      throw new Error(`${response.status} - ${response.statusText}`);
+    }
+    
+    // Try to parse as JSON first
+    const text = await response.text();
+    logDebug(`Raw response: ${text}`);
+    
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      // If not JSON, return as plain text (could be a direct HS code)
+      return text;
+    }
   } catch (error) {
-    debug("Error in classifyProduct:", error);
-    
-    // Handle the error by returning a properly structured error response
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return {
-      state: "error",
-      error: errorMessage,
-      clarification_question: {
-        question_text: "There was an error connecting to the classification service. Would you like to try again?",
-        options: ["Try Again", "Cancel"]
-      }
-    };
+    logDebug(`Continue classification error: ${error.message}`);
+    throw error;
   }
 }
 
-/**
- * Continue a classification process with an answer
- */
-export async function continueClassification(state: string, answer: string): Promise<ClassificationResponse> {
-  try {
-    const payload: ContinueRequest = {
-      state,
-      answer
-    };
-    
-    return await makeApiRequest("/classify/continue", payload);
-  } catch (error) {
-    debug("Error in continueClassification:", error);
-    
-    // Handle the error by returning a properly structured error response
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    return {
-      state: "error",
-      error: errorMessage,
-      clarification_question: {
-        question_text: "There was an error continuing the classification. Would you like to try again?",
-        options: ["Try Again", "Cancel"]
-      }
-    };
-  }
-}
-
-/**
- * React hook for using the classifier in components
- */
+// React hook for using the classifier in components
 import { useState, useCallback } from 'react';
 
 // Define the possible states
@@ -169,7 +144,7 @@ export function useClassifier() {
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   
   /**
-   * Add debug information to the debug log
+   * Add debug information to the log
    */
   const addDebug = useCallback((message: string) => {
     console.log(`[Classifier] ${message}`);
@@ -188,27 +163,27 @@ export function useClassifier() {
       // Set loading state
       setState({ status: 'loading' });
       
-      // Call the service
-      const response = await classifyProduct(product);
-      addDebug(`Received response: ${JSON.stringify(response)}`);
+      // Call the API to classify the product
+      const result = await classifyProduct(product);
+      addDebug(`Received response: ${JSON.stringify(result)}`);
       
-      // Handle the response
-      handleResponse(response, product);
+      // Process the result exactly like the Python script does
+      processApiResponse(result, product);
     } catch (err) {
-      // Fallback error handling
+      // Handle errors
       const errorMsg = err instanceof Error ? err.message : 'Unknown error occurred';
       addDebug(`Classification error: ${errorMsg}`);
       
       setState({ 
         status: 'error', 
-        message: 'Failed to classify product',
+        message: 'Classification Error',
         details: errorMsg
       });
     }
   }, [addDebug]);
   
   /**
-   * Continue the classification with an answer
+   * Process an answer to a question and continue classification
    */
   const continueWithAnswer = useCallback(async (answer: string) => {
     // Only proceed if we're in question state
@@ -223,24 +198,82 @@ export function useClassifier() {
       // Set loading state
       setState({ status: 'loading' });
       
-      // Call the service
-      const response = await continueClassification(state.state, answer);
-      addDebug(`Received continuation response: ${JSON.stringify(response)}`);
+      // Call the API to continue classification
+      const result = await continueClassification(state.state, answer);
+      addDebug(`Received continuation response: ${JSON.stringify(result)}`);
       
-      // Handle the response
-      handleResponse(response);
+      // Process the result exactly like the Python script does
+      processApiResponse(result);
     } catch (err) {
-      // Fallback error handling
+      // Handle errors
       const errorMsg = err instanceof Error ? err.message : 'Unknown error occurred';
       addDebug(`Continue error: ${errorMsg}`);
       
       setState({ 
         status: 'error', 
-        message: 'Failed to process answer',
+        message: 'Error Processing Answer',
         details: errorMsg
       });
     }
   }, [state, addDebug]);
+  
+  /**
+   * Process the API response following the same logic as the Python script
+   */
+  const processApiResponse = useCallback((result: any, productDescription?: string) => {
+    // If result is a string, it's the final code
+    if (typeof result === 'string') {
+      addDebug(`Received final code as string: ${result}`);
+      setState({
+        status: 'result',
+        code: result,
+        description: productDescription || "Product",
+        confidence: 85 // We don't have more info, so use a reasonable default
+      });
+      return;
+    }
+    
+    // If result has clarification_question, ask it
+    if (result && "clarification_question" in result) {
+      addDebug(`Received question: ${result.clarification_question.question_text}`);
+      setState({
+        status: 'question',
+        question: result.clarification_question.question_text,
+        options: result.clarification_question.options,
+        state: result.state
+      });
+      return;
+    }
+    
+    // If result has final_code, it's the final classification
+    if (result && "final_code" in result) {
+      addDebug(`Received final code in JSON: ${result.final_code}`);
+      
+      // Calculate a confidence score based on available information
+      const hasDescription = !!result.enriched_query;
+      const hasPath = !!result.full_path;
+      
+      // Simple heuristic: more info = more confidence
+      const confidence = 70 + (hasDescription ? 15 : 0) + (hasPath ? 15 : 0);
+      
+      setState({
+        status: 'result',
+        code: result.final_code,
+        description: result.enriched_query || productDescription || "Product",
+        path: result.full_path,
+        confidence
+      });
+      return;
+    }
+    
+    // If we get here, we don't understand the response format
+    addDebug(`Unexpected response format: ${JSON.stringify(result)}`);
+    setState({
+      status: 'error',
+      message: 'Unexpected Response',
+      details: `The API returned a response in an unexpected format: ${JSON.stringify(result)}`
+    });
+  }, [addDebug]);
   
   /**
    * Reset the classifier to idle state
@@ -249,63 +282,6 @@ export function useClassifier() {
     addDebug('Resetting classifier state');
     setState({ status: 'idle' });
     setDebugInfo([]);
-  }, [addDebug]);
-  
-  /**
-   * Handle various response formats from the API
-   */
-  const handleResponse = useCallback((response: ClassificationResponse, productDescription?: string) => {
-    // Handle error in response
-    if (response.error) {
-      addDebug(`Error in response: ${response.error}`);
-      setState({
-        status: 'error',
-        message: 'Service error',
-        details: response.error
-      });
-      return;
-    }
-    
-    // Handle questions/clarifications
-    if (response.clarification_question) {
-      addDebug(`Received question: ${response.clarification_question.question_text}`);
-      setState({
-        status: 'question',
-        question: response.clarification_question.question_text,
-        options: response.clarification_question.options,
-        state: response.state || ''
-      });
-      return;
-    }
-    
-    // Handle final code
-    if (response.final_code) {
-      addDebug(`Received final code: ${response.final_code}`);
-      
-      // Calculate a confidence score based on available information
-      const hasDescription = !!response.enriched_query;
-      const hasPath = !!response.full_path;
-      
-      // Simple heuristic: more info = more confidence
-      const confidence = 70 + (hasDescription ? 15 : 0) + (hasPath ? 15 : 0);
-      
-      setState({
-        status: 'result',
-        code: response.final_code,
-        description: response.enriched_query || productDescription || 'Product',
-        path: response.full_path,
-        confidence
-      });
-      return;
-    }
-    
-    // Fallback for unexpected response format
-    addDebug(`Received unexpected response format: ${JSON.stringify(response)}`);
-    setState({
-      status: 'error',
-      message: 'Received unexpected response format',
-      details: JSON.stringify(response)
-    });
   }, [addDebug]);
   
   // Return the state, functions and debug info
