@@ -9,22 +9,31 @@ import { useState, useCallback } from 'react';
 
 // API configuration - The endpoint for the classification service
 const API_BASE_URL = "https://hscode-eight.vercel.app";
+// const API_BASE_URL = "http://localhost:8000"; // Uncomment for local testing
 
 // Enable debug logs for development
 const DEBUG = true;
 
 // Response type definitions
+export interface OptionItem {
+  id: string;
+  text: string;
+}
+
 export interface ClassificationQuestion {
+  question_type?: string;
   question_text: string;
-  options?: string[];
+  options?: OptionItem[] | string[];
+  metadata?: any;
 }
 
 export interface ClassificationResponse {
-  state?: string;
+  state?: any;
   clarification_question?: ClassificationQuestion;
   final_code?: string;
   enriched_query?: string;
   full_path?: string;
+  final?: boolean;
 }
 
 /**
@@ -59,7 +68,9 @@ export async function classifyProduct(productDescription: string, maxQuestions: 
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      // Add mode: 'cors' for CORS requests
+      mode: 'cors'
     });
     
     logDebug(`Response status: ${response.status}`);
@@ -88,7 +99,7 @@ export async function classifyProduct(productDescription: string, maxQuestions: 
 /**
  * Continue classification with answer - this mimics the Python continue_classification function
  */
-export async function continueClassification(state: string, answer: string): Promise<any> {
+export async function continueClassification(state: any, answer: string): Promise<any> {
   logDebug(`Continuing classification with answer: "${answer}"`);
   
   const url = `${API_BASE_URL}/classify/continue`;
@@ -104,7 +115,9 @@ export async function continueClassification(state: string, answer: string): Pro
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      // Add mode: 'cors' for CORS requests
+      mode: 'cors'
     });
     
     logDebug(`Response status: ${response.status}`);
@@ -134,7 +147,7 @@ export async function continueClassification(state: string, answer: string): Pro
 export type ClassifierState = 
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'question', question: string, options?: string[], state: string }
+  | { status: 'question', question: string, options?: string[], state: any }
   | { status: 'result', code: string, description?: string, path?: string, confidence: number }
   | { status: 'error', message: string, details?: string };
 
@@ -244,7 +257,6 @@ export function useClassifier() {
     if (result && typeof result === 'object' && "clarification_question" in result) {
       // Log the structure of the clarification question
       addDebug(`Clarification question structure: ${JSON.stringify(result.clarification_question, null, 2)}`);
-      addDebug(`Question text type: ${typeof result.clarification_question?.question_text}`);
       
       // Get the question text safely
       let questionText = "Please provide more information about your product";
@@ -261,26 +273,27 @@ export function useClassifier() {
         }
       }
       
-      // Get options safely
+      // Get options safely - transform objects with id/text to strings (just text)
       let options: string[] = [];
       if (result.clarification_question && 
           Array.isArray(result.clarification_question.options)) {
-        options = result.clarification_question.options
-          .filter(opt => opt !== null && opt !== undefined)
-          .map(opt => typeof opt === 'string' ? opt : String(opt));
+          
+        // Process each option - could be a string or an object with id/text
+        options = result.clarification_question.options.map(opt => {
+          // If the option is an object with a text property, extract just the text
+          if (opt && typeof opt === 'object' && 'text' in opt) {
+            return String(opt.text);
+          }
+          // Otherwise, convert to string
+          return String(opt);
+        });
+        
+        addDebug(`Processed options: ${JSON.stringify(options)}`);
       }
       
-      // Get state safely
-      let sessionState = "";
-      if (typeof result.state === 'string') {
-        sessionState = result.state;
-      } else if (result.state !== null && result.state !== undefined) {
-        try {
-          sessionState = String(result.state);
-        } catch (e) {
-          addDebug(`Could not convert state to string: ${e}`);
-        }
-      }
+      // Get state safely - this could be a string or an object
+      const sessionState = result.state;
+      addDebug(`Session state type: ${typeof sessionState}`);
       
       setState({
         status: 'question',

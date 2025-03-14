@@ -24,11 +24,12 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
   state = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: any) {
+    console.error("[ErrorBoundary] Caught error:", error);
     return { hasError: true, error };
   }
 
   componentDidCatch(error: any, info: any) {
-    console.error("Error caught by boundary:", error, info);
+    console.error("[ErrorBoundary] Error details:", error, info);
   }
 
   render() {
@@ -85,6 +86,23 @@ const Index = () => {
   React.useEffect(() => {
     console.log("[Index] Current classifier state:", state);
   }, [state]);
+
+  // Force the error boundary to catch any errors during render
+  React.useEffect(() => {
+    window.onerror = (message, source, lineno, colno, error) => {
+      console.error("[Global Error Handler]", message, error);
+      return false; // Let the default handler run as well
+    };
+    
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error("[Unhandled Promise Rejection]", event.reason);
+    });
+    
+    return () => {
+      window.onerror = null;
+      window.removeEventListener('unhandledrejection', () => {});
+    };
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -174,12 +192,22 @@ const Index = () => {
             </div>
           )}
 
+          {/* Debug Panel Button (Always visible for easier debugging) */}
+          <div className="mt-8 flex justify-end">
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Bug className="h-3 w-3 mr-1" />
+              {showDebug ? "Hide Debug Info" : "Show Debug Info"}
+            </button>
+          </div>
+
           {/* Debug Panel - shows debug info for developers */}
-          {debugInfo && debugInfo.length > 0 && (
-            <div className="mt-8 rounded-xl border border-border">
+          {showDebug && (
+            <div className="mt-2 rounded-xl border border-border">
               <div 
                 className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 rounded-t-xl"
-                onClick={() => setShowDebug(!showDebug)}
               >
                 <div className="flex items-center text-sm font-medium">
                   <Bug className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -196,24 +224,29 @@ const Index = () => {
                   >
                     <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
-                  {showDebug ? 
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" /> : 
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  }
                 </div>
               </div>
               
-              {showDebug && (
-                <div className="p-3 border-t border-border bg-background/50 rounded-b-xl">
-                  <div className="max-h-60 overflow-auto p-2 bg-muted/30 rounded-md font-mono text-xs">
-                    {debugInfo.map((line, i) => (
+              <div className="p-3 border-t border-border bg-background/50 rounded-b-xl">
+                <div className="max-h-60 overflow-auto p-2 bg-muted/30 rounded-md font-mono text-xs">
+                  {debugInfo && debugInfo.length > 0 ? (
+                    debugInfo.map((line, i) => (
                       <div key={i} className="py-0.5 border-b border-secondary last:border-0">
                         {line}
                       </div>
-                    ))}
-                  </div>
+                    ))
+                  ) : (
+                    <div className="py-2 text-center text-muted-foreground">No debug information available</div>
+                  )}
                 </div>
-              )}
+                
+                <div className="mt-3 p-2 bg-muted/30 rounded-md">
+                  <h4 className="text-xs font-medium mb-1">Current State:</h4>
+                  <pre className="text-xs overflow-auto max-h-60">
+                    {JSON.stringify(state, null, 2)}
+                  </pre>
+                </div>
+              </div>
             </div>
           )}
         </div>
