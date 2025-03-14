@@ -1,6 +1,4 @@
-import { useClassifier } from "@/lib/classifierService";
-
-// This is the main Index page for the classification service
+// src/pages/Index.tsx
 
 import React, { useState } from "react";
 import Layout from "@/components/Layout";

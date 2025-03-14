@@ -1,295 +1,207 @@
-// src/lib/classifierService.ts
+// src/pages/Index.tsx
+// This is the main Index page for the classification service
 
-/**
- * A direct implementation of the HS Code classification service
- * that matches the Python implementation exactly.
- */
+import React, { useState } from "react";
+import Layout from "@/components/Layout";
+import { useClassifier } from "@/lib/classifierService";
+import { 
+  AlertCircle, 
+  CheckCircle, 
+  Loader2, 
+  MessageCircle,
+  RefreshCw, 
+  Copy, 
+  ChevronDown, 
+  ChevronUp,
+  Bug
+} from "lucide-react";
+import ProductInput from "@/components/ProductInput";
+import QuestionFlow from "@/components/QuestionFlow";
+import HSCodeResult from "@/components/HSCodeResult";
+import CustomButton from "@/components/ui/CustomButton";
 
-// API configuration - The endpoint for the classification service
-const API_BASE_URL = "https://hscode-eight.vercel.app";
+// Simple wrapper component to ensure any errors are contained
+class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
+  state = { hasError: false, error: null };
 
-// Enable debug logs for development
-const DEBUG = true;
-
-// Response type definitions
-export interface ClassificationQuestion {
-  question_text: string;
-  options?: string[];
-}
-
-export interface ClassificationResponse {
-  state?: string;
-  clarification_question?: ClassificationQuestion;
-  final_code?: string;
-  enriched_query?: string;
-  full_path?: string;
-}
-
-/**
- * Log debug information
- */
-const logDebug = (message: string, data?: any) => {
-  if (!DEBUG) return;
-  if (data) {
-    console.log(`[HS-API] ${message}`, data);
-  } else {
-    console.log(`[HS-API] ${message}`);
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
   }
+
+  componentDidCatch(error: any, info: any) {
+    console.error("Error caught by boundary:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 max-w-xl mx-auto mt-10 glass-card rounded-lg">
+          <div className="flex items-start">
+            <AlertCircle className="h-6 w-6 text-destructive mr-3 mt-0.5" />
+            <div>
+              <h2 className="text-xl font-medium text-destructive mb-2">Application Error</h2>
+              <p className="text-muted-foreground mb-4">An unexpected error occurred in the application.</p>
+              <pre className="p-3 bg-secondary/50 rounded text-xs overflow-auto max-h-40 mb-4 font-mono">
+                {this.state.error?.toString()}
+              </pre>
+              <CustomButton 
+                onClick={() => window.location.reload()}
+                className="flex items-center"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" /> Reload Application
+              </CustomButton>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const Index = () => {
+  const { state, classify, continueWithAnswer, reset, debugInfo } = useClassifier();
+  const [showDebug, setShowDebug] = useState(false);
+
+  // Handle product submission
+  const handleClassify = (description: string) => {
+    classify(description);
+  };
+
+  // Handle answer submission
+  const handleAnswer = (questionId: string, answer: string) => {
+    continueWithAnswer(answer);
+  };
+
+  // Copy debug info to clipboard
+  const copyDebugInfo = () => {
+    if (debugInfo && debugInfo.length > 0) {
+      navigator.clipboard.writeText(debugInfo.join('\n'));
+    }
+  };
+
+  return (
+    <ErrorBoundary>
+      <Layout className="pt-28 pb-16">
+        <div className="w-full max-w-2xl mx-auto">
+          {/* Status indicator for developers */}
+          <div className="mb-4 text-center">
+            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors bg-secondary text-muted-foreground">
+              HS Code Classification Service
+            </div>
+          </div>
+
+          {/* Product Input */}
+          {state.status === 'idle' && (
+            <ProductInput onSubmit={handleClassify} isLoading={false} />
+          )}
+
+          {/* Loading State */}
+          {state.status === 'loading' && (
+            <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60 animate-pulse">
+              <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Processing your request...</p>
+            </div>
+          )}
+
+          {/* Question Flow */}
+          {state.status === 'question' && (
+            <QuestionFlow 
+              question={{
+                id: 'clarification', 
+                text: state.question,
+                options: state.options
+              }}
+              onAnswer={handleAnswer}
+              isLoading={false}
+            />
+          )}
+
+          {/* Result View */}
+          {state.status === 'result' && (
+            <HSCodeResult 
+              hsCode={state.code}
+              description={state.description || 'Product'}
+              confidence={state.confidence}
+              fullPath={state.path}
+              onReset={reset}
+            />
+          )}
+
+          {/* Error View */}
+          {state.status === 'error' && (
+            <div className="glass-card p-6 rounded-xl animate-scale-in">
+              <div className="flex items-start">
+                <AlertCircle className="h-5 w-5 text-destructive mr-3 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-destructive mb-2">Error Processing Request</h3>
+                  <p className="text-muted-foreground mb-4">{state.message}</p>
+                  
+                  {state.details && (
+                    <div className="mb-6 p-3 bg-secondary/50 border border-border rounded-md overflow-auto max-h-40 text-xs font-mono">
+                      {state.details}
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-3">
+                    <CustomButton
+                      onClick={reset}
+                      className="flex items-center"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" /> Try Again
+                    </CustomButton>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Debug Panel - shows debug info for developers */}
+          {debugInfo && debugInfo.length > 0 && (
+            <div className="mt-8 rounded-xl border border-border">
+              <div 
+                className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 rounded-t-xl"
+                onClick={() => setShowDebug(!showDebug)}
+              >
+                <div className="flex items-center text-sm font-medium">
+                  <Bug className="h-4 w-4 mr-2 text-muted-foreground" />
+                  Debug Information
+                </div>
+                <div className="flex items-center">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyDebugInfo();
+                    }}
+                    className="p-1.5 rounded-md hover:bg-secondary mr-1"
+                    title="Copy debug info"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  {showDebug ? 
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" /> : 
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  }
+                </div>
+              </div>
+              
+              {showDebug && (
+                <div className="p-3 border-t border-border bg-background/50 rounded-b-xl">
+                  <div className="max-h-60 overflow-auto p-2 bg-muted/30 rounded-md font-mono text-xs">
+                    {debugInfo.map((line, i) => (
+                      <div key={i} className="py-0.5 border-b border-secondary last:border-0">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Layout>
+    </ErrorBoundary>
+  );
 };
 
-/**
- * Start a classification session - this mimics the Python classify_product function
- */
-export async function classifyProduct(productDescription: string, maxQuestions: number = 3): Promise<any> {
-  logDebug(`Starting classification for: "${productDescription}"`);
-  
-  const url = `${API_BASE_URL}/classify`;
-  const payload = {
-    product: productDescription,
-    interactive: true,
-    max_questions: maxQuestions
-  };
-  
-  try {
-    // Use POST request with JSON body exactly like the Python implementation
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    logDebug(`Response status: ${response.status}`);
-    
-    // Handle error responses
-    if (!response.ok) {
-      throw new Error(`${response.status} - ${response.statusText}`);
-    }
-    
-    // Try to parse as JSON first (most responses will be JSON)
-    const text = await response.text();
-    logDebug(`Raw response: ${text}`);
-    
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      // If not JSON, return as plain text (could be a direct HS code)
-      return text;
-    }
-  } catch (error) {
-    logDebug(`Classification error: ${error.message}`);
-    throw error;
-  }
-}
-
-/**
- * Continue classification with answer - this mimics the Python continue_classification function
- */
-export async function continueClassification(state: string, answer: string): Promise<any> {
-  logDebug(`Continuing classification with answer: "${answer}"`);
-  
-  const url = `${API_BASE_URL}/classify/continue`;
-  const payload = {
-    state: state,
-    answer: answer
-  };
-  
-  try {
-    // Use POST request with JSON body exactly like the Python implementation
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    logDebug(`Response status: ${response.status}`);
-    
-    // Handle error responses
-    if (!response.ok) {
-      throw new Error(`${response.status} - ${response.statusText}`);
-    }
-    
-    // Try to parse as JSON first
-    const text = await response.text();
-    logDebug(`Raw response: ${text}`);
-    
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      // If not JSON, return as plain text (could be a direct HS code)
-      return text;
-    }
-  } catch (error) {
-    logDebug(`Continue classification error: ${error.message}`);
-    throw error;
-  }
-}
-
-// React hook for using the classifier in components
-import { useState, useCallback } from 'react';
-
-// Define the possible states
-export type ClassifierState = 
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'question', question: string, options?: string[], state: string }
-  | { status: 'result', code: string, description?: string, path?: string, confidence: number }
-  | { status: 'error', message: string, details?: string };
-
-export function useClassifier() {
-  const [state, setState] = useState<ClassifierState>({ status: 'idle' });
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  
-  /**
-   * Add debug information to the log
-   */
-  const addDebug = useCallback((message: string) => {
-    console.log(`[Classifier] ${message}`);
-    setDebugInfo(prev => [...prev, message]);
-  }, []);
-  
-  /**
-   * Start the classification process
-   */
-  const classify = useCallback(async (product: string) => {
-    try {
-      // Clear previous debug info
-      setDebugInfo([]);
-      addDebug(`Starting classification for: ${product}`);
-      
-      // Set loading state
-      setState({ status: 'loading' });
-      
-      // Call the API to classify the product
-      const result = await classifyProduct(product);
-      addDebug(`Received response: ${JSON.stringify(result)}`);
-      
-      // Process the result exactly like the Python script does
-      processApiResponse(result, product);
-    } catch (err) {
-      // Handle errors
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error occurred';
-      addDebug(`Classification error: ${errorMsg}`);
-      
-      setState({ 
-        status: 'error', 
-        message: 'Classification Error',
-        details: errorMsg
-      });
-    }
-  }, [addDebug]);
-  
-  /**
-   * Process an answer to a question and continue classification
-   */
-  const continueWithAnswer = useCallback(async (answer: string) => {
-    // Only proceed if we're in question state
-    if (state.status !== 'question') {
-      addDebug(`Cannot continue - not in question state (current state: ${state.status})`);
-      return;
-    }
-    
-    try {
-      addDebug(`Continuing with answer: ${answer}`);
-      
-      // Set loading state
-      setState({ status: 'loading' });
-      
-      // Call the API to continue classification
-      const result = await continueClassification(state.state, answer);
-      addDebug(`Received continuation response: ${JSON.stringify(result)}`);
-      
-      // Process the result exactly like the Python script does
-      processApiResponse(result);
-    } catch (err) {
-      // Handle errors
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error occurred';
-      addDebug(`Continue error: ${errorMsg}`);
-      
-      setState({ 
-        status: 'error', 
-        message: 'Error Processing Answer',
-        details: errorMsg
-      });
-    }
-  }, [state, addDebug]);
-  
-  /**
-   * Process the API response following the same logic as the Python script
-   */
-  const processApiResponse = useCallback((result: any, productDescription?: string) => {
-    // If result is a string, it's the final code
-    if (typeof result === 'string') {
-      addDebug(`Received final code as string: ${result}`);
-      setState({
-        status: 'result',
-        code: result,
-        description: productDescription || "Product",
-        confidence: 85 // We don't have more info, so use a reasonable default
-      });
-      return;
-    }
-    
-    // If result has clarification_question, ask it
-    if (result && "clarification_question" in result) {
-      addDebug(`Received question: ${result.clarification_question.question_text}`);
-      setState({
-        status: 'question',
-        question: result.clarification_question.question_text,
-        options: result.clarification_question.options,
-        state: result.state
-      });
-      return;
-    }
-    
-    // If result has final_code, it's the final classification
-    if (result && "final_code" in result) {
-      addDebug(`Received final code in JSON: ${result.final_code}`);
-      
-      // Calculate a confidence score based on available information
-      const hasDescription = !!result.enriched_query;
-      const hasPath = !!result.full_path;
-      
-      // Simple heuristic: more info = more confidence
-      const confidence = 70 + (hasDescription ? 15 : 0) + (hasPath ? 15 : 0);
-      
-      setState({
-        status: 'result',
-        code: result.final_code,
-        description: result.enriched_query || productDescription || "Product",
-        path: result.full_path,
-        confidence
-      });
-      return;
-    }
-    
-    // If we get here, we don't understand the response format
-    addDebug(`Unexpected response format: ${JSON.stringify(result)}`);
-    setState({
-      status: 'error',
-      message: 'Unexpected Response',
-      details: `The API returned a response in an unexpected format: ${JSON.stringify(result)}`
-    });
-  }, [addDebug]);
-  
-  /**
-   * Reset the classifier to idle state
-   */
-  const reset = useCallback(() => {
-    addDebug('Resetting classifier state');
-    setState({ status: 'idle' });
-    setDebugInfo([]);
-  }, [addDebug]);
-  
-  // Return the state, functions and debug info
-  return { 
-    state, 
-    classify, 
-    continueWithAnswer, 
-    reset,
-    debugInfo 
-  };
-}
+export default Index;
