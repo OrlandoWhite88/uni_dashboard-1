@@ -1,20 +1,20 @@
-// src/pages/ImprovedIndex.tsx
+import { useClassifier } from "@/lib/classifierService";
+
+// This is the main Index page for the classification service
 
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
-import { useImprovedClassifier } from "@/lib/improvedUseClassifier";
+import { useClassifier } from "@/lib/classifierService";
 import { 
   AlertCircle, 
-  AlertTriangle, 
   CheckCircle, 
   Loader2, 
   MessageCircle,
   RefreshCw, 
-  ArrowRight, 
-  Bug, 
   Copy, 
   ChevronDown, 
-  ChevronUp
+  ChevronUp,
+  Bug
 } from "lucide-react";
 import ProductInput from "@/components/ProductInput";
 import QuestionFlow from "@/components/QuestionFlow";
@@ -60,10 +60,8 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
   }
 }
 
-// The main application with improved debugging and error handling
-const ImprovedIndex = () => {
-  const { state, classify, continueWithAnswer, reset, debugInfo } = useImprovedClassifier();
-  const [productInput, setProductInput] = useState("");
+const Index = () => {
+  const { state, classify, continueWithAnswer, reset, debugInfo } = useClassifier();
   const [showDebug, setShowDebug] = useState(false);
 
   // Handle product submission
@@ -207,4 +205,4 @@ const ImprovedIndex = () => {
   );
 };
 
-export default ImprovedIndex;
+export default Index;

@@ -1,7 +1,160 @@
-// src/lib/improvedUseClassifier.ts
+// src/lib/classifierService.ts
 
+/**
+ * A clean, simplified classification service without CORS workarounds,
+ * but with good error handling.
+ */
+
+// API configuration
+const API_BASE_URL = "https://hscode-eight.vercel.app";
+
+// Response types
+export interface ClassificationQuestion {
+  question_text: string;
+  options?: string[];
+}
+
+export interface ClassificationResponse {
+  state?: string;
+  clarification_question?: ClassificationQuestion;
+  final_code?: string;
+  enriched_query?: string;
+  full_path?: string;
+  error?: string;
+}
+
+// Interface for the request payload
+interface ClassifyRequest {
+  product: string;
+  interactive?: boolean;
+  max_questions?: number;
+}
+
+interface ContinueRequest {
+  state: string;
+  answer: string;
+}
+
+// Debug mode - can be disabled in production
+const DEBUG = true;
+
+/**
+ * Log debug information if DEBUG is enabled
+ */
+const debug = (message: string, data?: any) => {
+  if (!DEBUG) return;
+  console.log(`[HS-API] ${message}`, data !== undefined ? data : '');
+};
+
+/**
+ * Make a direct API request to the classification service
+ */
+async function makeApiRequest(endpoint: string, data: any): Promise<ClassificationResponse> {
+  debug(`API Request to ${endpoint}`, data);
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+    
+    debug(`Response status: ${response.status}`);
+    
+    // Handle non-OK responses
+    if (!response.ok) {
+      const errorText = await response.text();
+      debug(`Error response: ${errorText}`);
+      throw new Error(`HTTP Error ${response.status}: ${errorText}`);
+    }
+    
+    // Try to parse the response
+    const responseText = await response.text();
+    debug(`Raw response: ${responseText}`);
+    
+    // If the response is empty, that's a problem
+    if (!responseText.trim()) {
+      throw new Error("Empty response received");
+    }
+    
+    try {
+      // Attempt to parse as JSON
+      const jsonResponse = JSON.parse(responseText);
+      debug(`Parsed response:`, jsonResponse);
+      return jsonResponse;
+    } catch (parseError) {
+      // If it's not valid JSON, return as a final code string
+      debug(`Response is not JSON, treating as code:`, responseText);
+      return { final_code: responseText.trim() };
+    }
+  } catch (error) {
+    debug(`API request failed:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Start a classification process for a product
+ */
+export async function classifyProduct(product: string): Promise<ClassificationResponse> {
+  try {
+    const payload: ClassifyRequest = {
+      product,
+      interactive: true,
+      max_questions: 3
+    };
+    
+    return await makeApiRequest("/classify", payload);
+  } catch (error) {
+    debug("Error in classifyProduct:", error);
+    
+    // Handle the error by returning a properly structured error response
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    return {
+      state: "error",
+      error: errorMessage,
+      clarification_question: {
+        question_text: "There was an error connecting to the classification service. Would you like to try again?",
+        options: ["Try Again", "Cancel"]
+      }
+    };
+  }
+}
+
+/**
+ * Continue a classification process with an answer
+ */
+export async function continueClassification(state: string, answer: string): Promise<ClassificationResponse> {
+  try {
+    const payload: ContinueRequest = {
+      state,
+      answer
+    };
+    
+    return await makeApiRequest("/classify/continue", payload);
+  } catch (error) {
+    debug("Error in continueClassification:", error);
+    
+    // Handle the error by returning a properly structured error response
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    return {
+      state: "error",
+      error: errorMessage,
+      clarification_question: {
+        question_text: "There was an error continuing the classification. Would you like to try again?",
+        options: ["Try Again", "Cancel"]
+      }
+    };
+  }
+}
+
+/**
+ * React hook for using the classifier in components
+ */
 import { useState, useCallback } from 'react';
-import { classifyProduct, continueClassification, ClassificationResponse } from './improvedClassifyService';
 
 // Define the possible states
 export type ClassifierState = 
@@ -11,10 +164,7 @@ export type ClassifierState =
   | { status: 'result', code: string, description?: string, path?: string, confidence: number }
   | { status: 'error', message: string, details?: string };
 
-/**
- * A React hook for HS code classification with comprehensive error handling
- */
-export function useImprovedClassifier() {
+export function useClassifier() {
   const [state, setState] = useState<ClassifierState>({ status: 'idle' });
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   
