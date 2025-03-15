@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { useClassifier } from "@/lib/classifierService";
+import { useUsageLimits } from "@/hooks/use-usage-limits";
 import {
   AlertCircle,
   CheckCircle,
@@ -69,10 +70,24 @@ const Index = () => {
     useClassifier();
   const [showDebug, setShowDebug] = useState(false);
 
+  // Get usage limits hook
+  const { checkCanMakeRequest, reloadUsageData } = useUsageLimits();
+
   // Handle product submission
-  const handleClassify = (description: string) => {
+  const handleClassify = async (description: string) => {
     console.log("[Index] Starting classification for:", description);
+    
+    // Check if the user can make a request based on their usage limits
+    const canMakeRequest = await checkCanMakeRequest();
+    if (!canMakeRequest) {
+      return; // Don't proceed if the user has reached their limit
+    }
+    
+    // If allowed, proceed with classification
     classify(description);
+    
+    // After classification, reload usage data to reflect the new request count
+    setTimeout(() => reloadUsageData(), 1000);
   };
 
   // Handle answer submission
@@ -116,7 +131,7 @@ const Index = () => {
         <div className="w-full max-w-2xl mx-auto">
           {/* Status indicator for developers */}
           <div className="mb-4 text-center">
-            <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors bg-secondary text-muted-foreground">
+            <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3 animate-slide-down">
               HS Code Classification Service
             </div>
           </div>

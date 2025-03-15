@@ -1,11 +1,92 @@
-
 import React from "react";
 import Layout from "@/components/Layout";
-import { ArrowLeft, CheckCircle2, CreditCard, Zap, Building2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CreditCard, Zap, Building2, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import CustomButton from "@/components/ui/CustomButton";
+import { useUsageLimits } from "@/hooks/use-usage-limits";
+import { useAuth } from "@clerk/clerk-react";
+import { createCheckoutSession } from "@/lib/stripeService";
 
 const SettingsPage = () => {
+  const { userId } = useAuth();
+  const { 
+    isLoading, 
+    userPlan, 
+    dailyUsage, 
+    monthlyUsage, 
+    freeLimit, 
+    proLimit, 
+    freeRemaining, 
+    proRemaining,
+    reloadUsageData
+  } = useUsageLimits();
+  const [isUpgrading, setIsUpgrading] = React.useState(false);
+
+  // Handle plan upgrade
+  const handleUpgrade = async () => {
+    if (!userId) return;
+    setIsUpgrading(true);
+    
+    try {
+      console.log('Upgrade initiated for user:', userId);
+      console.log('Using customer ID:', userPlan?.stripe_customer_id || userId);
+      
+      // Create success and cancel URLs with proper encoding
+      const successUrl = `${window.location.origin}/settings?success=true`;
+      const cancelUrl = `${window.location.origin}/settings?canceled=true`;
+      
+      console.log('Success URL:', successUrl);
+      console.log('Cancel URL:', cancelUrl);
+      
+      // Create a checkout session with Stripe
+      const session = await createCheckoutSession(
+        userPlan?.stripe_customer_id || userId,
+        successUrl,
+        cancelUrl
+      );
+      
+      console.log('Received session from Stripe:', session);
+      
+      if (!session || !session.url) {
+        throw new Error('Invalid checkout session returned from Stripe');
+      }
+      
+      console.log('Redirecting to:', session.url);
+      
+      // Redirect to Stripe checkout
+      window.location.href = session.url;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        alert(`Error: ${error.message}. Please try again later.`);
+      } else {
+        alert('An unknown error occurred. Please try again later.');
+      }
+      setIsUpgrading(false);
+    }
+  };
+
+  // Check for URL parameters after returning from Stripe
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log('URL parameters on page load:', Object.fromEntries(urlParams.entries()));
+    
+    if (urlParams.get('success') === 'true') {
+      console.log('Subscription successful! Reloading usage data.');
+      alert('Subscription successful! Your plan has been upgraded.');
+      reloadUsageData();
+    } else if (urlParams.get('canceled') === 'true') {
+      console.log('Subscription process was canceled by user.');
+      alert('Subscription canceled. You can try again anytime.');
+    }
+    
+    // Clear URL parameters
+    if (urlParams.has('success') || urlParams.has('canceled')) {
+      console.log('Clearing URL parameters');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [reloadUsageData]);
   return (
     <Layout className="pt-28 pb-16">
       <div className="max-w-4xl mx-auto">
@@ -17,6 +98,55 @@ const SettingsPage = () => {
         </div>
 
         <div className="space-y-8">
+          {/* Usage Statistics */}
+          <div className="glass-card p-6 rounded-xl">
+            <h2 className="text-xl font-medium mb-4">Your Usage</h2>
+            
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+            ) : userId ? (
+              <div>
+                <div className="mb-4">
+                  <h3 className="font-medium">Current Plan: {userPlan?.plan_type === 'pro' ? 'Pro' : 'Free'}</h3>
+                  
+                  {userPlan?.plan_type === 'free' ? (
+                    <div className="mt-4">
+                      <p className="mb-1">Daily Usage: {dailyUsage} / {freeLimit}</p>
+                      <div className="w-full bg-secondary h-2 rounded-full">
+                        <div 
+                          className="bg-primary h-2 rounded-full" 
+                          style={{ width: `${Math.min(100, (dailyUsage / freeLimit) * 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {freeRemaining} requests remaining today
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-4">
+                      <p className="mb-1">Monthly Usage: {monthlyUsage} / {proLimit}</p>
+                      <div className="w-full bg-secondary h-2 rounded-full">
+                        <div 
+                          className="bg-primary h-2 rounded-full" 
+                          style={{ width: `${Math.min(100, (monthlyUsage / proLimit) * 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {proRemaining} requests remaining this month
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-secondary/30 rounded-lg text-center">
+                <p className="text-muted-foreground">Sign in to view your usage statistics</p>
+              </div>
+            )}
+          </div>
+          
           {/* Pricing Plans */}
           <div className="glass-card p-6 rounded-xl">
             <h2 className="text-xl font-medium mb-6">Choose Your Plan</h2>
@@ -43,9 +173,15 @@ const SettingsPage = () => {
                 </ul>
                 
                 <div className="flex justify-center">
-                  <CustomButton variant="outline" className="w-full">
-                    Current Plan
-                  </CustomButton>
+                  {userPlan?.plan_type === 'free' || !userPlan ? (
+                    <CustomButton variant="outline" className="w-full" disabled>
+                      Current Plan
+                    </CustomButton>
+                  ) : (
+                    <CustomButton variant="outline" className="w-full" disabled>
+                      Switch to Free
+                    </CustomButton>
+                  )}
                 </div>
               </div>
               
@@ -73,9 +209,30 @@ const SettingsPage = () => {
                 </ul>
                 
                 <div className="flex justify-center">
-                  <CustomButton className="w-full">
-                    Upgrade Now
-                  </CustomButton>
+                  {userPlan?.plan_type === 'pro' ? (
+                    <CustomButton variant="outline" className="w-full" disabled>
+                      Current Plan
+                    </CustomButton>
+                  ) : !userId ? (
+                    <CustomButton className="w-full" disabled={!userId}>
+                      Sign in to Upgrade
+                    </CustomButton>
+                  ) : (
+                    <CustomButton 
+                      className="w-full" 
+                      onClick={handleUpgrade}
+                      disabled={isUpgrading}
+                    >
+                      {isUpgrading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Upgrade Now'
+                      )}
+                    </CustomButton>
+                  )}
                 </div>
               </div>
               
@@ -104,37 +261,6 @@ const SettingsPage = () => {
                     Contact Sales
                   </CustomButton>
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* User Information */}
-          <div className="glass-card p-6 rounded-xl">
-            <h2 className="text-xl font-medium mb-4">Account Information</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
-                <input
-                  type="email"
-                  className="w-full p-3 rounded-lg border border-border bg-transparent focus:ring-2 focus:ring-primary/30 focus-visible:outline-none"
-                  placeholder="your@email.com"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">Company Name</label>
-                <input
-                  type="text"
-                  className="w-full p-3 rounded-lg border border-border bg-transparent focus:ring-2 focus:ring-primary/30 focus-visible:outline-none"
-                  placeholder="Your Company"
-                />
-              </div>
-              <div className="flex justify-end">
-                <CustomButton variant="outline" className="mr-2">
-                  Cancel
-                </CustomButton>
-                <CustomButton>
-                  Save Changes
-                </CustomButton>
               </div>
             </div>
           </div>

@@ -22,9 +22,6 @@ const ProductInput = ({ onSubmit, isLoading }: ProductInputProps) => {
   return (
     <div className="w-full animate-fade-in">
       <div className="mb-6 text-center">
-        <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3 animate-slide-down">
-          HS Code Generator
-        </div>
         <h1 className="text-3xl font-semibold tracking-tight mb-3">
           Generate Harmonized System Codes
         </h1>

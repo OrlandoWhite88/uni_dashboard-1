@@ -6,6 +6,8 @@
  */
 
 import { useState, useCallback } from "react";
+import { logUsage } from "@/lib/supabaseService";
+import { useAuth } from "@clerk/clerk-react";
 
 // API configuration - The endpoint for the classification service
 const API_BASE_URL = "https://hscode-eight.vercel.app";
@@ -188,6 +190,8 @@ export function useClassifier() {
   /**
    * Start the classification process
    */
+  const { userId } = useAuth();
+
   const classify = useCallback(
     async (product: string) => {
       try {
@@ -197,6 +201,9 @@ export function useClassifier() {
 
         // Set loading state
         setState({ status: "loading" });
+
+        // Note: We only log usage when a final result is returned
+        // This happens in the processApiResponse function when we get a final code
 
         // Call the API to classify the product
         const result = await classifyProduct(product);
@@ -218,7 +225,7 @@ export function useClassifier() {
         });
       }
     },
-    [addDebug]
+    [addDebug, userId]
   );
 
   /**
@@ -269,13 +276,24 @@ export function useClassifier() {
    * Process the API response following the same logic as the Python script
    */
   const processApiResponse = useCallback(
-    (result: any, productDescription?: string) => {
+    async (result: any, productDescription?: string) => {
       // Detailed logging of the result for debugging
       addDebug(`Processing API response: ${JSON.stringify(result, null, 2)}`);
 
       // If result is a string, it's the final code
       if (typeof result === "string") {
         addDebug(`Received final code as string: ${result}`);
+        
+        // Log usage only when we get a final result
+        if (userId) {
+          try {
+            await logUsage(userId, 'final_classification');
+            addDebug(`Logged final result usage for user: ${userId}`);
+          } catch (error) {
+            addDebug(`Error logging usage: ${error}`);
+          }
+        }
+        
         setState({
           status: "result",
           code: result,
@@ -370,6 +388,16 @@ export function useClassifier() {
       // If result has final_code, it's the final classification
       if (result && typeof result === "object" && "final_code" in result) {
         addDebug(`Received final code in JSON: ${result.final_code}`);
+        
+        // Log usage only when we get a final result
+        if (userId) {
+          try {
+            await logUsage(userId, 'final_classification');
+            addDebug(`Logged final result usage for user: ${userId}`);
+          } catch (error) {
+            addDebug(`Error logging usage: ${error}`);
+          }
+        }
 
         // Calculate a confidence score based on available information
         const hasDescription = !!result.enriched_query;
@@ -409,7 +437,7 @@ export function useClassifier() {
         )}`,
       });
     },
-    [addDebug]
+    [addDebug, userId]
   );
 
   /**
