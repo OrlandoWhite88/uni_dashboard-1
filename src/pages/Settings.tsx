@@ -73,9 +73,32 @@ const SettingsPage = () => {
     console.log('URL parameters on page load:', Object.fromEntries(urlParams.entries()));
     
     if (urlParams.get('success') === 'true') {
-      console.log('Subscription successful! Reloading usage data.');
-      alert('Subscription successful! Your plan has been upgraded.');
-      reloadUsageData();
+      console.log('Subscription successful! Updating plan to Pro and reloading usage data.');
+      
+      // Update user plan to Pro in Supabase
+      const updateUserToPro = async () => {
+        if (!userId) return;
+        try {
+          // Import updateUserPlan function
+          const { updateUserPlan } = await import('@/lib/supabaseService');
+          
+          // Update the plan in Supabase
+          await updateUserPlan(userId, { 
+            plan_type: 'pro',
+            updated_at: new Date()
+          });
+          
+          // Reload usage data to reflect new plan
+          reloadUsageData();
+          
+          alert('Subscription successful! Your plan has been upgraded.');
+        } catch (error) {
+          console.error('Error updating user plan:', error);
+          alert('Your payment was successful, but we had trouble updating your account. Please contact support.');
+        }
+      };
+      
+      updateUserToPro();
     } else if (urlParams.get('canceled') === 'true') {
       console.log('Subscription process was canceled by user.');
       alert('Subscription canceled. You can try again anytime.');
@@ -86,7 +109,7 @@ const SettingsPage = () => {
       console.log('Clearing URL parameters');
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [reloadUsageData]);
+  }, [reloadUsageData, userId]);
   return (
     <Layout className="pt-28 pb-16">
       <div className="max-w-4xl mx-auto">
