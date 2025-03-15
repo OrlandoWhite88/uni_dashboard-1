@@ -3,18 +3,18 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { useImprovedClassifier } from "@/lib/improvedUseClassifier";
-import { 
-  AlertCircle, 
-  AlertTriangle, 
-  CheckCircle, 
-  Loader2, 
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
   MessageCircle,
-  RefreshCw, 
-  ArrowRight, 
-  Bug, 
-  Copy, 
-  ChevronDown, 
-  ChevronUp
+  RefreshCw,
+  ArrowRight,
+  Bug,
+  Copy,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import ProductInput from "@/components/ProductInput";
 import QuestionFlow from "@/components/QuestionFlow";
@@ -22,7 +22,7 @@ import HSCodeResult from "@/components/HSCodeResult";
 import CustomButton from "@/components/ui/CustomButton";
 
 // Simple wrapper component to ensure any errors are contained
-class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }> {
   state = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: any) {
@@ -40,12 +40,16 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
           <div className="flex items-start">
             <AlertCircle className="h-6 w-6 text-destructive mr-3 mt-0.5" />
             <div>
-              <h2 className="text-xl font-medium text-destructive mb-2">Application Error</h2>
-              <p className="text-muted-foreground mb-4">An unexpected error occurred in the application.</p>
+              <h2 className="text-xl font-medium text-destructive mb-2">
+                Application Error
+              </h2>
+              <p className="text-muted-foreground mb-4">
+                An unexpected error occurred in the application.
+              </p>
               <pre className="p-3 bg-secondary/50 rounded text-xs overflow-auto max-h-40 mb-4 font-mono">
                 {this.state.error?.toString()}
               </pre>
-              <CustomButton 
+              <CustomButton
                 onClick={() => window.location.reload()}
                 className="flex items-center"
               >
@@ -62,7 +66,8 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
 
 // The main application with improved debugging and error handling
 const ImprovedIndex = () => {
-  const { state, classify, continueWithAnswer, reset, debugInfo } = useImprovedClassifier();
+  const { state, classify, continueWithAnswer, reset, debugInfo } =
+    useImprovedClassifier();
   const [productInput, setProductInput] = useState("");
   const [showDebug, setShowDebug] = useState(false);
 
@@ -79,7 +84,7 @@ const ImprovedIndex = () => {
   // Copy debug info to clipboard
   const copyDebugInfo = () => {
     if (debugInfo && debugInfo.length > 0) {
-      navigator.clipboard.writeText(debugInfo.join('\n'));
+      navigator.clipboard.writeText(debugInfo.join("\n"));
     }
   };
 
@@ -95,25 +100,27 @@ const ImprovedIndex = () => {
           </div>
 
           {/* Product Input */}
-          {state.status === 'idle' && (
+          {state.status === "idle" && (
             <ProductInput onSubmit={handleClassify} isLoading={false} />
           )}
 
           {/* Loading State */}
-          {state.status === 'loading' && (
+          {state.status === "loading" && (
             <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60 animate-pulse">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-              <p className="text-muted-foreground">Processing your request...</p>
+              <p className="text-muted-foreground">
+                Processing your request...
+              </p>
             </div>
           )}
 
           {/* Question Flow */}
-          {state.status === 'question' && (
-            <QuestionFlow 
+          {state.status === "question" && (
+            <QuestionFlow
               question={{
-                id: 'clarification', 
+                id: "clarification",
                 text: state.question,
-                options: state.options
+                options: state.options,
               }}
               onAnswer={handleAnswer}
               isLoading={false}
@@ -121,10 +128,10 @@ const ImprovedIndex = () => {
           )}
 
           {/* Result View */}
-          {state.status === 'result' && (
-            <HSCodeResult 
+          {state.status === "result" && (
+            <HSCodeResult
               hsCode={state.code}
-              description={state.description || 'Product'}
+              description={state.description || "Product"}
               confidence={state.confidence}
               fullPath={state.path}
               onReset={reset}
@@ -132,25 +139,24 @@ const ImprovedIndex = () => {
           )}
 
           {/* Error View */}
-          {state.status === 'error' && (
+          {state.status === "error" && (
             <div className="glass-card p-6 rounded-xl animate-scale-in">
               <div className="flex items-start">
                 <AlertCircle className="h-5 w-5 text-destructive mr-3 mt-0.5" />
                 <div>
-                  <h3 className="font-medium text-destructive mb-2">Error Processing Request</h3>
+                  <h3 className="font-medium text-destructive mb-2">
+                    Error Processing Request
+                  </h3>
                   <p className="text-muted-foreground mb-4">{state.message}</p>
-                  
+
                   {state.details && (
                     <div className="mb-6 p-3 bg-secondary/50 border border-border rounded-md overflow-auto max-h-40 text-xs font-mono">
                       {state.details}
                     </div>
                   )}
-                  
+
                   <div className="flex gap-3">
-                    <CustomButton
-                      onClick={reset}
-                      className="flex items-center"
-                    >
+                    <CustomButton onClick={reset} className="flex items-center">
                       <RefreshCw className="mr-2 h-4 w-4" /> Try Again
                     </CustomButton>
                   </div>
@@ -162,7 +168,7 @@ const ImprovedIndex = () => {
           {/* Debug Panel - shows debug info for developers */}
           {debugInfo && debugInfo.length > 0 && (
             <div className="mt-8 rounded-xl border border-border">
-              <div 
+              <div
                 className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 rounded-t-xl"
                 onClick={() => setShowDebug(!showDebug)}
               >
@@ -171,7 +177,7 @@ const ImprovedIndex = () => {
                   Debug Information
                 </div>
                 <div className="flex items-center">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       copyDebugInfo();
@@ -181,18 +187,22 @@ const ImprovedIndex = () => {
                   >
                     <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
-                  {showDebug ? 
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" /> : 
+                  {showDebug ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  }
+                  )}
                 </div>
               </div>
-              
+
               {showDebug && (
                 <div className="p-3 border-t border-border bg-background/50 rounded-b-xl">
                   <div className="max-h-60 overflow-auto p-2 bg-muted/30 rounded-md font-mono text-xs">
                     {debugInfo.map((line, i) => (
-                      <div key={i} className="py-0.5 border-b border-secondary last:border-0">
+                      <div
+                        key={i}
+                        className="py-0.5 border-b border-secondary last:border-0"
+                      >
                         {line}
                       </div>
                     ))}

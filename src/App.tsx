@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,7 +26,6 @@ const App = () => (
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/bulk-import" element={<BulkImport />} />
-          <Route path="/batch-classify" element={<BatchClassify />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
