@@ -158,7 +158,7 @@ export type ClassifierState =
   | {
       status: "question";
       question: string;
-      options?: { id: string; text: string }[];
+      options?: Options[];
       state: any;
     }
   | {
@@ -319,20 +319,35 @@ export function useClassifier() {
           }
         }
 
-        // Get options safely - transform objects with id/text to strings (just text)
+        // Get options safely - ensure they're in the Options object format
         let options: Options[] = [];
         if (
           result.clarification_question &&
           Array.isArray(result.clarification_question.options)
         ) {
-          // Process each option - could be a string or an object with id/text
-          options = result.clarification_question.options.map((opt) => {
-            // If the option is an object with a text property, extract just the text
-            if (opt && typeof opt === "object" && "text" in opt) {
-              return String(opt.text);
+          // Process each option - normalize to Options object format
+          options = result.clarification_question.options.map((opt, index) => {
+            // If the option is already an object with id and text properties
+            if (opt && typeof opt === "object" && "id" in opt && "text" in opt) {
+              return {
+                id: String(opt.id),
+                text: String(opt.text)
+              };
             }
-            // Otherwise, convert to string
-            return String(opt);
+            // If the option is an object with just a text property
+            else if (opt && typeof opt === "object" && "text" in opt) {
+              return {
+                id: String(index + 1),
+                text: String(opt.text)
+              };
+            }
+            // If the option is a string, create an Options object
+            else {
+              return {
+                id: String(index + 1),
+                text: String(opt)
+              };
+            }
           });
 
           addDebug(`Processed options: ${JSON.stringify(options)}`);
