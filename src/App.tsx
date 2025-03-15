@@ -11,6 +11,7 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import BulkImport from "./pages/BulkImport";
 import BatchClassify from "./pages/BatchClassify";
+import DebugStripe from "./pages/DebugStripe";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/bulk-import" element={<BulkImport />} />
+          <Route path="/debug-stripe" element={<DebugStripe />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

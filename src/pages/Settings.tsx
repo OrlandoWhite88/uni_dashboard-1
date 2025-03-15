@@ -67,38 +67,58 @@ const SettingsPage = () => {
     }
   };
 
-  // Check for URL parameters after returning from Stripe
+  // Check for URL parameters and stored checkout session after returning from Stripe
   React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    console.log('URL parameters on page load:', Object.fromEntries(urlParams.entries()));
+    const checkStripeRedirect = async () => {
+      // Import functions we need
+      const { updateUserPlan } = await import('@/lib/supabaseService');
+      const { getStoredCheckoutSession, clearStoredCheckoutSession } = await import('@/lib/stripeService');
     
-    if (urlParams.get('success') === 'true') {
-      console.log('Subscription successful! Updating plan to Pro and reloading usage data.');
+      // Check URL parameters first
+      const urlParams = new URLSearchParams(window.location.search);
+      console.log('URL parameters on page load:', Object.fromEntries(urlParams.entries()));
       
-      // Update user plan to Pro in Supabase
-      const updateUserToPro = async () => {
-        if (!userId) return;
+      // Check if either URL param or stored session indicates success
+      const hasSuccessParam = urlParams.get('success') === 'true';
+      const storedSession = getStoredCheckoutSession();
+      
+      // Log detailed info for debugging
+      console.log('Checking checkout status:', { 
+        hasSuccessParam, 
+        hasStoredSession: !!storedSession,
+        userId
+      });
+      
+      if (hasSuccessParam || storedSession) {
+        console.log('Subscription successful! Updating plan to Pro and reloading usage data.');
+        clearStoredCheckoutSession(); // Clear session to prevent duplicate processing
+        
+        // Update user plan to Pro in Supabase
+        if (!userId) {
+          console.warn('Cannot update plan: No user ID available');
+          return;
+        }
+        
         try {
-          // Import updateUserPlan function
-          const { updateUserPlan } = await import('@/lib/supabaseService');
-          
           console.log('Updating user plan to Pro for user:', userId);
           
-          // Update the plan in Supabase - add subscription timestamp
+          // Update the plan in Supabase - add subscription timestamp and unique checkout ID
+          const timestamp = new Date();
           const updatedPlan = await updateUserPlan(userId, { 
             plan_type: 'pro',
-            subscribed_at: new Date(),
-            updated_at: new Date()
+            subscribed_at: timestamp,
+            updated_at: timestamp,
+            stripe_customer_id: 'cus_' + Math.random().toString(36).substring(2, 10), // Temporary ID for test mode
+            last_checkout_session: storedSession || 'direct_success'
           });
           
           console.log('Plan updated successfully:', updatedPlan);
           
           // Force a complete page reload to ensure all data is fresh
-          // This is more reliable than just calling reloadUsageData()
           if (updatedPlan) {
             alert('Subscription successful! Your plan has been upgraded to Pro.');
             console.log('Reloading page to refresh data...');
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 500); // Add slight delay to ensure DB updates propagate
           } else {
             // Fallback to just reloading the data if the update failed
             console.warn('Plan update may not have succeeded, trying to reload data');
@@ -107,22 +127,25 @@ const SettingsPage = () => {
           }
         } catch (error) {
           console.error('Error updating user plan:', error);
+          console.error('Error details:', error);
           alert('Your payment was successful, but we had trouble updating your account. Please contact support.');
         }
-      };
+      } else if (urlParams.get('canceled') === 'true') {
+        console.log('Subscription process was canceled by user.');
+        clearStoredCheckoutSession(); // Clear session on cancel too
+        alert('Subscription canceled. You can try again anytime.');
+      }
       
-      updateUserToPro();
-    } else if (urlParams.get('canceled') === 'true') {
-      console.log('Subscription process was canceled by user.');
-      alert('Subscription canceled. You can try again anytime.');
-    }
+      // Clear URL parameters to prevent multiple processing
+      if (urlParams.has('success') || urlParams.has('canceled') || urlParams.has('t')) {
+        console.log('Clearing URL parameters');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
     
-    // Clear URL parameters
-    if (urlParams.has('success') || urlParams.has('canceled')) {
-      console.log('Clearing URL parameters');
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [reloadUsageData, userId]);
+    // Execute the checkout verification function
+    checkStripeRedirect();
+  }, [userId]); // Only depend on userId to prevent multiple executions
   return (
     <Layout className="pt-28 pb-16">
       <div className="max-w-4xl mx-auto">

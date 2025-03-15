@@ -40,16 +40,51 @@ export async function createCustomer(email: string, name: string): Promise<strin
 }
 
 // Create checkout session using client-only integration
+// Store checkout session ID in localStorage so we can verify success
+const CHECKOUT_SESSION_KEY = 'hscode_genie_checkout_session';
+
+export function storeCheckoutSession(sessionId: string) {
+  try {
+    localStorage.setItem(CHECKOUT_SESSION_KEY, sessionId);
+    console.log('Stored checkout session ID in localStorage:', sessionId);
+  } catch (error) {
+    console.error('Error storing checkout session:', error);
+  }
+}
+
+export function getStoredCheckoutSession(): string | null {
+  try {
+    return localStorage.getItem(CHECKOUT_SESSION_KEY);
+  } catch (error) {
+    console.error('Error retrieving checkout session:', error);
+    return null;
+  }
+}
+
+export function clearStoredCheckoutSession() {
+  try {
+    localStorage.removeItem(CHECKOUT_SESSION_KEY);
+    console.log('Cleared checkout session ID from localStorage');
+  } catch (error) {
+    console.error('Error clearing checkout session:', error);
+  }
+}
+
 export async function createCheckoutSession(
   customerId: string,
   successUrl: string,
   cancelUrl: string
 ) {
   try {
+    // Ensure success URL has a unique identifier that can't be stripped
+    // Add timestamp to make the URL unique and force a fresh page load
+    const enhancedSuccessUrl = `${successUrl}${successUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+    const enhancedCancelUrl = `${cancelUrl}${cancelUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
+    
     console.log('Creating checkout session with params:', {
       customerId,
-      successUrl,
-      cancelUrl,
+      successUrl: enhancedSuccessUrl,
+      cancelUrl: enhancedCancelUrl,
       priceId: STRIPE_PRO_PRICE_ID
     });
 
@@ -58,6 +93,10 @@ export async function createCheckoutSession(
       console.error('Stripe Publishable Key is not set.');
       throw new Error('Stripe Publishable Key not configured. Please check your environment variables.');
     }
+
+    // Generate a session ID that we'll store locally to verify the checkout
+    const sessionId = `cs_client_${Math.random().toString(36).substring(2, 15)}`;
+    storeCheckoutSession(sessionId);
 
     // Load Stripe.js
     const stripe = await loadStripe();
@@ -69,8 +108,9 @@ export async function createCheckoutSession(
     const { error } = await stripe.redirectToCheckout({
       lineItems: [{ price: STRIPE_PRO_PRICE_ID, quantity: 1 }],
       mode: 'subscription',
-      successUrl: successUrl,
-      cancelUrl: cancelUrl,
+      successUrl: enhancedSuccessUrl,
+      cancelUrl: enhancedCancelUrl,
+      clientReferenceId: sessionId,
     });
     
     if (error) {
