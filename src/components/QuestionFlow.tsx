@@ -121,34 +121,27 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
             Array.isArray(question.options) &&
             question.options.length > 0 ? (
               <div className="space-y-2.5 mb-4">
-                {question.options.map((option, index) => {
-                  // Ensure option is a string
-                  const optionStr =
-                    typeof option.text === "string"
-                      ? option.text
-                      : String(option.text);
-                  return (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleOptionSelect(optionStr)}
-                      className={cn(
-                        "w-full text-left p-3.5 rounded-lg border transition-all duration-200",
-                        selectedOption === optionStr
-                          ? "bg-primary/10 border-primary/30 shadow-sm"
-                          : "border-border hover:bg-secondary hover:border-muted"
+                {question.options.map((option, index) => (
+                  <button
+                    key={option.id || index}
+                    type="button"
+                    onClick={() => handleOptionSelect(option.text)}
+                    className={cn(
+                      "w-full text-left p-3.5 rounded-lg border transition-all duration-200",
+                      selectedOption === option.text
+                        ? "bg-primary/10 border-primary/30 shadow-sm"
+                        : "border-border hover:bg-secondary hover:border-muted"
+                    )}
+                    disabled={isLoading}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{option.text}</span>
+                      {selectedOption === option.text && (
+                        <Check size={16} className="text-primary" />
                       )}
-                      disabled={isLoading}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{optionStr}</span>
-                        {selectedOption === optionStr && (
-                          <Check size={16} className="text-primary" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+                    </div>
+                  </button>
+                ))}
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
