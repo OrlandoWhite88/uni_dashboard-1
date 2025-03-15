@@ -3,16 +3,17 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { useClassifier } from "@/lib/classifierService";
-import { 
-  AlertCircle, 
-  CheckCircle, 
-  Loader2, 
+import {
+  AlertCircle,
+  CheckCircle,
+  Loader2,
   MessageCircle,
-  RefreshCw, 
-  Copy, 
-  ChevronDown, 
+  RefreshCw,
+  ArrowRight,
+  Bug,
+  Copy,
+  ChevronDown,
   ChevronUp,
-  Bug
 } from "lucide-react";
 import ProductInput from "@/components/ProductInput";
 import QuestionFlow from "@/components/QuestionFlow";
@@ -20,7 +21,7 @@ import HSCodeResult from "@/components/HSCodeResult";
 import CustomButton from "@/components/ui/CustomButton";
 
 // Simple wrapper component to ensure any errors are contained
-class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }> {
   state = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: any) {
@@ -39,12 +40,16 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
           <div className="flex items-start">
             <AlertCircle className="h-6 w-6 text-destructive mr-3 mt-0.5" />
             <div>
-              <h2 className="text-xl font-medium text-destructive mb-2">Application Error</h2>
-              <p className="text-muted-foreground mb-4">An unexpected error occurred in the application.</p>
+              <h2 className="text-xl font-medium text-destructive mb-2">
+                Application Error
+              </h2>
+              <p className="text-muted-foreground mb-4">
+                An unexpected error occurred in the application.
+              </p>
               <pre className="p-3 bg-secondary/50 rounded text-xs overflow-auto max-h-40 mb-4 font-mono">
                 {this.state.error?.toString()}
               </pre>
-              <CustomButton 
+              <CustomButton
                 onClick={() => window.location.reload()}
                 className="flex items-center"
               >
@@ -60,7 +65,8 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}> {
 }
 
 const Index = () => {
-  const { state, classify, continueWithAnswer, reset, debugInfo } = useClassifier();
+  const { state, classify, continueWithAnswer, reset, debugInfo } =
+    useClassifier();
   const [showDebug, setShowDebug] = useState(false);
 
   // Handle product submission
@@ -78,7 +84,7 @@ const Index = () => {
   // Copy debug info to clipboard
   const copyDebugInfo = () => {
     if (debugInfo && debugInfo.length > 0) {
-      navigator.clipboard.writeText(debugInfo.join('\n'));
+      navigator.clipboard.writeText(debugInfo.join("\n"));
     }
   };
 
@@ -93,14 +99,14 @@ const Index = () => {
       console.error("[Global Error Handler]", message, error);
       return false; // Let the default handler run as well
     };
-    
-    window.addEventListener('unhandledrejection', (event) => {
+
+    window.addEventListener("unhandledrejection", (event) => {
       console.error("[Unhandled Promise Rejection]", event.reason);
     });
-    
+
     return () => {
       window.onerror = null;
-      window.removeEventListener('unhandledrejection', () => {});
+      window.removeEventListener("unhandledrejection", () => {});
     };
   }, []);
 
@@ -116,36 +122,41 @@ const Index = () => {
           </div>
 
           {/* Product Input */}
-          {state.status === 'idle' && (
+          {state.status === "idle" && (
             <ProductInput onSubmit={handleClassify} isLoading={false} />
           )}
 
           {/* Loading State */}
-          {state.status === 'loading' && (
+          {state.status === "loading" && (
             <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60 animate-pulse">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-              <p className="text-muted-foreground">Processing your request...</p>
+              <p className="text-muted-foreground">
+                Processing your request...
+              </p>
             </div>
           )}
 
           {/* Question Flow */}
-          {state.status === 'question' && (
+          {state.status === "question" && (
             <>
               {/* Debug info to show what's being passed to QuestionFlow */}
               {console.log("[Index] Passing question to QuestionFlow:", {
                 questionText: state.question,
                 questionTextType: typeof state.question,
                 options: state.options,
-                optionsType: Array.isArray(state.options) ? "array" : typeof state.options
+                optionsType: Array.isArray(state.options)
+                  ? "array"
+                  : typeof state.options,
               })}
-              
-              <QuestionFlow 
+
+              <QuestionFlow
                 question={{
-                  id: 'clarification', 
-                  text: typeof state.question === 'string' 
-                    ? state.question 
-                    : "Please provide more information about your product",
-                  options: Array.isArray(state.options) ? state.options : []
+                  id: "clarification",
+                  text:
+                    typeof state.question === "string"
+                      ? state.question
+                      : "Please provide more information about your product",
+                  options: Array.isArray(state.options) ? state.options : [],
                 }}
                 onAnswer={handleAnswer}
                 isLoading={false}
@@ -154,10 +165,10 @@ const Index = () => {
           )}
 
           {/* Result View */}
-          {state.status === 'result' && (
-            <HSCodeResult 
+          {state.status === "result" && (
+            <HSCodeResult
               hsCode={state.code}
-              description={state.description || 'Product'}
+              description={state.description || "Product"}
               confidence={state.confidence}
               fullPath={state.path}
               onReset={reset}
@@ -165,25 +176,24 @@ const Index = () => {
           )}
 
           {/* Error View */}
-          {state.status === 'error' && (
+          {state.status === "error" && (
             <div className="glass-card p-6 rounded-xl animate-scale-in">
               <div className="flex items-start">
                 <AlertCircle className="h-5 w-5 text-destructive mr-3 mt-0.5" />
                 <div>
-                  <h3 className="font-medium text-destructive mb-2">Error Processing Request</h3>
+                  <h3 className="font-medium text-destructive mb-2">
+                    Error Processing Request
+                  </h3>
                   <p className="text-muted-foreground mb-4">{state.message}</p>
-                  
+
                   {state.details && (
                     <div className="mb-6 p-3 bg-secondary/50 border border-border rounded-md overflow-auto max-h-40 text-xs font-mono">
                       {state.details}
                     </div>
                   )}
-                  
+
                   <div className="flex gap-3">
-                    <CustomButton
-                      onClick={reset}
-                      className="flex items-center"
-                    >
+                    <CustomButton onClick={reset} className="flex items-center">
                       <RefreshCw className="mr-2 h-4 w-4" /> Try Again
                     </CustomButton>
                   </div>
@@ -206,15 +216,13 @@ const Index = () => {
           {/* Debug Panel - shows debug info for developers */}
           {showDebug && (
             <div className="mt-2 rounded-xl border border-border">
-              <div 
-                className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 rounded-t-xl"
-              >
+              <div className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 rounded-t-xl">
                 <div className="flex items-center text-sm font-medium">
                   <Bug className="h-4 w-4 mr-2 text-muted-foreground" />
                   Debug Information
                 </div>
                 <div className="flex items-center">
-                  <button 
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       copyDebugInfo();
@@ -226,20 +234,25 @@ const Index = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="p-3 border-t border-border bg-background/50 rounded-b-xl">
                 <div className="max-h-60 overflow-auto p-2 bg-muted/30 rounded-md font-mono text-xs">
                   {debugInfo && debugInfo.length > 0 ? (
                     debugInfo.map((line, i) => (
-                      <div key={i} className="py-0.5 border-b border-secondary last:border-0">
+                      <div
+                        key={i}
+                        className="py-0.5 border-b border-secondary last:border-0"
+                      >
                         {line}
                       </div>
                     ))
                   ) : (
-                    <div className="py-2 text-center text-muted-foreground">No debug information available</div>
+                    <div className="py-2 text-center text-muted-foreground">
+                      No debug information available
+                    </div>
                   )}
                 </div>
-                
+
                 <div className="mt-3 p-2 bg-muted/30 rounded-md">
                   <h4 className="text-xs font-medium mb-1">Current State:</h4>
                   <pre className="text-xs overflow-auto max-h-60">

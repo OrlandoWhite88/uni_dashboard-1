@@ -9,7 +9,7 @@ import sys
 import json
 import requests
 
-API_BASE_URL = "https://hscode-eight.vercel.app"
+API_BASE_URL = "https://arif-pixie.ngrok.app"
 
 def classify_product(product_description, max_questions=3):
     """Start a classification session"""

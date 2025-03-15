@@ -2,11 +2,12 @@ import React, { useState, useEffect } from "react";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
 import { ArrowRight, MessageCircle, Check, X, HelpCircle } from "lucide-react";
+import { Options } from "@/lib/classifierService";
 
 interface Question {
   id: string;
   text: string;
-  options?: string[];
+  options?: Options[];
 }
 
 interface QuestionFlowProps {
@@ -24,7 +25,10 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
     console.log("[QuestionFlow] Received question:", question);
     console.log("[QuestionFlow] Question text type:", typeof question.text);
     console.log("[QuestionFlow] Question options:", question.options);
-    console.log("[QuestionFlow] Question options type:", Array.isArray(question.options) ? "array" : typeof question.options);
+    console.log(
+      "[QuestionFlow] Question options type:",
+      Array.isArray(question.options) ? "array" : typeof question.options
+    );
   }, [question]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,14 +52,15 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
   };
 
   // Guard against invalid question objects to prevent rendering errors
-  if (!question || typeof question !== 'object') {
+  if (!question || typeof question !== "object") {
     console.error("[QuestionFlow] Invalid question object received:", question);
     return (
       <div className="w-full max-w-2xl mx-auto">
         <div className="mb-6 glass-card p-6 rounded-xl">
           <div className="text-destructive">Error: Invalid question format</div>
           <p className="mt-2 text-sm text-muted-foreground">
-            The system received an invalid question object. Please try again or contact support if the issue persists.
+            The system received an invalid question object. Please try again or
+            contact support if the issue persists.
           </p>
         </div>
       </div>
@@ -63,14 +68,22 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
   }
 
   // Guard specifically against non-string text
-  if (typeof question.text !== 'string') {
-    console.error("[QuestionFlow] Invalid question text type:", typeof question.text, "Value:", question.text);
+  if (typeof question.text !== "string") {
+    console.error(
+      "[QuestionFlow] Invalid question text type:",
+      typeof question.text,
+      "Value:",
+      question.text
+    );
     return (
       <div className="w-full max-w-2xl mx-auto">
         <div className="mb-6 glass-card p-6 rounded-xl">
-          <div className="text-destructive">Error: Invalid question text format</div>
+          <div className="text-destructive">
+            Error: Invalid question text format
+          </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            The system received a question with an invalid text format. Please try again or contact support if the issue persists.
+            The system received a question with an invalid text format. Please
+            try again or contact support if the issue persists.
           </p>
           <pre className="mt-4 p-2 bg-secondary/50 text-xs rounded overflow-auto max-h-20">
             {JSON.stringify(question, null, 2)}
@@ -86,12 +99,12 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
         <div className="absolute top-0 left-0 w-full h-1 bg-primary/20">
           <div className="h-full bg-primary w-1/3 animate-pulse"></div>
         </div>
-        
+
         <div className="flex items-start gap-4">
           <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary shrink-0 mt-1">
             <MessageCircle size={17} />
           </div>
-          
+
           <div className="flex-1">
             <div className="flex items-center mb-3">
               <h3 className="font-medium">Product Classification Assistant</h3>
@@ -99,14 +112,21 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
                 Analyzing
               </div>
             </div>
-            
-            <p className="text-foreground leading-relaxed mb-4">{question.text}</p>
-            
-            {question.options && Array.isArray(question.options) && question.options.length > 0 ? (
+
+            <p className="text-foreground leading-relaxed mb-4">
+              {question.text}
+            </p>
+
+            {question.options &&
+            Array.isArray(question.options) &&
+            question.options.length > 0 ? (
               <div className="space-y-2.5 mb-4">
                 {question.options.map((option, index) => {
                   // Ensure option is a string
-                  const optionStr = typeof option === 'string' ? option : String(option);
+                  const optionStr =
+                    typeof option.text === "string"
+                      ? option.text
+                      : String(option.text);
                   return (
                     <button
                       key={index}
@@ -114,8 +134,8 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
                       onClick={() => handleOptionSelect(optionStr)}
                       className={cn(
                         "w-full text-left p-3.5 rounded-lg border transition-all duration-200",
-                        selectedOption === optionStr 
-                          ? "bg-primary/10 border-primary/30 shadow-sm" 
+                        selectedOption === optionStr
+                          ? "bg-primary/10 border-primary/30 shadow-sm"
                           : "border-border hover:bg-secondary hover:border-muted"
                       )}
                       disabled={isLoading}
@@ -141,7 +161,7 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
                     onChange={(e) => setAnswer(e.target.value)}
                     disabled={isLoading}
                   />
-                  <button 
+                  <button
                     type="submit"
                     className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center bg-primary/10 text-primary disabled:opacity-50 disabled:text-muted-foreground disabled:bg-secondary/50"
                     disabled={!answer.trim() || isLoading}
@@ -149,10 +169,13 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
                     <ArrowRight size={14} />
                   </button>
                 </div>
-                
+
                 <div className="flex items-center text-xs text-muted-foreground">
                   <HelpCircle size={12} className="mr-1" />
-                  <span>Provide as much detail as possible for accurate classification</span>
+                  <span>
+                    Provide as much detail as possible for accurate
+                    classification
+                  </span>
                 </div>
               </form>
             )}
