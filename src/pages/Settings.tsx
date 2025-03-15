@@ -82,16 +82,29 @@ const SettingsPage = () => {
           // Import updateUserPlan function
           const { updateUserPlan } = await import('@/lib/supabaseService');
           
-          // Update the plan in Supabase
-          await updateUserPlan(userId, { 
+          console.log('Updating user plan to Pro for user:', userId);
+          
+          // Update the plan in Supabase - add subscription timestamp
+          const updatedPlan = await updateUserPlan(userId, { 
             plan_type: 'pro',
+            subscribed_at: new Date(),
             updated_at: new Date()
           });
           
-          // Reload usage data to reflect new plan
-          reloadUsageData();
+          console.log('Plan updated successfully:', updatedPlan);
           
-          alert('Subscription successful! Your plan has been upgraded.');
+          // Force a complete page reload to ensure all data is fresh
+          // This is more reliable than just calling reloadUsageData()
+          if (updatedPlan) {
+            alert('Subscription successful! Your plan has been upgraded to Pro.');
+            console.log('Reloading page to refresh data...');
+            window.location.reload();
+          } else {
+            // Fallback to just reloading the data if the update failed
+            console.warn('Plan update may not have succeeded, trying to reload data');
+            reloadUsageData();
+            alert('Subscription successful! Refreshing your account data...');
+          }
         } catch (error) {
           console.error('Error updating user plan:', error);
           alert('Your payment was successful, but we had trouble updating your account. Please contact support.');
