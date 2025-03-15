@@ -8,7 +8,7 @@
 import { useState, useCallback } from "react";
 
 // API configuration - The endpoint for the classification service
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "https://hscode-eight.vercel.app";
 // const API_BASE_URL = "http://localhost:8000"; // Uncomment for local testing
 
 // Enable debug logs for development
