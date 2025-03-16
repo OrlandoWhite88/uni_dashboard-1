@@ -10,6 +10,8 @@ import Settings from "./pages/Settings";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import VerifyEmail from "./pages/VerifyEmail";
+import SSOCallback from "./pages/SSOCallback";
+import OAuthCallback from "./pages/OAuthCallback";
 import BulkImport from "./pages/BulkImport";
 import BatchClassify from "./pages/BatchClassify";
 import DebugStripe from "./pages/DebugStripe";
@@ -28,6 +30,10 @@ const App = () => (
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/sign-up/verify-email-address" element={<VerifyEmail />} />
+          <Route path="/sign-up/sso-callback" element={<SSOCallback />} />
+          <Route path="/sign-in/sso-callback" element={<SSOCallback />} />
+          <Route path="/oauth-callback" element={<OAuthCallback />} />
+          <Route path="/sso-callback" element={<OAuthCallback />} />
           <Route path="/bulk-import" element={<BulkImport />} />
           <Route path="/debug-stripe" element={<DebugStripe />} />
           <Route path="*" element={<NotFound />} />
