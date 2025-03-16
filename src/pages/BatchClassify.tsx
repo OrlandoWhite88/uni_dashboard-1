@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import CustomButton from "@/components/ui/CustomButton";
-import { CheckCircle2, Download, FileText, MessageCircle, Zap, ArrowUp, Clock, ChevronDown } from "lucide-react";
+import { CheckCircle2, Download, FileText, MessageCircle, Zap, ArrowUp, Clock, ChevronDown, AlertTriangle } from "lucide-react";
+import { useUsageLimits } from "@/hooks/use-usage-limits";
+import { useNavigate } from "react-router-dom";
 import _ from "lodash";
 import { 
   classifyProduct, 
@@ -50,6 +52,14 @@ interface Question {
 }
 
 const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
+  // Get user's plan information
+  const { userPlan, isLoading: isPlanLoading } = useUsageLimits();
+  const navigate = useNavigate();
+  
+  // Check if user is on free plan
+  const isFreePlan = userPlan?.plan_type === 'free';
+  const [showUpgradeMessage, setShowUpgradeMessage] = useState(false);
+  
   // Parse products from the input
   const products = useMemo(() => {
     // Convert input to string if it's not already
@@ -103,8 +113,20 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
   }[]>([]);
   const [isProcessingAll, setIsProcessingAll] = useState<boolean>(false);
 
+  // Handle navigation to upgrade page
+  const handleUpgrade = () => {
+    navigate('/settings');
+  };
+
   // Start classification for all products at once
   const startClassifyingAllProducts = async () => {
+    // Check if user is on free plan - block batch processing
+    if (isFreePlan) {
+      console.log('Batch processing not available on free plan');
+      setShowUpgradeMessage(true);
+      return;
+    }
+    
     setIsProcessingAll(true);
     
     // Initialize states for all products
@@ -367,10 +389,10 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
 
   // Initialize all products on component mount
   useEffect(() => {
-    if (products.length > 0 && Object.keys(classificationStates).length === 0) {
+    if (products.length > 0 && Object.keys(classificationStates).length === 0 && !isPlanLoading) {
       startClassifyingAllProducts();
     }
-  }, [products]);
+  }, [products, isPlanLoading]);
 
   const handleDownloadResults = () => {
     const csv = [
@@ -435,6 +457,24 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
             </div>
           </div>
         </div>
+
+        {/* Free plan upgrade message */}
+        {showUpgradeMessage && (
+          <div className="glass-card p-6 rounded-xl mb-6 border border-amber-400">
+            <div className="flex items-start">
+              <AlertTriangle size={24} className="text-amber-500 mr-4 mt-1 flex-shrink-0" />
+              <div>
+                <h3 className="text-lg font-medium mb-2">Batch Processing Not Available</h3>
+                <p className="text-muted-foreground mb-4">
+                  Batch processing is only available on the Pro plan. Please upgrade your account to access this feature.
+                </p>
+                <CustomButton onClick={handleUpgrade}>
+                  Upgrade to Pro
+                </CustomButton>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Product list */}

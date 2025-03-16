@@ -2,8 +2,8 @@
 // This approach doesn't require a secret key, using only the publishable key
 
 // Get publishable key from environment
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_Stripe_Publishable_Key || '';
-const STRIPE_PRO_PRICE_ID = 'price_1R31WfRUBtigqfwzgSVyP0Zr';
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_Stripe_Publishable_Key || 'pk_live_51QKRKILZPw2q2pWLdWe9PVjtrkxqWdpIMNFjAVQJUvPo3ZuZRm1cGo3cxVSHfVx63oZZmZc7EoHAy38W2nexm4yq00V46PH7I6';
+const STRIPE_PRO_PRICE_ID = 'price_1R3KHELZPw2q2pWLXoi3t6Kd';
 
 // Log initialization for debugging
 console.log('Stripe client-only initialization:');

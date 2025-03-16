@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import VerifyEmail from "./pages/VerifyEmail";
 import BulkImport from "./pages/BulkImport";
 import BatchClassify from "./pages/BatchClassify";
 import DebugStripe from "./pages/DebugStripe";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/settings" element={<Settings />} />
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/sign-up" element={<SignUp />} />
+          <Route path="/sign-up/verify-email-address" element={<VerifyEmail />} />
           <Route path="/bulk-import" element={<BulkImport />} />
           <Route path="/debug-stripe" element={<DebugStripe />} />
           <Route path="*" element={<NotFound />} />
