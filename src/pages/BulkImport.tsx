@@ -3,14 +3,17 @@ import BulkImportFiles from "./BulkImportFiles";
 import BatchClassify from "./BatchClassify";
 
 const BulkImport = () => {
-  const [csvFile, setCsvFile] = useState<string | ArrayBuffer>("");
+  // This will hold both CSV file data and pasted text
+  const [importedData, setCsvFile] = useState<string | ArrayBuffer>("");
   const [submitted, setSubmitted] = useState(false);
+  
+  // Display the appropriate screen based on submission state
   return submitted ? (
-    <BatchClassify csvFile={csvFile} />
+    <BatchClassify csvFile={importedData} />
   ) : (
     <BulkImportFiles
       setCsvFile={setCsvFile}
-      csvFile={csvFile}
+      csvFile={importedData}
       setSubmitted={setSubmitted}
     />
   );

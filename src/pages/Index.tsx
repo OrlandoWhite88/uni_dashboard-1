@@ -138,7 +138,28 @@ const Index = () => {
 
           {/* Product Input */}
           {state.status === "idle" && (
-            <ProductInput onSubmit={handleClassify} isLoading={false} />
+            <>
+              <ProductInput onSubmit={handleClassify} isLoading={false} />
+              
+              {/* Batch Processing Option */}
+              <div className="mt-6 glass-card p-4 rounded-xl bg-secondary/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium mb-1">Need to classify multiple products?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Use our batch processing feature to classify multiple products at once.
+                    </p>
+                  </div>
+                  <CustomButton 
+                    variant="outline" 
+                    onClick={() => window.location.href = '/bulk-import'}
+                    className="flex items-center whitespace-nowrap ml-4"
+                  >
+                    Batch Import <ArrowRight size={14} className="ml-2" />
+                  </CustomButton>
+                </div>
+              </div>
+            </>
           )}
 
           {/* Loading State */}

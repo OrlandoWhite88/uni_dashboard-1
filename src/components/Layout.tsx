@@ -24,6 +24,15 @@ const Layout = ({ children, className }: LayoutProps) => {
               </div>
               <h1 className="text-xl font-medium tracking-tight group-hover:text-primary transition-colors">Uni HS Classification</h1>
             </Link>
+            
+            <nav className="ml-8 hidden md:flex items-center space-x-6">
+              <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">
+                Single Product
+              </Link>
+              <Link to="/bulk-import" className="text-sm font-medium hover:text-primary transition-colors">
+                Batch Processing
+              </Link>
+            </nav>
           </div>
           
           <div className="flex items-center gap-3">

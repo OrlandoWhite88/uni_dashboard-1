@@ -55,7 +55,7 @@ const logDebug = (message: string, data?: any) => {
  */
 export async function classifyProduct(
   productDescription: string,
-  maxQuestions: number = 3
+  maxQuestions: number = 5
 ): Promise<any> {
   logDebug(`Starting classification for: "${productDescription}"`);
 

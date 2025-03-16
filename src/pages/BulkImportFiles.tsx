@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import CustomButton from "@/components/ui/CustomButton";
-import { FileText, Upload, Clipboard, ArrowRight } from "lucide-react";
+import { FileText, Upload, Clipboard, ArrowRight, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const BulkImportFiles = ({
@@ -18,7 +18,6 @@ const BulkImportFiles = ({
   );
 
   const [fileName, setFileName] = useState("");
-
   const [pastedData, setPastedData] = useState("");
   const navigate = useNavigate();
 
@@ -26,14 +25,18 @@ const BulkImportFiles = ({
     if (e.target.files && e.target.files.length > 0) {
       setFileName(e.target.files[0].name);
       const fr = new FileReader();
-      fr.onload = () => setCsvFile(fr.result);
+      fr.onload = () => setCsvFile(fr.result || "");
       fr.readAsText(e.target.files[0]);
     }
   };
 
   const handleSubmit = () => {
-    // In a real application, you would process the data here
-    // For now, we'll just navigate to a batch classification page
+    if (importMethod === "paste" && pastedData.trim()) {
+      // Set the pasted data as "CSV file" even though it's not CSV
+      setCsvFile(pastedData);
+    }
+    
+    // Move to batch classification
     setSubmitted(true);
   };
 
@@ -106,9 +109,16 @@ const BulkImportFiles = ({
 
                 <h3 className="text-lg font-medium mb-2">Upload CSV File</h3>
                 <p className="text-muted-foreground mb-4 max-w-md">
-                  Drag and drop your CSV file here, or click to browse. File
-                  should have a column for product descriptions.
+                  Drag and drop your CSV file here, or click to browse.
                 </p>
+                
+                <div className="bg-secondary/50 p-3 rounded-lg mb-4 text-sm text-muted-foreground flex items-start">
+                  <Info size={16} className="mr-2 mt-0.5 shrink-0 text-primary" />
+                  <div>
+                    CSV files should have one product per row. The system will automatically detect 
+                    product descriptions from the fields. Headers are optional.
+                  </div>
+                </div>
 
                 <input
                   type="file"
@@ -123,7 +133,7 @@ const BulkImportFiles = ({
                   </div>
                 </label>
 
-                {csvFile && (
+                {csvFile && importMethod === "csv" && (
                   <div className="mt-4 p-3 bg-secondary rounded-lg">
                     <div className="flex items-center text-sm">
                       <FileText size={14} className="mr-2" />
@@ -155,20 +165,35 @@ const BulkImportFiles = ({
             </div>
 
             <div className="mb-6">
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground mb-2">
                 Paste your product data below. Each line should contain a
                 separate product description.
               </p>
+              
+              <div className="bg-secondary/50 p-3 rounded-lg mb-4 text-sm text-muted-foreground flex items-start">
+                <Info size={16} className="mr-2 mt-0.5 shrink-0 text-primary" />
+                <div>
+                  Enter one product per line. You can include any product details in each line 
+                  such as "name: steel usage: traintracks" or any format that describes your products.
+                </div>
+              </div>
 
               <textarea
                 className="w-full min-h-[200px] p-4 rounded-lg border border-border bg-transparent focus:ring-2 focus:ring-primary/30 focus-visible:outline-none"
-                placeholder="Paste your product descriptions here, one per line..."
+                placeholder="Product 1: steel rails for train tracks
+Product 2: cotton t-shirts 
+Product 3: plastic water bottles"
                 value={pastedData}
                 onChange={(e) => setPastedData(e.target.value)}
               />
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-muted-foreground">
+                {pastedData.trim() ? 
+                  `${pastedData.trim().split('\n').filter(line => line.trim()).length} products detected` : 
+                  'No products entered yet'}
+              </div>
               <CustomButton
                 onClick={handleSubmit}
                 disabled={!pastedData.trim()}
