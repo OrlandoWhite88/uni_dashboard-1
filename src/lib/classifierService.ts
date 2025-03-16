@@ -285,13 +285,12 @@ export function useClassifier() {
         addDebug(`Received final code as string: ${result}`);
         
         // Log usage only when we get a final result
-        if (userId) {
-          try {
-            await logUsage(userId, 'final_classification');
-            addDebug(`Logged final result usage for user: ${userId}`);
-          } catch (error) {
-            addDebug(`Error logging usage: ${error}`);
-          }
+        try {
+          // Pass userId (will be null for anonymous users, which logUsage handles)
+          await logUsage(userId, 'final_classification');
+          addDebug(`Logged final result usage for user: ${userId || 'anonymous'}`);
+        } catch (error) {
+          addDebug(`Error logging usage: ${error}`);
         }
         
         // Calculate a realistic confidence score for string responses
@@ -396,13 +395,12 @@ export function useClassifier() {
         addDebug(`Received final code in JSON: ${result.final_code}`);
         
         // Log usage only when we get a final result
-        if (userId) {
-          try {
-            await logUsage(userId, 'final_classification');
-            addDebug(`Logged final result usage for user: ${userId}`);
-          } catch (error) {
-            addDebug(`Error logging usage: ${error}`);
-          }
+        try {
+          // Pass userId (will be null for anonymous users, which logUsage handles)
+          await logUsage(userId, 'final_classification');
+          addDebug(`Logged final result usage for user: ${userId || 'anonymous'}`);
+        } catch (error) {
+          addDebug(`Error logging usage: ${error}`);
         }
 
         // Calculate a more nuanced confidence score based on available information

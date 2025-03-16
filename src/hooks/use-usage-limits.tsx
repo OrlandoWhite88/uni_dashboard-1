@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { getDailyUsageCount, getMonthlyUsageCount, getUserPlan, createUserPlan, getAnonymousDailyUsageCount } from '@/lib/supabaseService';
+import { getDailyUsageCount, getMonthlyUsageCount, getUserPlan, createUserPlan, getAnonymousDailyUsageCount, incrementAnonymousUsage } from '@/lib/supabaseService';
 import { toast } from 'sonner';
 
 export function useUsageLimits() {
@@ -88,6 +88,12 @@ export function useUsageLimits() {
         toast.error('Monthly limit reached. Please contact support for assistance.');
       }
       return false;
+    }
+    
+    // Track anonymous usage when applicable
+    if (isLoaded && !isSignedIn) {
+      // Increment anonymous usage count in localStorage
+      incrementAnonymousUsage();
     }
     
     return true;
