@@ -122,16 +122,26 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
                   <strong>What is HS Code {hsCode}?</strong> The Harmonized System (HS) is an international nomenclature for the classification of products. It allows participating countries to classify traded goods on a common basis for customs purposes.
                 </p>
                 
-                {/* Display full classification path if available */}
-                {fullPath && (
-                  <p>
+                {/* Always show a classification path notice if not available */}
+                {fullPath ? (
+                  <div className="p-2 bg-primary/5 rounded-md">
                     <strong>Classification Path:</strong> {fullPath}
-                  </p>
+                  </div>
+                ) : (
+                  <div className="p-2 bg-amber-500/10 rounded-md">
+                    <strong>Classification Path:</strong> Path information not available for this classification. 
+                    The system has determined this classification based on your product description.
+                  </div>
                 )}
                 
                 <p>
-                  <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. The specific subheading {hsCode} is used for {description.toLowerCase()}.
+                  <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. 
                 </p>
+                
+                <p>
+                  The specific subheading {hsCode} applies to your product: <span className="text-primary font-medium">{description}</span>
+                </p>
+                
                 <p>
                   <strong>Import Requirements:</strong> Products under this classification may be subject to specific import duties, taxes, and regulatory requirements which vary by country. We recommend checking with your local customs authority for detailed information.
                 </p>
