@@ -80,11 +80,7 @@ export function useUsageLimits() {
 
   // Function to check if user can make a request
   const checkCanMakeRequest = async () => {
-    if (!isSignedIn) {
-      toast.error('Please sign in to use this feature');
-      return false;
-    }
-    
+    // Check if user has reached their limit (applies to both anonymous and logged-in users)
     if (isLimitReached) {
       if (userPlan?.plan_type === 'free') {
         toast.error('Daily limit reached. Please upgrade to Pro for more requests.');
