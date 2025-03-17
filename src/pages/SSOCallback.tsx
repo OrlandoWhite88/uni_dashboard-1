@@ -15,17 +15,17 @@ const SSOCallback = () => {
       try {
         setIsProcessing(true);
         
-        // Process the callback from Clerk
-        const searchParams = new URLSearchParams(location.search);
-        const redirectUrl = searchParams.get("redirect_url") || "/";
+        // Always redirect to home page after successful auth
+        // This ensures consistent behavior across the application
+        const redirectUrl = "/";
         
         // Handle the OAuth callback
         await handleRedirectCallback({
-          redirectUrl: window.location.href,
+          redirectUrl,
         });
         
-        // Redirect after successful processing
-        navigate(redirectUrl);
+        // Navigate to the home page
+        navigate(redirectUrl, { replace: true });
         
       } catch (err) {
         console.error("Error during SSO callback processing:", err);
@@ -54,7 +54,7 @@ const SSOCallback = () => {
               <h1 className="text-2xl font-semibold mb-2">Authentication Error</h1>
               <p className="text-muted-foreground mb-4">{error}</p>
               <a 
-                href="/sign-in" 
+                href="https://accounts.uni-customs.com/sign-in" 
                 className="text-primary hover:underline"
               >
                 Return to sign in
