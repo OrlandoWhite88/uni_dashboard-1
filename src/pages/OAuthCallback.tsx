@@ -1,79 +1,62 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useClerk } from "@clerk/clerk-react";
 import Layout from "@/components/Layout";
 
 /**
- * Generic OAuth callback handler component.
- * Handles various OAuth callback routes for Clerk authentication.
+ * OAuth callback handler component for Clerk authentication
  */
 const OAuthCallback = () => {
   const { handleRedirectCallback } = useClerk();
-  const location = useLocation();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
+    // Process the Clerk OAuth callback
     const processCallback = async () => {
       try {
-        setIsProcessing(true);
+        // Let Clerk handle the redirect callback
+        // This automatically processes the OAuth flow and redirects based on your ClerkProvider configuration
+        await handleRedirectCallback({
+          redirectUrl: window.location.href
+        });
         
-        // Get the full callback URL including any query parameters
-        const callbackUrl = window.location.href;
-        
-        try {
-          // Process the callback from Clerk with the complete URL
-          await handleRedirectCallback({
-            redirectUrl: callbackUrl,
-          });
-          
-          // The default behavior of handleRedirectCallback should take care of 
-          // redirecting to the correct location after authentication
-        } catch (err) {
-          console.error("Error during OAuth processing:", err);
-          // If there's an error, navigate to the home page
-          window.location.href = window.location.origin;
-        }
-        
+        // If we reach here, it means the automatic redirect didn't happen
+        // Navigate to the home page as a fallback
+        navigate("/");
       } catch (err) {
-        console.error("Error during OAuth callback processing:", err);
-        setError("There was an error processing your authentication. Please try again.");
-      } finally {
+        console.error("Error processing OAuth callback:", err);
+        setError("Authentication error. Please try again.");
         setIsProcessing(false);
       }
     };
 
     processCallback();
-  }, [handleRedirectCallback, location, navigate]);
+  }, [handleRedirectCallback, navigate]);
 
+  // Show a simple loading screen while processing
   return (
     <Layout className="pt-28 pb-16">
       <div className="max-w-md mx-auto text-center">
         <div className="glass-card p-8 rounded-xl">
-          {isProcessing ? (
-            <>
-              <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-4"></div>
-              <h1 className="text-2xl font-semibold mb-2">Processing authentication...</h1>
-              <p className="text-muted-foreground">Please wait while we complete your authentication.</p>
-            </>
-          ) : error ? (
+          {error ? (
             <>
               <div className="text-red-500 text-5xl mb-4">⚠️</div>
               <h1 className="text-2xl font-semibold mb-2">Authentication Error</h1>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <a 
-                href="/sign-in" 
+              <button 
+                onClick={() => navigate("/")}
                 className="text-primary hover:underline"
               >
-                Return to sign in
-              </a>
+                Return to home page
+              </button>
             </>
           ) : (
             <>
               <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-4"></div>
-              <h1 className="text-2xl font-semibold mb-2">Redirecting...</h1>
-              <p className="text-muted-foreground">You'll be redirected to the application shortly.</p>
+              <h1 className="text-2xl font-semibold mb-2">Processing authentication...</h1>
+              <p className="text-muted-foreground">Please wait while we complete your sign-in.</p>
             </>
           )}
         </div>

@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton, useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 
 interface LayoutProps {
@@ -42,19 +42,18 @@ const Layout = ({ children, className }: LayoutProps) => {
             </SignedIn>
             
             <SignedOut>
-              {/* Use Clerk's built-in functionality to handle redirects properly */}
-              <button 
-                onClick={() => window.location.href = "https://accounts.uni-customs.com/sign-in?redirect_url=" + encodeURIComponent(window.location.href)}
-                className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors"
-              >
-                Sign In
-              </button>
-              <button 
-                onClick={() => window.location.href = "https://accounts.uni-customs.com/sign-up?redirect_url=" + encodeURIComponent(window.location.href)}
-                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-              >
-                Sign Up
-              </button>
+              {/* Use Clerk's built-in components for sign in/up */}
+              <SignInButton mode="modal">
+                <button className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors">
+                  Sign In
+                </button>
+              </SignInButton>
+              
+              <SignUpButton mode="modal">
+                <button className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                  Sign Up
+                </button>
+              </SignUpButton>
             </SignedOut>
             
             <Link to="/settings" className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">
