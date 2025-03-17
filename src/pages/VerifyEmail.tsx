@@ -11,18 +11,30 @@ const VerifyEmail = () => {
     const handleVerification = async () => {
       try {
         // Check if this is a callback from verification
-        if (location.search && location.search.includes("__clerk_status")) {
+        if (location.search && (location.search.includes("__clerk_status") || location.search.includes("verification_token"))) {
+          console.log("Processing verification callback with URL:", window.location.href);
+          
           // Process the callback
-          await handleRedirectCallback({
-            redirectUrl: window.location.href,
-          });
-          // Redirect to home after verification
-          window.location.href = "https://www.uni-customs.com/";
+          try {
+            await handleRedirectCallback({
+              redirectUrl: window.location.href,
+            });
+            
+            // Let Clerk handle the redirect or fallback to home
+            console.log("Verification callback handled successfully");
+          } catch (callbackError) {
+            console.error("Error during verification callback:", callbackError);
+            // On error, go to home page
+            window.location.href = window.location.origin;
+          }
           return;
         }
         
         // If not a callback, redirect to Clerk hosted verification page
-        window.location.href = "https://accounts.uni-customs.com/verify-email";
+        // Include the redirect URL so Clerk knows where to return the user
+        console.log("Redirecting to verification page");
+        window.location.href = "https://accounts.uni-customs.com/verify-email?redirect_url=" + 
+          encodeURIComponent(window.location.origin);
       } catch (error) {
         console.error("Error during email verification:", error);
       }

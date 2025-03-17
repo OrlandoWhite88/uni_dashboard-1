@@ -42,19 +42,19 @@ const Layout = ({ children, className }: LayoutProps) => {
             </SignedIn>
             
             <SignedOut>
-              {/* Show sign in/up buttons for signed out users - direct links to Clerk hosted pages */}
-              <a 
-                href="https://accounts.uni-customs.com/sign-in"
+              {/* Use Clerk's built-in functionality to handle redirects properly */}
+              <button 
+                onClick={() => window.location.href = "https://accounts.uni-customs.com/sign-in?redirect_url=" + encodeURIComponent(window.location.href)}
                 className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors"
               >
                 Sign In
-              </a>
-              <a 
-                href="https://accounts.uni-customs.com/sign-up"
+              </button>
+              <button 
+                onClick={() => window.location.href = "https://accounts.uni-customs.com/sign-up?redirect_url=" + encodeURIComponent(window.location.href)}
                 className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
               >
                 Sign Up
-              </a>
+              </button>
             </SignedOut>
             
             <Link to="/settings" className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">

@@ -19,13 +19,22 @@ const OAuthCallback = () => {
       try {
         setIsProcessing(true);
         
-        // Process the callback from Clerk
-        await handleRedirectCallback({
-          redirectUrl: window.location.href,
-        });
+        // Get the full callback URL including any query parameters
+        const callbackUrl = window.location.href;
         
-        // Redirect to the main website domain after successful processing
-        window.location.href = "https://www.uni-customs.com/";
+        try {
+          // Process the callback from Clerk with the complete URL
+          await handleRedirectCallback({
+            redirectUrl: callbackUrl,
+          });
+          
+          // The default behavior of handleRedirectCallback should take care of 
+          // redirecting to the correct location after authentication
+        } catch (err) {
+          console.error("Error during OAuth processing:", err);
+          // If there's an error, navigate to the home page
+          window.location.href = window.location.origin;
+        }
         
       } catch (err) {
         console.error("Error during OAuth callback processing:", err);
