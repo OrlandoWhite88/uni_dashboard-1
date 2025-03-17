@@ -11,21 +11,19 @@ const SSOCallback = () => {
   const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
+    // The function to process authentication callback
     const processCallback = async () => {
       try {
         setIsProcessing(true);
         
-        // Always redirect to home page after successful auth
-        // This ensures consistent behavior across the application
-        const redirectUrl = "/";
-        
-        // Handle the OAuth callback
+        // Process the callback with explicit success redirect to root
         await handleRedirectCallback({
-          redirectUrl,
+          redirectUrl: window.location.origin,
         });
         
-        // Navigate to the home page
-        navigate(redirectUrl, { replace: true });
+        // If we get here, it means the callback was processed but the redirect
+        // might not have happened automatically, so we'll do it manually
+        navigate("/", { replace: true });
         
       } catch (err) {
         console.error("Error during SSO callback processing:", err);
@@ -35,8 +33,9 @@ const SSOCallback = () => {
       }
     };
 
+    // Run the callback processor
     processCallback();
-  }, [handleRedirectCallback, location, navigate]);
+  }, [handleRedirectCallback, navigate]);
 
   return (
     <Layout className="pt-28 pb-16">
