@@ -1,25 +1,19 @@
 
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Layout from "@/components/Layout";
 
 const SignUpPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect to the hosted Clerk sign-up page
+    // Redirect to Clerk hosted sign-up page
     window.location.href = "https://accounts.uni-customs.com/sign-up";
   }, []);
 
   return (
-    <Layout className="pt-28 pb-16">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-2xl font-semibold mb-6 text-center">Create an Account</h1>
-        <div className="glass-card p-4 rounded-xl">
-          <p className="text-center">Redirecting to sign-up page...</p>
-        </div>
-      </div>
-    </Layout>
+    <div className="flex items-center justify-center h-screen">
+      <p className="text-lg">Redirecting to sign up...</p>
+    </div>
   );
 };
 

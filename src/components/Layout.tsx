@@ -42,19 +42,19 @@ const Layout = ({ children, className }: LayoutProps) => {
             </SignedIn>
             
             <SignedOut>
-              {/* Show sign in/up buttons for signed out users */}
-              <button 
-                onClick={() => navigate("/sign-in")}
+              {/* Show sign in/up buttons for signed out users - direct links to Clerk hosted pages */}
+              <a 
+                href="https://accounts.uni-customs.com/sign-in"
                 className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors"
               >
                 Sign In
-              </button>
-              <button 
-                onClick={() => navigate("/sign-up")}
+              </a>
+              <a 
+                href="https://accounts.uni-customs.com/sign-up"
                 className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
               >
                 Sign Up
-              </button>
+              </a>
             </SignedOut>
             
             <Link to="/settings" className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">

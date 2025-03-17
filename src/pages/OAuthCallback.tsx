@@ -19,14 +19,13 @@ const OAuthCallback = () => {
       try {
         setIsProcessing(true);
         
-        // Handle the OAuth callback
+        // Process the callback from Clerk
         await handleRedirectCallback({
-          redirectUrl: "/", // Redirect to home page after successful auth
+          redirectUrl: window.location.href,
         });
         
-        // After successful auth, simply navigate to the homepage
-        // This avoids the __clerk_db_jwt problematic URL pattern
-        navigate("/");
+        // Redirect to the main website domain after successful processing
+        window.location.href = "https://www.uni-customs.com/";
         
       } catch (err) {
         console.error("Error during OAuth callback processing:", err);
@@ -37,7 +36,7 @@ const OAuthCallback = () => {
     };
 
     processCallback();
-  }, [handleRedirectCallback, navigate]);
+  }, [handleRedirectCallback, location, navigate]);
 
   return (
     <Layout className="pt-28 pb-16">

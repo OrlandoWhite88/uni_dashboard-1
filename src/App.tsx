@@ -3,13 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-// Removed ClerkProvider import as it's already in main.tsx
 import IntercomProvider from "./components/IntercomProvider";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
 import VerifyEmail from "./pages/VerifyEmail";
 import SSOCallback from "./pages/SSOCallback";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -29,8 +26,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/sign-in" element={<SignIn />} />
-          <Route path="/sign-up" element={<SignUp />} />
+          {/* Routes for sign-in and sign-up are now handled by direct links to Clerk hosted UI */}
           <Route path="/sign-up/verify-email-address" element={<VerifyEmail />} />
           <Route path="/sign-up/sso-callback" element={<SSOCallback />} />
           <Route path="/sign-in/sso-callback" element={<SSOCallback />} />

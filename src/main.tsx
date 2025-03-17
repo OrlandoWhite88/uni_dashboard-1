@@ -10,13 +10,11 @@ const PUBLISHABLE_KEY = "pk_test_aW5ub2NlbnQta2l0dGVuLTcxLmNsZXJrLmFjY291bnRzLmR
 createRoot(document.getElementById("root")!).render(
   <ClerkProvider 
     publishableKey={PUBLISHABLE_KEY}
-    appearance={{
-      baseTheme: undefined
-    }}
-    // Use the hosted Clerk pages for sign-in/up
+    // Properly configure Clerk hosted pages
     signInUrl="https://accounts.uni-customs.com/sign-in"
     signUpUrl="https://accounts.uni-customs.com/sign-up"
-    // Configure redirect URLs
+    // Use the modern props for redirects as mentioned in the error message
+    // These get used after successful authentication
     afterSignInUrl="https://www.uni-customs.com/"
     afterSignUpUrl="https://www.uni-customs.com/"
   >
