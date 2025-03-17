@@ -19,17 +19,14 @@ const OAuthCallback = () => {
       try {
         setIsProcessing(true);
         
-        // Process the callback from Clerk
-        const searchParams = new URLSearchParams(location.search);
-        const redirectUrl = searchParams.get("redirect_url") || "/";
-        
         // Handle the OAuth callback
         await handleRedirectCallback({
-          redirectUrl: window.location.href,
+          redirectUrl: "/", // Redirect to home page after successful auth
         });
         
-        // Redirect after successful processing
-        navigate(redirectUrl);
+        // After successful auth, simply navigate to the homepage
+        // This avoids the __clerk_db_jwt problematic URL pattern
+        navigate("/");
         
       } catch (err) {
         console.error("Error during OAuth callback processing:", err);
@@ -40,7 +37,7 @@ const OAuthCallback = () => {
     };
 
     processCallback();
-  }, [handleRedirectCallback, location, navigate]);
+  }, [handleRedirectCallback, navigate]);
 
   return (
     <Layout className="pt-28 pb-16">
