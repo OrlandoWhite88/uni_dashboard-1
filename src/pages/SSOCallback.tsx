@@ -11,19 +11,21 @@ const SSOCallback = () => {
   const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
-    // The function to process authentication callback
     const processCallback = async () => {
       try {
         setIsProcessing(true);
         
-        // Process the callback with explicit success redirect to root
+        // Process the callback from Clerk
+        const searchParams = new URLSearchParams(location.search);
+        const redirectUrl = searchParams.get("redirect_url") || "/";
+        
+        // Handle the OAuth callback
         await handleRedirectCallback({
-          redirectUrl: window.location.origin,
+          redirectUrl: window.location.href,
         });
         
-        // If we get here, it means the callback was processed but the redirect
-        // might not have happened automatically, so we'll do it manually
-        navigate("/", { replace: true });
+        // Redirect after successful processing
+        navigate(redirectUrl);
         
       } catch (err) {
         console.error("Error during SSO callback processing:", err);
@@ -33,9 +35,8 @@ const SSOCallback = () => {
       }
     };
 
-    // Run the callback processor
     processCallback();
-  }, [handleRedirectCallback, navigate]);
+  }, [handleRedirectCallback, location, navigate]);
 
   return (
     <Layout className="pt-28 pb-16">
@@ -53,7 +54,7 @@ const SSOCallback = () => {
               <h1 className="text-2xl font-semibold mb-2">Authentication Error</h1>
               <p className="text-muted-foreground mb-4">{error}</p>
               <a 
-                href="https://accounts.uni-customs.com/sign-in" 
+                href="/sign-in" 
                 className="text-primary hover:underline"
               >
                 Return to sign in

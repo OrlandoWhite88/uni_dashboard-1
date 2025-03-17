@@ -1,30 +1,29 @@
 
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
+import { SignUp } from "@clerk/clerk-react";
+import Layout from "@/components/Layout";
 
 const SignUpPage = () => {
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    // For development environment, check if we're on localhost
-    if (window.location.hostname === "localhost") {
-      // Redirect to the hosted Clerk sign-up page
-      window.location.href = "https://accounts.uni-customs.com/sign-up";
-    } else {
-      // For production, we might have already been redirected to hosted page
-      // If we're still here, let's try again
-      window.location.href = "https://accounts.uni-customs.com/sign-up";
-    }
-  }, []);
-  
-  // Show a loading message while redirecting
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-4"></div>
-        <h2 className="text-xl font-semibold">Redirecting to sign up...</h2>
+    <Layout className="pt-28 pb-16">
+      <div className="max-w-md mx-auto">
+        <h1 className="text-2xl font-semibold mb-6 text-center">Create an Account</h1>
+        <div className="glass-card p-4 rounded-xl">
+          <SignUp 
+            path="/sign-up"
+            routing="path"
+            signInUrl="/sign-in"
+            appearance={{
+              elements: {
+                rootBox: "mx-auto w-full",
+                card: "shadow-none w-full",
+                formButtonPrimary: "bg-primary hover:bg-primary/90 text-primary-foreground"
+              }
+            }}
+          />
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
