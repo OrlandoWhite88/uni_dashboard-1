@@ -70,6 +70,45 @@ export function clearStoredCheckoutSession() {
   }
 }
 
+// Validate a checkout session against stored session
+export function validateCheckoutSession(success: boolean): boolean {
+  // If not a success attempt, no validation needed
+  if (!success) return false;
+  
+  // Check if we have a stored session
+  const storedSession = getStoredCheckoutSession();
+  if (!storedSession) {
+    console.warn('No stored checkout session found during validation');
+    return false;
+  }
+  
+  // Extract timestamp from session ID
+  const parts = storedSession.split('_');
+  if (parts.length < 3) {
+    console.warn('Invalid session ID format, missing timestamp');
+    return false;
+  }
+  
+  const timestamp = parseInt(parts[2], 10);
+  if (isNaN(timestamp)) {
+    console.warn('Invalid timestamp in session ID');
+    return false;
+  }
+  
+  // Verify session hasn't expired (sessions older than 30 minutes are invalid)
+  const sessionTime = new Date(timestamp);
+  const currentTime = new Date();
+  const timeDiffMinutes = (currentTime.getTime() - sessionTime.getTime()) / (1000 * 60);
+  
+  if (timeDiffMinutes > 30) {
+    console.warn(`Session expired, created ${timeDiffMinutes.toFixed(1)} minutes ago`);
+    return false;
+  }
+  
+  console.log(`Valid session found, created ${timeDiffMinutes.toFixed(1)} minutes ago`);
+  return true;
+}
+
 export async function createCheckoutSession(
   customerId: string,
   successUrl: string,
@@ -94,9 +133,17 @@ export async function createCheckoutSession(
       throw new Error('Stripe Publishable Key not configured. Please check your environment variables.');
     }
 
-    // Generate a session ID that we'll store locally to verify the checkout
-    const sessionId = `cs_client_${Math.random().toString(36).substring(2, 15)}`;
+    // Generate a session ID with timestamp that we'll store locally to verify the checkout
+    const sessionId = `cs_client_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
     storeCheckoutSession(sessionId);
+    
+    // Add event listener to handle user navigation away without completing checkout
+    window.addEventListener('beforeunload', () => {
+      // If the user closes the tab or navigates away, we don't want to keep the session
+      // as it would trigger an automatic upgrade if they later visit with success=true
+      console.log('User navigated away, clearing session');
+      clearStoredCheckoutSession();
+    }, { once: true });
 
     // Load Stripe.js
     const stripe = await loadStripe();

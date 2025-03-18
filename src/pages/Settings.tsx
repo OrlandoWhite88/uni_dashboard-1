@@ -72,24 +72,38 @@ const SettingsPage = () => {
     const checkStripeRedirect = async () => {
       // Import functions we need
       const { updateUserPlan } = await import('@/lib/supabaseService');
-      const { getStoredCheckoutSession, clearStoredCheckoutSession } = await import('@/lib/stripeService');
+      const { getStoredCheckoutSession, clearStoredCheckoutSession, validateCheckoutSession } = await import('@/lib/stripeService');
     
       // Check URL parameters first
       const urlParams = new URLSearchParams(window.location.search);
       console.log('URL parameters on page load:', Object.fromEntries(urlParams.entries()));
       
-      // Check if either URL param or stored session indicates success
+      // Check URL parameters and stored session
       const hasSuccessParam = urlParams.get('success') === 'true';
+      const hasCanceledParam = urlParams.get('canceled') === 'true';
       const storedSession = getStoredCheckoutSession();
       
       // Log detailed info for debugging
       console.log('Checking checkout status:', { 
         hasSuccessParam, 
+        hasCanceledParam,
         hasStoredSession: !!storedSession,
         userId
       });
       
-      if (hasSuccessParam || storedSession) {
+      // Clear stored session if canceled
+      if (hasCanceledParam) {
+        console.log('Subscription process was canceled by user.');
+        clearStoredCheckoutSession(); // Clear session on cancel
+        alert('Subscription canceled. You can try again anytime.');
+        return;
+      }
+      
+      // Only proceed with upgrade if success conditions are met: 
+      // 1. Success URL parameter is present
+      // 2. We have a stored checkout session
+      // 3. The session is valid (not expired, properly formatted)
+      if (hasSuccessParam && storedSession && validateCheckoutSession(hasSuccessParam)) {
         console.log('Subscription successful! Updating plan to Pro and reloading usage data.');
         clearStoredCheckoutSession(); // Clear session to prevent duplicate processing
         
@@ -130,10 +144,10 @@ const SettingsPage = () => {
           console.error('Error details:', error);
           alert('Your payment was successful, but we had trouble updating your account. Please contact support.');
         }
-      } else if (urlParams.get('canceled') === 'true') {
-        console.log('Subscription process was canceled by user.');
-        clearStoredCheckoutSession(); // Clear session on cancel too
-        alert('Subscription canceled. You can try again anytime.');
+      } else if (hasSuccessParam && !storedSession) {
+        console.log('Success parameter detected but no stored session found. Possible tampering attempt.');
+        alert('Unable to verify your subscription. If you completed payment, please contact support.');
+        return;
       }
       
       // Clear URL parameters to prevent multiple processing
