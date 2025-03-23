@@ -162,12 +162,22 @@ const Index = () => {
             </>
           )}
 
-          {/* Loading State */}
+          {/* Loading State with Classification Stage */}
           {state.status === "loading" && (
             <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60 animate-pulse">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-              <p className="text-muted-foreground">
-                Processing your request...
+              <p className="text-base font-medium mb-1">
+                {state.stage === "starting" && "Initializing classification..."}
+                {state.stage === "analyzing" && "Analyzing product description..."}
+                {state.stage === "identifying_chapter" && "Identifying HS chapter..."}
+                {state.stage === "classifying_heading" && "Classifying heading..."}
+                {state.stage === "determining_subheading" && "Determining subheading..."}
+                {state.stage === "classifying_tariff_line" && "Classifying tariff line..."}
+                {state.stage === "finalizing" && "Finalizing classification..."}
+                {!state.stage && "Processing your request..."}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                This may take a moment depending on product complexity
               </p>
             </div>
           )}

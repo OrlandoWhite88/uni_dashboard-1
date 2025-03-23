@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import CustomButton from "./ui/CustomButton";
-import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X } from "lucide-react";
+import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import TariffInfo from "./TariffInfo";
+import HSCodeSubtree from "./HSCodeSubtree";
 
 interface HSCodeResultProps {
   hsCode: string;
@@ -76,78 +79,116 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
             </div>
           </div>
           
-          <div className="flex flex-wrap gap-3 justify-center w-full">
-            <CustomButton 
-              onClick={handleCopy} 
-              variant="outline" 
-              className="flex-1 min-w-[120px]"
-            >
-              {copied ? <CheckCircle size={16} className="mr-2" /> : <Copy size={16} className="mr-2" />}
-              {copied ? "Copied" : "Copy Code"}
-            </CustomButton>
+          <Tabs defaultValue="result" className="w-full mt-4">
+            <TabsList className="grid grid-cols-3 mb-6">
+              <TabsTrigger value="result">Basic Info</TabsTrigger>
+              <TabsTrigger value="tariff">Tariff Data</TabsTrigger>
+              <TabsTrigger value="validation">Validate Code</TabsTrigger>
+            </TabsList>
             
-            <CustomButton 
-              onClick={handleDownload} 
-              variant="outline"
-              className="flex-1 min-w-[120px]"
-            >
-              <DownloadCloud size={16} className="mr-2" />
-              Download
-            </CustomButton>
-            
-            <CustomButton 
-              onClick={() => setShowExplanation(!showExplanation)} 
-              variant={showExplanation ? "default" : "outline"}
-              className="flex-1 min-w-[120px]"
-            >
-              <HelpCircle size={16} className="mr-2" />
-              Explain
-            </CustomButton>
-          </div>
-          
-          {/* Explanation Panel */}
-          {showExplanation && (
-            <div className="mt-6 p-4 bg-secondary/50 border border-border rounded-lg w-full animate-fade-in">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-medium">HS Code Explanation</h3>
-                <button 
-                  onClick={() => setShowExplanation(false)}
-                  className="p-1 rounded-full hover:bg-secondary"
+            <TabsContent value="result" className="mt-0">
+              <div className="flex flex-wrap gap-3 justify-center w-full">
+                <CustomButton 
+                  onClick={handleCopy} 
+                  variant="outline" 
+                  className="flex-1 min-w-[120px]"
                 >
-                  <X size={14} />
-                </button>
+                  {copied ? <CheckCircle size={16} className="mr-2" /> : <Copy size={16} className="mr-2" />}
+                  {copied ? "Copied" : "Copy Code"}
+                </CustomButton>
+                
+                <CustomButton 
+                  onClick={handleDownload} 
+                  variant="outline"
+                  className="flex-1 min-w-[120px]"
+                >
+                  <DownloadCloud size={16} className="mr-2" />
+                  Download
+                </CustomButton>
+                
+                <CustomButton 
+                  onClick={() => setShowExplanation(!showExplanation)} 
+                  variant={showExplanation ? "default" : "outline"}
+                  className="flex-1 min-w-[120px]"
+                >
+                  <HelpCircle size={16} className="mr-2" />
+                  Explain
+                </CustomButton>
               </div>
-              <div className="text-sm space-y-3">
-                <p>
-                  <strong>What is HS Code {hsCode}?</strong> The Harmonized System (HS) is an international nomenclature for the classification of products. It allows participating countries to classify traded goods on a common basis for customs purposes.
-                </p>
-                
-                {/* Always show a classification path notice if not available */}
-                {fullPath ? (
-                  <div className="p-2 bg-primary/5 rounded-md">
-                    <strong>Classification Path:</strong> {fullPath}
+              
+              {/* Explanation Panel */}
+              {showExplanation && (
+                <div className="mt-6 p-4 bg-secondary/50 border border-border rounded-lg w-full animate-fade-in">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-medium">HS Code Explanation</h3>
+                    <button 
+                      onClick={() => setShowExplanation(false)}
+                      className="p-1 rounded-full hover:bg-secondary"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
-                ) : (
-                  <div className="p-2 bg-amber-500/10 rounded-md">
-                    <strong>Classification Path:</strong> Path information not available for this classification. 
-                    The system has determined this classification based on your product description.
+                  <div className="text-sm space-y-3">
+                    <p>
+                      <strong>What is HS Code {hsCode}?</strong> The Harmonized System (HS) is an international nomenclature for the classification of products. It allows participating countries to classify traded goods on a common basis for customs purposes.
+                    </p>
+                    
+                    {/* Always show a classification path notice if not available */}
+                    {fullPath ? (
+                      <div className="p-2 bg-primary/5 rounded-md">
+                        <strong>Classification Path:</strong> {fullPath}
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-amber-500/10 rounded-md">
+                        <strong>Classification Path:</strong> Path information not available for this classification. 
+                        The system has determined this classification based on your product description.
+                      </div>
+                    )}
+                    
+                    <p>
+                      <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. 
+                    </p>
+                    
+                    <p>
+                      The specific subheading {hsCode} applies to your product: <span className="text-primary font-medium">{description}</span>
+                    </p>
+                    
+                    <p>
+                      <strong>Import Requirements:</strong> Products under this classification may be subject to specific import duties, taxes, and regulatory requirements which vary by country. We recommend checking with your local customs authority for detailed information.
+                    </p>
                   </div>
-                )}
-                
-                <p>
-                  <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. 
-                </p>
-                
-                <p>
-                  The specific subheading {hsCode} applies to your product: <span className="text-primary font-medium">{description}</span>
-                </p>
-                
-                <p>
-                  <strong>Import Requirements:</strong> Products under this classification may be subject to specific import duties, taxes, and regulatory requirements which vary by country. We recommend checking with your local customs authority for detailed information.
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="tariff" className="space-y-4 mt-0">
+              {/* Tariff Info Component */}
+              <TariffInfo hsCode={hsCode} />
+              
+              <div className="text-center mt-4">
+                <p className="text-xs text-muted-foreground">
+                  Tariff data is provided by official customs sources but may not reflect the most recent updates.
+                  Always consult with a customs broker for the most current information.
                 </p>
               </div>
-            </div>
-          )}
+            </TabsContent>
+            
+            <TabsContent value="validation" className="mt-0">
+              {/* HS Code Validation/Subtree Component */}
+              <HSCodeSubtree hsCode={hsCode} />
+              
+              <div className="flex items-start mt-4 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                <AlertTriangle className="h-5 w-5 text-amber-500 mr-2 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">Verify your classification</p>
+                  <p className="mt-1">
+                    Review the HS code hierarchy to ensure your product is correctly classified. 
+                    You can search for specific code prefixes to explore different sections of the nomenclature.
+                  </p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
           
           <button 
             onClick={onReset}

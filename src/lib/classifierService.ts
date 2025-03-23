@@ -151,12 +151,121 @@ export async function continueClassification(
   }
 }
 
+/**
+ * Fetch tariff information for a given HS code
+ */
+export async function getTariffInfo(hsCode: string): Promise<any> {
+  logDebug(`Fetching tariff info for: ${hsCode}`);
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/tariff_info/${hsCode}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      mode: "cors",
+    });
+    
+    if (!response.ok) {
+      throw new Error(`${response.status} - ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    logDebug(`Tariff info retrieved successfully:`, data);
+    return data;
+  } catch (error) {
+    logDebug(`Error fetching tariff info: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Fetch HS code subtree for a given prefix
+ */
+export async function getHSCodeSubtree(
+  prefix: string, 
+  full: boolean = true,
+  maxDepth?: number
+): Promise<string> {
+  logDebug(`Fetching HS code subtree for prefix: ${prefix}, full: ${full}`);
+  
+  let url = `${API_BASE_URL}/subtree/${prefix}?full=${full}`;
+  if (maxDepth !== undefined) {
+    url += `&max_depth=${maxDepth}`;
+  }
+  
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      mode: "cors",
+    });
+    
+    if (!response.ok) {
+      throw new Error(`${response.status} - ${response.statusText}`);
+    }
+    
+    const text = await response.text();
+    logDebug(`Subtree retrieved successfully`);
+    return text;
+  } catch (error) {
+    logDebug(`Error fetching subtree: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Get AI-generated explanation of tariff information
+ */
+export async function explainTariff(
+  hsCode: string, 
+  includeFootnotes: boolean = true, 
+  detailLevel: 'basic' | 'medium' | 'high' = 'medium'
+): Promise<string> {
+  logDebug(`Fetching tariff explanation for: ${hsCode}, includeFootnotes: ${includeFootnotes}, detailLevel: ${detailLevel}`);
+  
+  let url = `${API_BASE_URL}/explain_tariff/${hsCode}?include_footnotes=${includeFootnotes}&detail_level=${detailLevel}`;
+  
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      mode: "cors",
+    });
+    
+    if (!response.ok) {
+      throw new Error(`${response.status} - ${response.statusText}`);
+    }
+    
+    const text = await response.text();
+    logDebug(`Tariff explanation retrieved successfully`);
+    return text;
+  } catch (error) {
+    logDebug(`Error fetching tariff explanation: ${error.message}`);
+    throw error;
+  }
+}
+
 export type Options = { id: string; text: string };
 
 // Define the possible states
+// Possible classification stages
+export type ClassificationStage = 
+  | "starting"
+  | "analyzing" 
+  | "identifying_chapter"
+  | "classifying_heading"
+  | "determining_subheading"
+  | "classifying_tariff_line"
+  | "finalizing";
+
 export type ClassifierState =
   | { status: "idle" }
-  | { status: "loading" }
+  | { status: "loading"; stage?: ClassificationStage }
   | {
       status: "question";
       question: string;
@@ -178,6 +287,7 @@ export type ClassifierState =
 export function useClassifier() {
   const [state, setState] = useState<ClassifierState>({ status: "idle" });
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const [classificationStage, setClassificationStage] = useState<ClassificationStage>("starting");
 
   /**
    * Add debug information to the log
@@ -192,6 +302,19 @@ export function useClassifier() {
    */
   const { userId } = useAuth();
 
+  /**
+   * Update the classification stage and loading state
+   */
+  const updateStage = useCallback((stage: ClassificationStage) => {
+    setClassificationStage(stage);
+    setState(current => 
+      current.status === "loading" 
+        ? { ...current, stage } 
+        : current
+    );
+    addDebug(`Classification stage: ${stage}`);
+  }, []);
+  
   const classify = useCallback(
     async (product: string) => {
       try {
@@ -199,8 +322,17 @@ export function useClassifier() {
         setDebugInfo([]);
         addDebug(`Starting classification for: ${product}`);
 
-        // Set loading state
-        setState({ status: "loading" });
+        // Set initial loading state with starting stage
+        setState({ status: "loading", stage: "starting" });
+        
+        // Simulate the first stage (in a real app, these would be triggered by API responses or business logic)
+        // These timeouts are just for demonstration, you'd want to determine stages from the API responses
+        updateStage("analyzing");
+        
+        // Short delay before showing "identifying_chapter" stage
+        setTimeout(() => {
+          updateStage("identifying_chapter");
+        }, 1500);
 
         // Note: We only log usage when a final result is returned
         // This happens in the processApiResponse function when we get a final code
@@ -209,6 +341,9 @@ export function useClassifier() {
         const result = await classifyProduct(product);
         addDebug(`Received API response: ${JSON.stringify(result, null, 2)}`);
         addDebug(`Response type: ${typeof result}`);
+        
+        // Just before processing the result, update stage
+        updateStage("finalizing");
 
         // Process the result exactly like the Python script does
         processApiResponse(result, product);
@@ -244,8 +379,18 @@ export function useClassifier() {
       try {
         addDebug(`Continuing with answer: ${answer}`);
 
-        // Set loading state
-        setState({ status: "loading" });
+        // Set loading state with appropriate stage
+        setState({ status: "loading", stage: "classifying_heading" });
+        
+        // Update to next stage after a delay
+        setTimeout(() => {
+          updateStage("determining_subheading");
+        }, 1500);
+        
+        // Add "classifying_tariff_line" stage after another delay
+        setTimeout(() => {
+          updateStage("classifying_tariff_line");
+        }, 3000);
 
         // Call the API to continue classification
         const result = await continueClassification(state.state, answer);
@@ -293,11 +438,8 @@ export function useClassifier() {
           addDebug(`Error logging usage: ${error}`);
         }
         
-        // Calculate a realistic confidence score for string responses
-        // Use a slightly lower base confidence since we have less info
-        let confidence = 65;
-        // Add random slight variation
-        confidence += Math.floor(Math.random() * 5);
+        // Use a fixed high confidence range between 94-99%
+        let confidence = 94; // Base confidence
         
         setState({
           status: "result",
@@ -403,30 +545,25 @@ export function useClassifier() {
           addDebug(`Error logging usage: ${error}`);
         }
 
-        // Calculate a more nuanced confidence score based on available information
+        // Calculate confidence score based on available information
         const hasDescription = !!result.enriched_query;
         const hasPath = !!result.full_path;
         
-        // Start with base confidence that's never 100%
-        // Base confidence depends on how much information we have
-        let confidence = 60;
+        // Start with base confidence of 94%
+        let confidence = 94;
         
         // Add confidence if we have enriched description
         if (hasDescription) {
-          confidence += 12;
+          confidence += 2;
         }
         
         // Add confidence if we have full path
         if (hasPath) {
-          confidence += 18;
+          confidence += 3;
         }
         
-        // Add random slight variation to make it appear more realistic
-        // Avoid numbers that look too "round" like exactly 70, 75, 80, etc.
-        confidence += Math.floor(Math.random() * 5);
-        
-        // Cap at 95% - we're never 100% certain
-        confidence = Math.min(confidence, 95);
+        // Cap at 99% - high confidence but never 100%
+        confidence = Math.min(confidence, 99);
 
         setState({
           status: "result",
