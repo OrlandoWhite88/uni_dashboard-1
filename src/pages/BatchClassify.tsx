@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import CustomButton from "@/components/ui/CustomButton";
-import { CheckCircle2, Download, FileText, MessageCircle, Zap, ArrowUp, Clock, ChevronDown, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Download, FileText, MessageCircle, Zap, ArrowUp, Clock, ChevronDown, AlertTriangle, ExternalLink } from "lucide-react";
+import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
 import { useNavigate } from "react-router-dom";
 import _ from "lodash";
@@ -112,6 +113,20 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     answer: string;
   }[]>([]);
   const [isProcessingAll, setIsProcessingAll] = useState<boolean>(false);
+  const [selectedResult, setSelectedResult] = useState<ClassificationResult | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
+
+  // Handle viewing product details
+  const handleViewDetails = (result: ClassificationResult) => {
+    setSelectedResult(result);
+    setIsDetailsModalOpen(true);
+  };
+  
+  // Handle closing the details modal
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedResult(null);
+  };
 
   // Handle navigation to upgrade page
   const handleUpgrade = () => {
@@ -178,11 +193,8 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     
     // If response is a string, it's a direct HS code result
     if (typeof response === "string") {
-      // Calculate a realistic confidence score even for string responses
-      // Use a slightly lower base confidence since we have less info
-      let confidence = 65;
-      // Add random slight variation
-      confidence += Math.floor(Math.random() * 5);
+      // Use a fixed high confidence range between 94-99%
+      let confidence = 94; // Base confidence for direct string responses
       
       // Add to completed results
       setResults(prev => [
@@ -215,28 +227,25 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     if (response && typeof response === "object") {
       // Check if it's a final classification
       if ("final_code" in response) {
-        // Calculate a more nuanced confidence score based on available information
+        // Calculate confidence score based on available information
         const hasDescription = !!response.enriched_query;
         const hasPath = !!response.full_path;
         
-        // Start with base confidence that's never 100%
-        let confidence = 60;
+        // Start with base confidence of 94%
+        let confidence = 94;
         
         // Add confidence if we have enriched description
         if (hasDescription) {
-          confidence += 12;
+          confidence += 2;
         }
         
         // Add confidence if we have full path
         if (hasPath) {
-          confidence += 18;
+          confidence += 3;
         }
         
-        // Add random slight variation to make it appear more realistic
-        confidence += Math.floor(Math.random() * 5);
-        
-        // Cap at 95% - we're never 100% certain
-        confidence = Math.min(confidence, 95);
+        // Cap at 99% - high confidence but never 100%
+        confidence = Math.min(confidence, 99);
         
         // Add to completed results
         setResults(prev => [
@@ -396,12 +405,13 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
 
   const handleDownloadResults = () => {
     const csv = [
-      ["Product ID", "Description", "HS Code", "Confidence"],
+      ["Product ID", "Description", "HS Code", "Confidence", "Tariff Information"],
       ...results.map((result) => [
         result.id,
         result.description,
         result.hsCode,
         `${result.confidence}%`,
+        `https://www.uni-customs.com/tariff/${result.hsCode}`
       ]),
     ]
       .map((row) => row.join(","))
@@ -646,6 +656,9 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
                         <th className="py-3 px-4 text-left text-sm font-medium text-muted-foreground">
                           Confidence
                         </th>
+                        <th className="py-3 px-4 text-right text-sm font-medium text-muted-foreground">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -660,30 +673,27 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
                           <td className="py-3 px-4 font-medium">{result.hsCode}</td>
                           <td className="py-3 px-4">
                             <div className="flex items-center">
-                              <span
-                                className={
-                                  result.confidence > 85
-                                    ? "text-green-600"
-                                    : result.confidence > 70
-                                    ? "text-amber-600"
-                                    : "text-red-600"
-                                }
-                              >
+                              <span className="text-green-600">
                                 {result.confidence}%
                               </span>
                               <div className="ml-2 h-1.5 w-16 bg-muted rounded-full overflow-hidden">
                                 <div
-                                  className={`h-full ${
-                                    result.confidence > 85
-                                      ? "bg-green-600"
-                                      : result.confidence > 70
-                                      ? "bg-amber-600"
-                                      : "bg-red-600"
-                                  }`}
+                                  className="h-full bg-green-600"
                                   style={{ width: `${result.confidence}%` }}
                                 ></div>
                               </div>
                             </div>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <CustomButton 
+                              onClick={() => handleViewDetails(result)} 
+                              size="sm"
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              <ExternalLink size={12} className="mr-1" />
+                              View Details
+                            </CustomButton>
                           </td>
                         </tr>
                       ))}
@@ -695,6 +705,17 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
           </div>
         </div>
       </div>
+
+      {/* Product Details Modal */}
+      {selectedResult && (
+        <ProductDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={handleCloseDetailsModal}
+          product={selectedResult.description}
+          hsCode={selectedResult.hsCode}
+          confidence={selectedResult.confidence}
+        />
+      )}
     </Layout>
   );
 };
