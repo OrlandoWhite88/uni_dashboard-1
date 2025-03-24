@@ -18,11 +18,12 @@ const Layout = ({ children, className }: LayoutProps) => {
       <header className="w-full border-b border-border/40 backdrop-blur-sm bg-background/80 fixed top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <div className="h-5 w-5 rounded-md bg-primary animate-pulse-light"></div>
-              </div>
-              <h1 className="text-xl font-medium tracking-tight group-hover:text-primary transition-colors">Uni HS Classification</h1>
+            <Link to="/" className="flex items-center group">
+              <img 
+                src="/uni_logo.png" 
+                alt="Uni Logo" 
+                className="h-10 transition-opacity group-hover:opacity-90"
+              />
             </Link>
             
             <nav className="ml-8 hidden md:flex items-center space-x-6">
@@ -43,17 +44,32 @@ const Layout = ({ children, className }: LayoutProps) => {
             
             <SignedOut>
               {/* Use Clerk's built-in components for sign in/up */}
-              <SignInButton mode="modal">
-                <button className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors">
-                  Sign In
-                </button>
-              </SignInButton>
+              <div className="hidden md:block">
+                <SignInButton mode="modal">
+                  <button className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors">
+                    Sign In
+                  </button>
+                </SignInButton>
+                
+                <SignUpButton mode="modal">
+                  <button className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                    Sign Up
+                  </button>
+                </SignUpButton>
+              </div>
               
-              <SignUpButton mode="modal">
-                <button className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                  Sign Up
-                </button>
-              </SignUpButton>
+              {/* Mobile dropdown for sign in/up */}
+              <div className="md:hidden">
+                <SignInButton mode="modal">
+                  <button className="p-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors">
+                    <span className="sr-only">Sign In</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide-user">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </button>
+                </SignInButton>
+              </div>
             </SignedOut>
             
             <Link to="/settings" className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">

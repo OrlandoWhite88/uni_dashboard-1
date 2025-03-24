@@ -23,11 +23,11 @@ const ProductInput = ({ onSubmit, isLoading }: ProductInputProps) => {
     <div className="w-full animate-fade-in">
       <div className="mb-6 text-center">
         <h1 className="text-3xl font-semibold tracking-tight mb-3">
-          Generate Harmonized System Codes
+          Accurate HS Codes Instantly
         </h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Enter your product description below, and our AI will generate the most accurate
-          HS code for your product. We may ask follow-up questions to ensure precision.
+          Our AI engine classifies your products with precise Harmonized System codes
+          for customs clearance, tariffs, and international trade compliance.
         </p>
       </div>
       
@@ -35,7 +35,7 @@ const ProductInput = ({ onSubmit, isLoading }: ProductInputProps) => {
         <div className="relative glass-card p-1 rounded-lg transition-all duration-300 focus-within:shadow-soft">
           <Textarea
             className="min-h-32 p-4 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60 resize-none"
-            placeholder="Describe your product in detail... (e.g., 'Women's knitted cotton sweater with embroidered patterns, designed for casual wear')"
+            placeholder="Describe your product in detail... (e.g., 'Industrial water pump with 1500W motor, stainless steel housing, for agricultural irrigation systems')"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             disabled={isLoading}

@@ -253,24 +253,26 @@ export async function explainTariff(
 export type Options = { id: string; text: string };
 
 // Define the possible states
-// Possible classification stages
+// Possible classification stages with additional data
 export type ClassificationStage = 
-  | "starting"
-  | "analyzing" 
-  | "identifying_chapter"
-  | "classifying_heading"
-  | "determining_subheading"
-  | "classifying_tariff_line"
-  | "finalizing";
+  | { type: "starting" }
+  | { type: "analyzing" }
+  | { type: "identifying_chapter"; chapter?: string }
+  | { type: "classifying_heading"; heading?: string }
+  | { type: "determining_subheading"; subheading?: string }
+  | { type: "classifying_group"; group?: string }
+  | { type: "classifying_title"; title?: string }
+  | { type: "finalizing"; code?: string };
 
 export type ClassifierState =
   | { status: "idle" }
-  | { status: "loading"; stage?: ClassificationStage }
+  | { status: "loading"; stage?: ClassificationStage; path?: string }
   | {
       status: "question";
       question: string;
       options?: Options[];
       state: any;
+      previousStage?: ClassificationStage;
     }
   | {
       status: "result";
@@ -287,7 +289,7 @@ export type ClassifierState =
 export function useClassifier() {
   const [state, setState] = useState<ClassifierState>({ status: "idle" });
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  const [classificationStage, setClassificationStage] = useState<ClassificationStage>("starting");
+  const [classificationStage, setClassificationStage] = useState<ClassificationStage>({ type: "starting" });
 
   /**
    * Add debug information to the log
@@ -312,7 +314,41 @@ export function useClassifier() {
         ? { ...current, stage } 
         : current
     );
-    addDebug(`Classification stage: ${stage}`);
+    addDebug(`Classification stage: ${JSON.stringify(stage)}`);
+  }, []);
+  
+  /**
+   * Helper function to parse a path string to extract classification information
+   */
+  const parsePathInfo = useCallback((path?: string): { 
+    chapter?: string;
+    heading?: string;
+    subheading?: string;
+  } => {
+    if (!path) return {};
+    
+    // Example path: "Chapter 90 > Heading 9018 > Subheading 901890 > Medical instruments and appliances"
+    const result: { chapter?: string; heading?: string; subheading?: string } = {};
+    
+    // Extract chapter number
+    const chapterMatch = path.match(/Chapter\s+(\d+)/i);
+    if (chapterMatch && chapterMatch[1]) {
+      result.chapter = chapterMatch[1];
+    }
+    
+    // Extract heading number
+    const headingMatch = path.match(/Heading\s+(\d+)/i);
+    if (headingMatch && headingMatch[1]) {
+      result.heading = headingMatch[1];
+    }
+    
+    // Extract subheading number
+    const subheadingMatch = path.match(/Subheading\s+(\d+)/i);
+    if (subheadingMatch && subheadingMatch[1]) {
+      result.subheading = subheadingMatch[1];
+    }
+    
+    return result;
   }, []);
   
   const classify = useCallback(
@@ -323,16 +359,17 @@ export function useClassifier() {
         addDebug(`Starting classification for: ${product}`);
 
         // Set initial loading state with starting stage
-        setState({ status: "loading", stage: "starting" });
+        setState({ status: "loading", stage: { type: "starting" } });
         
-        // Simulate the first stage (in a real app, these would be triggered by API responses or business logic)
-        // These timeouts are just for demonstration, you'd want to determine stages from the API responses
-        updateStage("analyzing");
+        // Start with analyzing stage
+        setTimeout(() => {
+          updateStage({ type: "analyzing" });
+        }, 800);
         
         // Short delay before showing "identifying_chapter" stage
         setTimeout(() => {
-          updateStage("identifying_chapter");
-        }, 1500);
+          updateStage({ type: "identifying_chapter" });
+        }, 1600);
 
         // Note: We only log usage when a final result is returned
         // This happens in the processApiResponse function when we get a final code
@@ -342,8 +379,71 @@ export function useClassifier() {
         addDebug(`Received API response: ${JSON.stringify(result, null, 2)}`);
         addDebug(`Response type: ${typeof result}`);
         
-        // Just before processing the result, update stage
-        updateStage("finalizing");
+        // Extract classification information if present
+        let finalCode = "";
+        let pathInfo = {};
+        
+        if (typeof result === "string") {
+          finalCode = result;
+          // For string results, we don't have path information
+          updateStage({ type: "finalizing", code: finalCode });
+        } else if (result && typeof result === "object") {
+          if (result.final_code) {
+            finalCode = result.final_code;
+          }
+          
+          // If we have a full path, parse it to get chapter/heading/subheading
+          if (result.full_path) {
+            const extractedInfo = parsePathInfo(result.full_path);
+            
+            // Add path to loading state
+            setState(current => 
+              current.status === "loading" 
+                ? { ...current, path: result.full_path } 
+                : current
+            );
+            
+            // Update stage with the specific information extracted
+            const chapter = extractedInfo.chapter;
+            if (chapter) {
+              updateStage({ type: "identifying_chapter", chapter });
+              
+              // Show the heading after a brief delay
+              setTimeout(() => {
+                const heading = extractedInfo.heading;
+                if (heading) {
+                  updateStage({ type: "classifying_heading", heading });
+                  
+                  // Show the subheading after another brief delay
+                  setTimeout(() => {
+                    const subheading = extractedInfo.subheading;
+                    if (subheading) {
+                      updateStage({ 
+                        type: "determining_subheading", 
+                        subheading 
+                      });
+                    }
+                    
+                    // Finally show finalizing stage
+                    setTimeout(() => {
+                      updateStage({ type: "finalizing", code: finalCode });
+                    }, 1000);
+                    
+                  }, 1000);
+                } else {
+                  // If no heading, go straight to finalizing
+                  updateStage({ type: "finalizing", code: finalCode });
+                }
+              }, 1000);
+            } else {
+              // If no chapter, go straight to finalizing
+              updateStage({ type: "finalizing", code: finalCode });
+            }
+          } else {
+            // No path info, just finalize
+            updateStage({ type: "finalizing", code: finalCode });
+          }
+        }
 
         // Process the result exactly like the Python script does
         processApiResponse(result, product);
@@ -379,19 +479,15 @@ export function useClassifier() {
       try {
         addDebug(`Continuing with answer: ${answer}`);
 
+        // We start with the heading classification stage
+        const currentStage = { type: "classifying_heading" as const };
+        
         // Set loading state with appropriate stage
-        setState({ status: "loading", stage: "classifying_heading" });
+        setState({ 
+          status: "loading", 
+          stage: currentStage
+        });
         
-        // Update to next stage after a delay
-        setTimeout(() => {
-          updateStage("determining_subheading");
-        }, 1500);
-        
-        // Add "classifying_tariff_line" stage after another delay
-        setTimeout(() => {
-          updateStage("classifying_tariff_line");
-        }, 3000);
-
         // Call the API to continue classification
         const result = await continueClassification(state.state, answer);
         addDebug(
@@ -399,7 +495,71 @@ export function useClassifier() {
         );
         addDebug(`Response type: ${typeof result}`);
 
-        // Process the result exactly like the Python script does
+        // Extract classification information if present
+        if (result && typeof result === "object" && result.full_path) {
+          const extractedInfo = parsePathInfo(result.full_path);
+          
+          // Add path to the loading state
+          setState(current => 
+            current.status === "loading" 
+              ? { ...current, path: result.full_path } 
+              : current
+          );
+          
+          // Update stage with the most specific information available
+          if (extractedInfo.subheading) {
+            updateStage({ 
+              type: "determining_subheading", 
+              subheading: extractedInfo.subheading 
+            });
+            
+            // Show group classification after a small delay
+            setTimeout(() => {
+              updateStage({ type: "classifying_group" });
+              
+              // Then show finalizing
+              setTimeout(() => {
+                if (result.final_code) {
+                  updateStage({ type: "finalizing", code: result.final_code });
+                }
+              }, 1200);
+            }, 1200);
+          } else if (extractedInfo.heading) {
+            updateStage({ 
+              type: "classifying_heading", 
+              heading: extractedInfo.heading 
+            });
+            
+            // Go straight to finalizing after a delay
+            setTimeout(() => {
+              if (result.final_code) {
+                updateStage({ type: "finalizing", code: result.final_code });
+              }
+            }, 1200);
+          }
+        } else {
+          // If no path information, just show generic stages
+          setTimeout(() => {
+            updateStage({ type: "determining_subheading" });
+              
+            setTimeout(() => {
+              updateStage({ type: "classifying_group" });
+              
+              setTimeout(() => {
+                let finalCode = "";
+                if (typeof result === "string") {
+                  finalCode = result;
+                } else if (result && typeof result === "object" && result.final_code) {
+                  finalCode = result.final_code;
+                }
+                
+                updateStage({ type: "finalizing", code: finalCode });
+              }, 1000);
+            }, 1000);
+          }, 1000);
+        }
+
+        // Process the result
         processApiResponse(result);
       } catch (err) {
         // Handle errors
@@ -414,7 +574,7 @@ export function useClassifier() {
         });
       }
     },
-    [state, addDebug]
+    [state, addDebug, parsePathInfo]
   );
 
   /**

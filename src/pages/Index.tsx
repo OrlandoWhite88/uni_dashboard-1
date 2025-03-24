@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { useClassifier } from "@/lib/classifierService";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
+import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   CheckCircle,
@@ -69,6 +70,7 @@ const Index = () => {
   const { state, classify, continueWithAnswer, reset, debugInfo } =
     useClassifier();
   const [showDebug, setShowDebug] = useState(false);
+  const navigate = useNavigate();
 
   // Get usage limits hook
   const { checkCanMakeRequest, reloadUsageData } = useUsageLimits();
@@ -132,7 +134,7 @@ const Index = () => {
           {/* Status indicator for developers */}
           <div className="mb-4 text-center">
             <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3 animate-slide-down">
-              HS Code Classification Service
+              Accurate HS Classification Engine
             </div>
           </div>
 
@@ -152,8 +154,9 @@ const Index = () => {
                   </div>
                   <CustomButton 
                     variant="outline" 
-                    onClick={() => window.location.href = '/bulk-import'}
+                    onClick={() => navigate('/bulk-import')}
                     className="flex items-center whitespace-nowrap ml-4"
+                    type="button"
                   >
                     Batch Import <ArrowRight size={14} className="ml-2" />
                   </CustomButton>
@@ -162,22 +165,32 @@ const Index = () => {
             </>
           )}
 
-          {/* Loading State with Classification Stage */}
+          {/* Loading State with Enhanced Classification Stage */}
           {state.status === "loading" && (
             <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60 animate-pulse">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
               <p className="text-base font-medium mb-1">
-                {state.stage === "starting" && "Initializing classification..."}
-                {state.stage === "analyzing" && "Analyzing product description..."}
-                {state.stage === "identifying_chapter" && "Identifying HS chapter..."}
-                {state.stage === "classifying_heading" && "Classifying heading..."}
-                {state.stage === "determining_subheading" && "Determining subheading..."}
-                {state.stage === "classifying_tariff_line" && "Classifying tariff line..."}
-                {state.stage === "finalizing" && "Finalizing classification..."}
                 {!state.stage && "Processing your request..."}
+                {state.stage?.type === "starting" && "Initializing classification..."}
+                {state.stage?.type === "analyzing" && "Analyzing product description..."}
+                {state.stage?.type === "identifying_chapter" && 
+                  `Identifying HS chapter${state.stage.chapter ? `: Chapter ${state.stage.chapter}` : '...'}`}
+                {state.stage?.type === "classifying_heading" && 
+                  `Classifying heading${state.stage.heading ? `: Heading ${state.stage.heading}` : '...'}`}
+                {state.stage?.type === "determining_subheading" && 
+                  `Determining subheading${state.stage.subheading ? `: Subheading ${state.stage.subheading}` : '...'}`}
+                {state.stage?.type === "classifying_group" && 
+                  `Classifying group${state.stage.group ? `: ${state.stage.group}` : '...'}`}
+                {state.stage?.type === "classifying_title" && 
+                  `Classifying title${state.stage.title ? `: ${state.stage.title}` : '...'}`}
+                {state.stage?.type === "finalizing" && 
+                  `Finalizing classification${state.stage.code ? ` to ${state.stage.code}` : '...'}`}
               </p>
-              <p className="text-xs text-muted-foreground">
-                This may take a moment depending on product complexity
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                This may take a moment depending on product complexity<br/>
+                <span className="text-primary text-xs font-medium mt-1 inline-block">
+                  {state.path && `Path: ${state.path}`}
+                </span>
               </p>
             </div>
           )}
