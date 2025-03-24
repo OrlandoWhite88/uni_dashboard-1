@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getTariffInfo, explainTariff } from "@/lib/classifierService";
 import { Loader2, AlertCircle, ExternalLink, BookOpen, LightbulbIcon } from "lucide-react";
 import { cn } from "@/lib/utils";

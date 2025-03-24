@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import CustomButton from "./ui/CustomButton";
-import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X, AlertTriangle } from "lucide-react";
+import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import TariffInfo from "./TariffInfo";
 import HSCodeSubtree from "./HSCodeSubtree";
+import { explainTariff } from "@/lib/classifierService";
 
 interface HSCodeResultProps {
   hsCode: string;

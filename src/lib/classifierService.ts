@@ -361,15 +361,9 @@ export function useClassifier() {
         // Set initial loading state with starting stage
         setState({ status: "loading", stage: { type: "starting" } });
         
-        // Start with analyzing stage
-        setTimeout(() => {
-          updateStage({ type: "analyzing" });
-        }, 800);
-        
-        // Short delay before showing "identifying_chapter" stage
-        setTimeout(() => {
-          updateStage({ type: "identifying_chapter" });
-        }, 1600);
+        // Update stages immediately for better responsiveness
+        updateStage({ type: "analyzing" });
+        updateStage({ type: "identifying_chapter" });
 
         // Note: We only log usage when a final result is returned
         // This happens in the processApiResponse function when we get a final code
@@ -381,7 +375,6 @@ export function useClassifier() {
         
         // Extract classification information if present
         let finalCode = "";
-        let pathInfo = {};
         
         if (typeof result === "string") {
           finalCode = result;
@@ -403,42 +396,27 @@ export function useClassifier() {
                 : current
             );
             
-            // Update stage with the specific information extracted
+            // Update all stages immediately without delays
             const chapter = extractedInfo.chapter;
             if (chapter) {
               updateStage({ type: "identifying_chapter", chapter });
               
-              // Show the heading after a brief delay
-              setTimeout(() => {
-                const heading = extractedInfo.heading;
-                if (heading) {
-                  updateStage({ type: "classifying_heading", heading });
-                  
-                  // Show the subheading after another brief delay
-                  setTimeout(() => {
-                    const subheading = extractedInfo.subheading;
-                    if (subheading) {
-                      updateStage({ 
-                        type: "determining_subheading", 
-                        subheading 
-                      });
-                    }
-                    
-                    // Finally show finalizing stage
-                    setTimeout(() => {
-                      updateStage({ type: "finalizing", code: finalCode });
-                    }, 1000);
-                    
-                  }, 1000);
-                } else {
-                  // If no heading, go straight to finalizing
-                  updateStage({ type: "finalizing", code: finalCode });
+              const heading = extractedInfo.heading;
+              if (heading) {
+                updateStage({ type: "classifying_heading", heading });
+                
+                const subheading = extractedInfo.subheading;
+                if (subheading) {
+                  updateStage({ 
+                    type: "determining_subheading", 
+                    subheading 
+                  });
                 }
-              }, 1000);
-            } else {
-              // If no chapter, go straight to finalizing
-              updateStage({ type: "finalizing", code: finalCode });
+              }
             }
+            
+            // Finally show finalizing stage
+            updateStage({ type: "finalizing", code: finalCode });
           } else {
             // No path info, just finalize
             updateStage({ type: "finalizing", code: finalCode });
@@ -506,57 +484,38 @@ export function useClassifier() {
               : current
           );
           
-          // Update stage with the most specific information available
+          // Update all stages immediately without delays
           if (extractedInfo.subheading) {
             updateStage({ 
               type: "determining_subheading", 
               subheading: extractedInfo.subheading 
             });
-            
-            // Show group classification after a small delay
-            setTimeout(() => {
-              updateStage({ type: "classifying_group" });
-              
-              // Then show finalizing
-              setTimeout(() => {
-                if (result.final_code) {
-                  updateStage({ type: "finalizing", code: result.final_code });
-                }
-              }, 1200);
-            }, 1200);
+            updateStage({ type: "classifying_group" });
           } else if (extractedInfo.heading) {
             updateStage({ 
               type: "classifying_heading", 
               heading: extractedInfo.heading 
             });
-            
-            // Go straight to finalizing after a delay
-            setTimeout(() => {
-              if (result.final_code) {
-                updateStage({ type: "finalizing", code: result.final_code });
-              }
-            }, 1200);
+          }
+          
+          // Immediately show finalizing stage with final code
+          if (result.final_code) {
+            updateStage({ type: "finalizing", code: result.final_code });
           }
         } else {
-          // If no path information, just show generic stages
-          setTimeout(() => {
-            updateStage({ type: "determining_subheading" });
-              
-            setTimeout(() => {
-              updateStage({ type: "classifying_group" });
-              
-              setTimeout(() => {
-                let finalCode = "";
-                if (typeof result === "string") {
-                  finalCode = result;
-                } else if (result && typeof result === "object" && result.final_code) {
-                  finalCode = result.final_code;
-                }
-                
-                updateStage({ type: "finalizing", code: finalCode });
-              }, 1000);
-            }, 1000);
-          }, 1000);
+          // If no path information, just show generic stages without delays
+          updateStage({ type: "determining_subheading" });
+          updateStage({ type: "classifying_group" });
+          
+          // Set final code immediately
+          let finalCode = "";
+          if (typeof result === "string") {
+            finalCode = result;
+          } else if (result && typeof result === "object" && result.final_code) {
+            finalCode = result.final_code;
+          }
+          
+          updateStage({ type: "finalizing", code: finalCode });
         }
 
         // Process the result
@@ -589,6 +548,9 @@ export function useClassifier() {
       if (typeof result === "string") {
         addDebug(`Received final code as string: ${result}`);
         
+        // Show result immediately but continue the visual animation
+        const finalCode = result;
+        
         // Log usage only when we get a final result
         try {
           // Pass userId (will be null for anonymous users, which logUsage handles)
@@ -601,9 +563,10 @@ export function useClassifier() {
         // Use a fixed high confidence range between 94-99%
         let confidence = 94; // Base confidence
         
+        // Update state to show result immediately
         setState({
           status: "result",
-          code: result,
+          code: finalCode,
           description: productDescription || "Product",
           confidence, // More realistic confidence that's never 100%
         });
@@ -696,6 +659,17 @@ export function useClassifier() {
       if (result && typeof result === "object" && "final_code" in result) {
         addDebug(`Received final code in JSON: ${result.final_code}`);
         
+        // Show result immediately but continue the visual animation
+        const finalCode = typeof result.final_code === "string"
+          ? result.final_code
+          : String(result.final_code || "Unknown");
+          
+        const description = typeof result.enriched_query === "string"
+          ? result.enriched_query
+          : productDescription || "Product";
+          
+        const path = typeof result.full_path === "string" ? result.full_path : undefined;
+        
         // Log usage only when we get a final result
         try {
           // Pass userId (will be null for anonymous users, which logUsage handles)
@@ -725,19 +699,13 @@ export function useClassifier() {
         // Cap at 99% - high confidence but never 100%
         confidence = Math.min(confidence, 99);
 
+        // Update state to show result immediately
         setState({
           status: "result",
-          code:
-            typeof result.final_code === "string"
-              ? result.final_code
-              : String(result.final_code || "Unknown"),
-          description:
-            typeof result.enriched_query === "string"
-              ? result.enriched_query
-              : productDescription || "Product",
-          path:
-            typeof result.full_path === "string" ? result.full_path : undefined,
-          confidence,
+          code: finalCode,
+          description: description,
+          path: path,
+          confidence: confidence,
         });
         return;
       }
