@@ -107,6 +107,14 @@ const SettingsPage = () => {
         console.log('Subscription successful! Updating plan to Pro and reloading usage data.');
         clearStoredCheckoutSession(); // Clear session to prevent duplicate processing
         
+        // Track conversion with Google Ads
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'conversion', {
+            'send_to': 'AW-16933718921',
+          });
+          console.log('Google Ads conversion tracking event fired');
+        }
+        
         // Update user plan to Pro in Supabase
         if (!userId) {
           console.warn('Cannot update plan: No user ID available');
