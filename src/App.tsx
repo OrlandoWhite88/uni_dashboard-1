@@ -50,11 +50,7 @@ const App = () => (
           />
           <Route 
             path="/bulk-import" 
-            element={
-              <ProtectedRoute>
-                <BulkImport />
-              </ProtectedRoute>
-            } 
+            element={<BulkImport />} 
           />
           <Route 
             path="/debug-stripe" 
