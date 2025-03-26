@@ -1,120 +1,66 @@
+// src/lib/analyticsService.ts
 import { track } from '@vercel/analytics';
 
-// Define event categories
-export enum EventCategory {
-  CLASSIFICATION = 'classification',
-  INTERACTION = 'interaction',
-  CONVERSION = 'conversion',
-}
-
-// Define classification stages
-export enum ClassificationStage {
-  STARTED = 'classification_started',
-  ANALYZING = 'analyzing_product',
-  IDENTIFYING_CHAPTER = 'identifying_chapter',
-  CLASSIFYING_HEADING = 'classifying_heading',
-  DETERMINING_SUBHEADING = 'determining_subheading',
-  CLASSIFYING_GROUP = 'classifying_group',
-  CLASSIFYING_TITLE = 'classifying_title',
-  FINALIZING = 'finalizing_classification',
-  QUESTION_ASKED = 'question_asked',
-  ANSWER_SUBMITTED = 'answer_submitted',
-  COMPLETED = 'classification_completed',
-  ERROR = 'classification_error'
-}
-
 /**
- * Track an event in both Vercel Analytics and Google Analytics
- * 
- * @param eventName The name of the event to track
- * @param properties Optional properties to include with the event
+ * Tracks when a user starts a classification
+ * @param productDescription The product description being classified
  */
-export const trackEvent = (eventName: string, properties?: Record<string, any>) => {
-  // Track with Vercel Analytics
-  track(eventName, properties);
-  
-  // Track with Google Analytics (gtag)
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', eventName, {
-      ...properties,
-      event_category: properties?.category || 'general',
+export const trackClassificationStart = (productDescription: string) => {
+  try {
+    track('ClassificationStart', {
+      productLength: productDescription.length
     });
-    console.log(`[Analytics] Tracked event: ${eventName}`, properties);
-  } else {
-    console.warn('[Analytics] Google Analytics not available');
+    console.log('[Analytics] Tracked classification start');
+  } catch (error) {
+    console.error('[Analytics] Error tracking classification start:', error);
   }
 };
 
 /**
- * Track a classification stage event
- * 
- * @param stage The classification stage
- * @param properties Additional properties to include with the event
+ * Tracks when a user answers a question during classification
+ * @param questionText The question that was asked
+ * @param answer The answer provided by the user
  */
-export const trackClassificationStage = (stage: ClassificationStage, properties?: Record<string, any>) => {
-  trackEvent(stage, {
-    category: EventCategory.CLASSIFICATION,
-    ...properties
-  });
+export const trackQuestionAnswer = (questionText: string, answer: string) => {
+  try {
+    track('QuestionAnswer', {
+      questionType: getQuestionType(questionText)
+    });
+    console.log('[Analytics] Tracked question answer');
+  } catch (error) {
+    console.error('[Analytics] Error tracking question answer:', error);
+  }
 };
 
 /**
- * Track when a user starts the classification process
- * 
- * @param productDescription The product description submitted by the user
+ * Tracks when a classification result is shown to the user
+ * @param hsCode The HS code that was determined
  */
-export const trackClassificationStart = (productDescription: string) => {
-  trackClassificationStage(ClassificationStage.STARTED, {
-    description_length: productDescription.length,
-  });
+export const trackClassificationResult = (hsCode: string) => {
+  try {
+    track('ClassificationResult', {
+      codeLength: hsCode.length,
+      codePrefix: hsCode.substring(0, 2) // First two digits represent the chapter
+    });
+    console.log('[Analytics] Tracked classification result');
+  } catch (error) {
+    console.error('[Analytics] Error tracking classification result:', error);
+  }
 };
 
 /**
- * Track when a specific question is asked in the classification process
- * 
- * @param questionId The ID of the question
- * @param questionText The text of the question
+ * Helper function to determine question type from question text
  */
-export const trackQuestionAsked = (questionId: string, questionText: string) => {
-  trackClassificationStage(ClassificationStage.QUESTION_ASKED, {
-    question_id: questionId,
-    question_text: questionText.substring(0, 100), // Limit length for analytics
-  });
-};
-
-/**
- * Track when a user answers a question in the classification process
- * 
- * @param questionId The ID of the question
- * @param answer The answer submitted by the user
- */
-export const trackAnswerSubmitted = (questionId: string, answer: string) => {
-  trackClassificationStage(ClassificationStage.ANSWER_SUBMITTED, {
-    question_id: questionId,
-    answer_length: answer.length,
-  });
-};
-
-/**
- * Track when a classification is successfully completed
- * 
- * @param hsCode The HS code generated
- * @param confidence The confidence level of the classification
- */
-export const trackClassificationCompleted = (hsCode: string, confidence?: number) => {
-  trackClassificationStage(ClassificationStage.COMPLETED, {
-    hs_code: hsCode,
-    confidence: confidence || 'unknown',
-  });
-};
-
-/**
- * Track when a classification process encounters an error
- * 
- * @param errorMessage The error message
- */
-export const trackClassificationError = (errorMessage: string) => {
-  trackClassificationStage(ClassificationStage.ERROR, {
-    error_message: errorMessage.substring(0, 100), // Limit length for analytics
-  });
+const getQuestionType = (questionText: string): string => {
+  const text = questionText.toLowerCase();
+  
+  if (text.includes('material') || text.includes('made of')) {
+    return 'material';
+  } else if (text.includes('purpose') || text.includes('used for')) {
+    return 'purpose';
+  } else if (text.includes('component') || text.includes('part')) {
+    return 'component';
+  } else {
+    return 'other';
+  }
 };

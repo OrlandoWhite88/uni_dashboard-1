@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import CustomButton from "@/components/ui/CustomButton";
+import { trackClassificationStart, trackQuestionAnswer, trackClassificationResult } from "@/lib/analyticsService";
 import { CheckCircle2, Download, FileText, MessageCircle, Zap, ArrowUp, Clock, ChevronDown, AlertTriangle, ExternalLink } from "lucide-react";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
@@ -13,12 +14,6 @@ import {
   Options
 } from "@/lib/classifierService";
 import QuestionFlow from "@/components/QuestionFlow";
-import { 
-  trackEvent, 
-  EventCategory, 
-  trackClassificationStage,
-  ClassificationStage
-} from "@/lib/analyticsService";
 
 interface Product {
   id: number;
@@ -126,13 +121,6 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
   const handleViewDetails = (result: ClassificationResult) => {
     setSelectedResult(result);
     setIsDetailsModalOpen(true);
-    
-    // Track view details event
-    trackEvent('product_details_viewed', {
-      category: EventCategory.INTERACTION,
-      hs_code: result.hsCode,
-      batch_mode: true
-    });
   };
   
   // Handle closing the details modal
@@ -143,13 +131,6 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
 
   // Handle navigation to upgrade page
   const handleUpgrade = () => {
-    // Track upgrade click
-    trackEvent('upgrade_button_clicked', {
-      category: EventCategory.CONVERSION,
-      source: 'batch_processing',
-      plan_type: 'free'
-    });
-    
     navigate('/settings');
   };
 
@@ -159,23 +140,13 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     if (isFreePlan) {
       console.log('Batch processing not available on free plan');
       setShowUpgradeMessage(true);
-      
-      // Track upgrade prompt event
-      trackEvent('batch_processing_upgrade_prompted', {
-        category: EventCategory.CONVERSION,
-        plan_type: 'free'
-      });
-      
       return;
     }
     
-    setIsProcessingAll(true);
+    // Track batch classification start event
+    trackClassificationStart(`Batch of ${products.length} products`);
     
-    // Track batch classification started
-    trackEvent('batch_classification_started', {
-      category: EventCategory.CLASSIFICATION,
-      product_count: products.length
-    });
+    setIsProcessingAll(true);
     
     // Initialize states for all products
     const initialStates: Record<number, ProductClassificationState> = {};
@@ -202,11 +173,7 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
       console.log(`Starting classification for product ${product.id}: ${product.description}`);
       
       // Track individual product classification start
-      trackClassificationStage(ClassificationStage.STARTED, {
-        product_id: product.id,
-        description_length: product.description.length,
-        batch_mode: true
-      });
+      trackClassificationStart(`Batch item: ${product.description.substring(0, 30)}${product.description.length > 30 ? '...' : ''}`);
       
       // Call the classification API
       const response = await classifyProduct(product.description);
@@ -215,14 +182,6 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
       handleClassificationResponse(product.id, response, product.description);
     } catch (error) {
       console.error(`Error classifying product ${product.id}:`, error);
-      
-      // Track error
-      trackClassificationStage(ClassificationStage.ERROR, {
-        product_id: product.id,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        batch_mode: true
-      });
-      
       // Handle error state
       setClassificationStates(prev => ({
         ...prev,
@@ -244,13 +203,8 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
       // Use a fixed high confidence range between 94-99%
       let confidence = 94; // Base confidence for direct string responses
       
-      // Track successful classification
-      trackClassificationStage(ClassificationStage.COMPLETED, {
-        product_id: productId,
-        hs_code: response,
-        confidence,
-        batch_mode: true
-      });
+      // Track classification result event
+      trackClassificationResult(response);
       
       // Add to completed results
       setResults(prev => [
@@ -287,6 +241,9 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
         const hasDescription = !!response.enriched_query;
         const hasPath = !!response.full_path;
         
+        // Track classification result event
+        trackClassificationResult(response.final_code);
+        
         // Start with base confidence of 94%
         let confidence = 94;
         
@@ -302,16 +259,6 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
         
         // Cap at 99% - high confidence but never 100%
         confidence = Math.min(confidence, 99);
-        
-        // Track successful classification
-        trackClassificationStage(ClassificationStage.COMPLETED, {
-          product_id: productId,
-          hs_code: response.final_code,
-          confidence,
-          has_path: hasPath,
-          has_enriched_description: hasDescription,
-          batch_mode: true
-        });
         
         // Add to completed results
         setResults(prev => [
@@ -402,14 +349,6 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
           }
         }));
         
-        // Track question asked
-        trackClassificationStage(ClassificationStage.QUESTION_ASKED, {
-          product_id: productId,
-          question_text: questionText.substring(0, 100),
-          has_options: options.length > 0,
-          batch_mode: true
-        });
-        
         // Add to active questions queue
         setActiveQuestions(prev => [
           ...prev,
@@ -438,13 +377,8 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     try {
       console.log(`Answering question for product ${productId}: ${answer}`);
       
-      // Track answer submitted
-      trackClassificationStage(ClassificationStage.ANSWER_SUBMITTED, {
-        product_id: productId,
-        question_text: text.substring(0, 100),
-        answer_length: answer.length,
-        batch_mode: true
-      });
+      // Track question answer event
+      trackQuestionAnswer(text, answer);
       
       // Remove the question from active questions
       setActiveQuestions(prev => prev.filter((_, i) => i !== questionIndex));
@@ -466,15 +400,6 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
       handleClassificationResponse(productId, response, productDescription);
     } catch (error) {
       console.error(`Error processing answer for product ${productId}:`, error);
-      
-      // Track error
-      trackClassificationStage(ClassificationStage.ERROR, {
-        product_id: productId,
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        stage: 'answer_processing',
-        batch_mode: true
-      });
-      
       // Handle error
       setClassificationStates(prev => ({
         ...prev,
@@ -495,13 +420,6 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
   }, [products, isPlanLoading]);
 
   const handleDownloadResults = () => {
-    // Track export event
-    trackEvent('batch_results_exported', {
-      category: EventCategory.INTERACTION,
-      product_count: results.length,
-      format: 'csv'
-    });
-    
     const csv = [
       ["Product ID", "Description", "HS Code", "Confidence", "Tariff Information"],
       ...results.map((result) => [

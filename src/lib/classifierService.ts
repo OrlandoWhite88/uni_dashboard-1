@@ -8,6 +8,7 @@
 import { useState, useCallback } from "react";
 import { logUsage } from "@/lib/supabaseService";
 import { useAuth } from "@clerk/clerk-react";
+import { trackClassificationResult } from "@/lib/analyticsService";
 
 // API configuration - The endpoint for the classification service
 const API_BASE_URL = "https://hscode-eight.vercel.app";
@@ -560,6 +561,9 @@ export function useClassifier() {
           addDebug(`Error logging usage: ${error}`);
         }
         
+        // Track the final classification result
+        trackClassificationResult(finalCode);
+        
         // Use a fixed high confidence range between 94-99%
         let confidence = 94; // Base confidence
         
@@ -679,6 +683,9 @@ export function useClassifier() {
           addDebug(`Error logging usage: ${error}`);
         }
 
+        // Track the final classification result
+        trackClassificationResult(finalCode);
+        
         // Calculate confidence score based on available information
         const hasDescription = !!result.enriched_query;
         const hasPath = !!result.full_path;
