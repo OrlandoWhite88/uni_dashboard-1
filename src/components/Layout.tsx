@@ -58,17 +58,17 @@ const Layout = ({ children, className }: LayoutProps) => {
                 </SignUpButton>
               </div>
               
-              {/* Mobile dropdown for sign in/up */}
+              {/* Profile icon for signed out users - goes to settings instead of sign in */}
               <div className="md:hidden">
-                <SignInButton mode="modal">
+                <Link to="/settings">
                   <button className="p-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors">
-                    <span className="sr-only">Sign In</span>
+                    <span className="sr-only">Profile</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide-user">
                       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                       <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                   </button>
-                </SignInButton>
+                </Link>
               </div>
             </SignedOut>
             
