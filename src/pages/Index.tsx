@@ -1,10 +1,19 @@
 // src/pages/Index.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useClassifier } from "@/lib/classifierService";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
 import { useNavigate } from "react-router-dom";
+import { 
+  trackClassificationStart,
+  trackClassificationStage,
+  trackQuestionAsked,
+  trackAnswerSubmitted,
+  trackClassificationCompleted,
+  trackClassificationError,
+  ClassificationStage
+} from "@/lib/analyticsService";
 import {
   AlertCircle,
   CheckCircle,
@@ -85,6 +94,9 @@ const Index = () => {
       return; // Don't proceed if the user has reached their limit
     }
     
+    // Track classification start
+    trackClassificationStart(description);
+    
     // If allowed, proceed with classification
     classify(description);
     
@@ -95,6 +107,10 @@ const Index = () => {
   // Handle answer submission
   const handleAnswer = (questionId: string, answer: string) => {
     console.log("[Index] Submitting answer:", { questionId, answer });
+    
+    // Track answer submission
+    trackAnswerSubmitted(questionId, answer);
+    
     continueWithAnswer(answer);
   };
 
@@ -105,9 +121,64 @@ const Index = () => {
     }
   };
 
-  // Log the current state for debugging purposes
+  // Log the current state for debugging purposes and track analytics
   React.useEffect(() => {
     console.log("[Index] Current classifier state:", state);
+    
+    // Track different stages of the classification process
+    if (state.status === "loading" && state.stage) {
+      switch (state.stage.type) {
+        case "analyzing":
+          trackClassificationStage(ClassificationStage.ANALYZING);
+          break;
+        case "identifying_chapter":
+          trackClassificationStage(ClassificationStage.IDENTIFYING_CHAPTER, {
+            chapter: state.stage.chapter
+          });
+          break;
+        case "classifying_heading":
+          trackClassificationStage(ClassificationStage.CLASSIFYING_HEADING, {
+            heading: state.stage.heading
+          });
+          break;
+        case "determining_subheading":
+          trackClassificationStage(ClassificationStage.DETERMINING_SUBHEADING, {
+            subheading: state.stage.subheading
+          });
+          break;
+        case "classifying_group":
+          trackClassificationStage(ClassificationStage.CLASSIFYING_GROUP, {
+            group: state.stage.group
+          });
+          break;
+        case "classifying_title":
+          trackClassificationStage(ClassificationStage.CLASSIFYING_TITLE, {
+            title: state.stage.title
+          });
+          break;
+        case "finalizing":
+          trackClassificationStage(ClassificationStage.FINALIZING, {
+            code: state.stage.code
+          });
+          break;
+      }
+    }
+    
+    // Track when a question is asked
+    if (state.status === "question" && state.question) {
+      trackQuestionAsked("clarification", 
+        typeof state.question === "string" ? state.question : "Question asked");
+    }
+    
+    // Track when classification is completed
+    if (state.status === "result" && state.code) {
+      trackClassificationCompleted(state.code, state.confidence);
+    }
+    
+    // Track when an error occurs
+    if (state.status === "error" && state.message) {
+      trackClassificationError(state.message);
+    }
   }, [state]);
 
   // Force the error boundary to catch any errors during render
