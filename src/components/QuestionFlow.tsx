@@ -96,10 +96,12 @@ const QuestionFlow = ({ question, onAnswer, isLoading }: QuestionFlowProps) => {
 
   return (
     <div className="w-full max-w-2xl mx-auto animate-slide-up">
+      {/* Question progress bar - styled to match the main progress bar */}
+      <div className="w-full h-2 bg-secondary/30 rounded-full overflow-hidden mb-4 animate-fade-in">
+        <div className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-in-out w-1/3 animate-pulse"></div>
+      </div>
+
       <div className="mb-6 glass-card p-6 rounded-xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-primary/20">
-          <div className="h-full bg-primary w-1/3 animate-pulse"></div>
-        </div>
 
         <div className="flex items-start gap-4">
           <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary shrink-0 mt-1">

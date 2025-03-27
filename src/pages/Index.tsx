@@ -153,7 +153,8 @@ const Index = () => {
       // Resume the timer
       updateProgressTimer();
     } else if (state.status === "question" && classificationActiveRef.current) {
-      // Pause the timer but keep progress
+      // When entering question state, we pause the timer but preserve the progress value
+      // The progress bar itself is hidden in the UI, but we keep the value for when we return
       if (timerIdRef.current) {
         clearInterval(timerIdRef.current);
         timerIdRef.current = null;
@@ -162,7 +163,7 @@ const Index = () => {
       // Classification is complete, set progress to 100%
       setProgressPercent(100);
       classificationActiveRef.current = false;
-      
+
       // Clean up any running timer
       if (timerIdRef.current) {
         clearInterval(timerIdRef.current);
@@ -173,13 +174,13 @@ const Index = () => {
       setProgressPercent(0);
       elapsedMsRef.current = 0;
       classificationActiveRef.current = false;
-      
+
       if (timerIdRef.current) {
         clearInterval(timerIdRef.current);
         timerIdRef.current = null;
       }
     }
-    
+
     // Clean up on unmount
     return () => {
       if (timerIdRef.current) {
@@ -214,13 +215,26 @@ const Index = () => {
   // Handle answer submission
   const handleAnswer = (questionId: string, answer: string) => {
     console.log("[Index] Submitting answer:", { questionId, answer });
-    
+
     // Track the question answer event
     if (state.status === "question" && typeof state.question === "string") {
       trackQuestionAnswer(state.question, answer);
     }
-    
+
+    // When a question is answered, we'll immediately update the last tick time
+    // so the progress bar continues smoothly from where it left off
+    lastTickTimeRef.current = Date.now();
+
+    // Continue with the answer, which will transition back to loading state
     continueWithAnswer(answer);
+
+    // After a brief delay, resume the progress timer
+    // This ensures the state has time to update before we start the timer again
+    setTimeout(() => {
+      if (state.status === "loading" && classificationActiveRef.current) {
+        updateProgressTimer();
+      }
+    }, 50);
   };
 
   // Copy debug info to clipboard
@@ -381,22 +395,15 @@ const Index = () => {
                   : typeof state.options,
                 state: state.state, // This contains the entire state object from the API
               })}
-              
+
               {/* Stage display - show where we are in the classification process */}
               <div className="mb-3 text-sm text-center">
                 <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
                   {getStageDisplayText(state)}
                 </span>
               </div>
-              
-              {/* Progress bar container - shown during questions too */}
-              <div className="w-full h-2 bg-secondary/30 rounded-full overflow-hidden mb-4">
-                {/* Progress bar */}
-                <div 
-                  className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-in-out"
-                  style={{ width: `${progressPercent}%` }}
-                ></div>
-              </div>
+
+              {/* We hide the main progress bar during questions - it will be replaced by the question progress bar */}
 
               <QuestionFlow
                 question={{
