@@ -70,7 +70,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }> {
 const Index = () => {
   const { state, classify, continueWithAnswer, reset, debugInfo } =
     useClassifier();
-  const [showDebug, setShowDebug] = useState(false);
+  const [progressPercent, setProgressPercent] = useState(0);
   const navigate = useNavigate();
 
   // Get usage limits hook
@@ -88,6 +88,25 @@ const Index = () => {
     
     // Track the classification start event
     trackClassificationStart(description);
+    
+    // Reset and start the progress bar
+    setProgressPercent(0);
+    
+    // Start progress bar animation - will take 10 seconds to complete
+    const startTime = Date.now();
+    const duration = 10000; // 10 seconds
+    
+    const updateProgress = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / duration) * 100, 99.5); // Cap at 99.5% until complete
+      setProgressPercent(progress);
+      
+      if (elapsed < duration && state.status === "loading") {
+        requestAnimationFrame(updateProgress);
+      }
+    };
+    
+    requestAnimationFrame(updateProgress);
     
     // If allowed, proceed with classification
     classify(description);
@@ -177,7 +196,7 @@ const Index = () => {
 
           {/* Loading State with Enhanced Classification Stage */}
           {state.status === "loading" && (
-            <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60 animate-pulse">
+            <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
               <p className="text-base font-medium mb-1">
                 {!state.stage && "Processing your request..."}
@@ -196,6 +215,16 @@ const Index = () => {
                 {state.stage?.type === "finalizing" && 
                   `Finalizing classification${state.stage.code ? ` to ${state.stage.code}` : '...'}`}
               </p>
+              
+              {/* Progress bar container */}
+              <div className="w-full h-2 bg-secondary/30 rounded-full overflow-hidden mt-4 mb-2">
+                {/* Progress bar */}
+                <div 
+                  className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-in-out"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+              
               <p className="text-xs text-muted-foreground mt-2 text-center">
                 This may take a moment depending on product complexity<br/>
                 <span className="text-primary text-xs font-medium mt-1 inline-block">
@@ -266,67 +295,6 @@ const Index = () => {
                       <RefreshCw className="mr-2 h-4 w-4" /> Try Again
                     </CustomButton>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Debug Panel Button (Always visible for easier debugging) */}
-          <div className="mt-8 flex justify-end">
-            <button
-              onClick={() => setShowDebug(!showDebug)}
-              className="flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Bug className="h-3 w-3 mr-1" />
-              {showDebug ? "Hide Debug Info" : "Show Debug Info"}
-            </button>
-          </div>
-
-          {/* Debug Panel - shows debug info for developers */}
-          {showDebug && (
-            <div className="mt-2 rounded-xl border border-border">
-              <div className="flex items-center justify-between p-3 cursor-pointer bg-secondary/50 rounded-t-xl">
-                <div className="flex items-center text-sm font-medium">
-                  <Bug className="h-4 w-4 mr-2 text-muted-foreground" />
-                  Debug Information
-                </div>
-                <div className="flex items-center">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyDebugInfo();
-                    }}
-                    className="p-1.5 rounded-md hover:bg-secondary mr-1"
-                    title="Copy debug info"
-                  >
-                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-3 border-t border-border bg-background/50 rounded-b-xl">
-                <div className="max-h-60 overflow-auto p-2 bg-muted/30 rounded-md font-mono text-xs">
-                  {debugInfo && debugInfo.length > 0 ? (
-                    debugInfo.map((line, i) => (
-                      <div
-                        key={i}
-                        className="py-0.5 border-b border-secondary last:border-0"
-                      >
-                        {line}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="py-2 text-center text-muted-foreground">
-                      No debug information available
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-3 p-2 bg-muted/30 rounded-md">
-                  <h4 className="text-xs font-medium mb-1">Current State:</h4>
-                  <pre className="text-xs overflow-auto max-h-60">
-                    {JSON.stringify(state, null, 2)}
-                  </pre>
                 </div>
               </div>
             </div>
