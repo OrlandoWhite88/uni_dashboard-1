@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
 import { ArrowRight, MessageCircle, Check, X, HelpCircle } from "lucide-react";
-import { Options } from "@/lib/classifierService";
+import { Options, ClassificationQuestion } from "@/lib/classifierService";
 
 interface Question {
   id: string;
   text: string;
   options?: Options[];
+  question_type?: "text" | "multiple_choice";
 }
 
 interface QuestionFlowProps {

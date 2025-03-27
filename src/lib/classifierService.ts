@@ -24,19 +24,52 @@ export interface OptionItem {
 }
 
 export interface ClassificationQuestion {
-  question_type?: string;
+  question_type: "text" | "multiple_choice";
   question_text: string;
-  options?: OptionItem[] | string[];
+  options?: OptionItem[];
   metadata?: any;
 }
 
+export interface ClassificationState {
+  product: string;
+  original_query: string;
+  current_query: string;
+  questions_asked: number;
+  selection: any;
+  current_node: any;
+  classification_path: any[];
+  steps: any[];
+  conversation: any[];
+  pending_question: any;
+  pending_stage: string;
+  max_questions: number;
+  visited_nodes: any[];
+  history: any[];
+  product_attributes: Record<string, any>;
+  recent_questions: any[];
+}
+
 export interface ClassificationResponse {
-  state?: any;
+  final: boolean;
+  // For non-final responses (questions)
   clarification_question?: ClassificationQuestion;
-  final_code?: string;
+  state?: ClassificationState;
+  // For final responses
+  original_query?: string;
   enriched_query?: string;
+  classification?: {
+    chapter: string;
+    heading: string;
+    subheading: string;
+    tariff: string;
+  };
+  final_code?: string;
   full_path?: string;
-  final?: boolean;
+  steps?: any[];
+  conversation?: any[];
+  explanation?: string;
+  is_complete?: boolean;
+  visited_nodes?: any[];
 }
 
 /**
@@ -57,7 +90,7 @@ const logDebug = (message: string, data?: any) => {
 export async function classifyProduct(
   productDescription: string,
   maxQuestions: number = 5
-): Promise<any> {
+): Promise<ClassificationResponse | string> {
   logDebug(`Starting classification for: "${productDescription}"`);
 
   const url = `${API_BASE_URL}/classify`;
@@ -91,9 +124,32 @@ export async function classifyProduct(
     logDebug(`Raw response: ${text}`);
 
     try {
-      return JSON.parse(text);
+      // Parse the JSON response
+      const result = JSON.parse(text);
+      
+      // Validate that we got a properly formatted response
+      if (typeof result === 'object' && result !== null) {
+        // Check if it has the expected 'final' flag
+        if ("final" in result) {
+          logDebug(`Response has 'final' flag: ${result.final}`);
+          
+          // If this is a clarification question (non-final response)
+          if (result.final === false && result.clarification_question) {
+            logDebug(`Got clarification question response with state`);
+          } 
+          // If this is a final classification
+          else if (result.final === true) {
+            logDebug(`Got final classification response`);
+          }
+        } else {
+          logDebug(`Response missing 'final' flag, assuming legacy format`);
+        }
+      }
+      
+      return result;
     } catch (e) {
       // If not JSON, return as plain text (could be a direct HS code)
+      logDebug(`Response is not JSON, treating as plain text`);
       return text;
     }
   } catch (error) {
@@ -106,14 +162,16 @@ export async function classifyProduct(
  * Continue classification with answer - this mimics the Python continue_classification function
  */
 export async function continueClassification(
-  state: any,
+  state: ClassificationState | any,
   answer: string
-): Promise<any> {
+): Promise<ClassificationResponse | string> {
   logDebug(`Continuing classification with answer: "${answer}"`);
 
+  // IMPORTANT: Pass the complete state object from the API response
+  // Treat the state as opaque - do not modify it or try to understand its internal structure
   const url = `${API_BASE_URL}/classify/continue`;
   const payload = {
-    state: state,
+    state: state, // Pass the entire state object without modification
     answer: answer,
   };
 
@@ -141,9 +199,32 @@ export async function continueClassification(
     logDebug(`Raw response: ${text}`);
 
     try {
-      return JSON.parse(text);
+      // Parse the JSON response
+      const result = JSON.parse(text);
+      
+      // Validate that we got a properly formatted response
+      if (typeof result === 'object' && result !== null) {
+        // Check if it has the expected 'final' flag
+        if ("final" in result) {
+          logDebug(`Response has 'final' flag: ${result.final}`);
+          
+          // If this is a clarification question (non-final response)
+          if (result.final === false && result.clarification_question) {
+            logDebug(`Got clarification question response with state`);
+          } 
+          // If this is a final classification
+          else if (result.final === true) {
+            logDebug(`Got final classification response`);
+          }
+        } else {
+          logDebug(`Response missing 'final' flag, assuming legacy format`);
+        }
+      }
+      
+      return result;
     } catch (e) {
       // If not JSON, return as plain text (could be a direct HS code)
+      logDebug(`Response is not JSON, treating as plain text`);
       return text;
     }
   } catch (error) {
@@ -602,14 +683,14 @@ export function useClassifier() {
   );
 
   /**
-   * Process the API response following the same logic as the Python script
+   * Process the API response following the new stateless API schema
    */
   const processApiResponse = useCallback(
     async (result: any, productDescription?: string) => {
       // Detailed logging of the result for debugging
       addDebug(`Processing API response: ${JSON.stringify(result, null, 2)}`);
 
-      // If result is a string, it's the final code
+      // If result is a string, it's the final code (legacy format or direct HS code)
       if (typeof result === "string") {
         addDebug(`Received final code as string: ${result}`);
         
@@ -641,144 +722,274 @@ export function useClassifier() {
         return;
       }
 
-      // If result has clarification_question, ask it
-      if (
-        result &&
-        typeof result === "object" &&
-        "clarification_question" in result
-      ) {
-        // Log the structure of the clarification question
-        addDebug(
-          `Clarification question structure: ${JSON.stringify(
-            result.clarification_question,
-            null,
-            2
-          )}`
-        );
+      // Check for object response and the new 'final' flag
+      if (result && typeof result === "object") {
+        // Check for the final flag to determine response type
+        if ("final" in result) {
+          if (result.final === true) {
+            // This is a final classification response
+            addDebug(`Processing final classification response`);
+            
+            const finalCode = typeof result.final_code === "string"
+              ? result.final_code
+              : String(result.final_code || "Unknown");
+              
+            const description = typeof result.enriched_query === "string"
+              ? result.enriched_query
+              : productDescription || "Product";
+              
+            const path = typeof result.full_path === "string" ? result.full_path : undefined;
+            
+            // Log usage only when we get a final result
+            try {
+              await logUsage(userId, 'final_classification');
+              addDebug(`Logged final result usage for user: ${userId || 'anonymous'}`);
+            } catch (error) {
+              addDebug(`Error logging usage: ${error}`);
+            }
 
-        // Get the question text safely
-        let questionText = "Please provide more information about your product";
-        if (
-          result.clarification_question &&
-          typeof result.clarification_question.question_text === "string"
-        ) {
-          questionText = result.clarification_question.question_text;
-        } else if (result.clarification_question) {
-          // If it's not a string, try to make a string representation
-          try {
-            questionText = JSON.stringify(
-              result.clarification_question.question_text
-            );
-            addDebug(`Converted non-string question to: ${questionText}`);
-          } catch (e) {
-            addDebug(`Could not stringify question: ${e}`);
+            // Track the final classification result
+            trackClassificationResult(finalCode);
+            
+            // Calculate confidence score based on available information
+            const hasDescription = !!result.enriched_query;
+            const hasPath = !!result.full_path;
+            
+            // Start with base confidence of 94%
+            let confidence = 94;
+            
+            // Add confidence if we have enriched description
+            if (hasDescription) {
+              confidence += 2;
+            }
+            
+            // Add confidence if we have full path
+            if (hasPath) {
+              confidence += 3;
+            }
+            
+            // Cap at 99% - high confidence but never 100%
+            confidence = Math.min(confidence, 99);
+
+            // Update state to show result immediately
+            setState({
+              status: "result",
+              code: finalCode,
+              description: description,
+              path: path,
+              confidence: confidence,
+            });
+            return;
+          } else {
+            // This is a clarification question response
+            addDebug(`Processing clarification question response`);
+            
+            if (result.clarification_question) {
+              // Log the structure of the clarification question
+              addDebug(
+                `Clarification question structure: ${JSON.stringify(
+                  result.clarification_question,
+                  null,
+                  2
+                )}`
+              );
+
+              // Get the question text safely
+              let questionText = "Please provide more information about your product";
+              if (
+                result.clarification_question &&
+                typeof result.clarification_question.question_text === "string"
+              ) {
+                questionText = result.clarification_question.question_text;
+              } else if (result.clarification_question) {
+                // If it's not a string, try to make a string representation
+                try {
+                  questionText = JSON.stringify(
+                    result.clarification_question.question_text
+                  );
+                  addDebug(`Converted non-string question to: ${questionText}`);
+                } catch (e) {
+                  addDebug(`Could not stringify question: ${e}`);
+                }
+              }
+
+              // Get options safely - ensure they're in the Options object format
+              let options: Options[] = [];
+              if (
+                result.clarification_question &&
+                Array.isArray(result.clarification_question.options)
+              ) {
+                // Process each option - normalize to Options object format
+                options = result.clarification_question.options.map((opt, index) => {
+                  // If the option is already an object with id and text properties
+                  if (opt && typeof opt === "object" && "id" in opt && "text" in opt) {
+                    return {
+                      id: String(opt.id),
+                      text: String(opt.text)
+                    };
+                  }
+                  // If the option is an object with just a text property
+                  else if (opt && typeof opt === "object" && "text" in opt) {
+                    return {
+                      id: String(index + 1),
+                      text: String(opt.text)
+                    };
+                  }
+                  // If the option is a string, create an Options object
+                  else {
+                    return {
+                      id: String(index + 1),
+                      text: String(opt)
+                    };
+                  }
+                });
+
+                addDebug(`Processed options: ${JSON.stringify(options)}`);
+              }
+
+              // CRITICAL: Store the entire state object from the API response without modifying it
+              const sessionState = result.state;
+              addDebug(`Session state received, type: ${typeof sessionState}`);
+
+              setState({
+                status: "question",
+                question: questionText,
+                options: options,
+                state: sessionState, // Pass the complete state object
+              });
+              return;
+            }
           }
         }
+        
+        // Check for legacy format (without 'final' flag)
+        // If result has clarification_question, ask it
+        else if ("clarification_question" in result) {
+          addDebug(`Processing legacy clarification question format`);
+          
+          // Get the question text safely
+          let questionText = "Please provide more information about your product";
+          if (
+            result.clarification_question &&
+            typeof result.clarification_question.question_text === "string"
+          ) {
+            questionText = result.clarification_question.question_text;
+          } else if (result.clarification_question) {
+            // If it's not a string, try to make a string representation
+            try {
+              questionText = JSON.stringify(
+                result.clarification_question.question_text
+              );
+              addDebug(`Converted non-string question to: ${questionText}`);
+            } catch (e) {
+              addDebug(`Could not stringify question: ${e}`);
+            }
+          }
 
-        // Get options safely - ensure they're in the Options object format
-        let options: Options[] = [];
-        if (
-          result.clarification_question &&
-          Array.isArray(result.clarification_question.options)
-        ) {
-          // Process each option - normalize to Options object format
-          options = result.clarification_question.options.map((opt, index) => {
-            // If the option is already an object with id and text properties
-            if (opt && typeof opt === "object" && "id" in opt && "text" in opt) {
-              return {
-                id: String(opt.id),
-                text: String(opt.text)
-              };
-            }
-            // If the option is an object with just a text property
-            else if (opt && typeof opt === "object" && "text" in opt) {
-              return {
-                id: String(index + 1),
-                text: String(opt.text)
-              };
-            }
-            // If the option is a string, create an Options object
-            else {
-              return {
-                id: String(index + 1),
-                text: String(opt)
-              };
-            }
+          // Get options safely - ensure they're in the Options object format
+          let options: Options[] = [];
+          if (
+            result.clarification_question &&
+            Array.isArray(result.clarification_question.options)
+          ) {
+            // Process each option - normalize to Options object format
+            options = result.clarification_question.options.map((opt, index) => {
+              // If the option is already an object with id and text properties
+              if (opt && typeof opt === "object" && "id" in opt && "text" in opt) {
+                return {
+                  id: String(opt.id),
+                  text: String(opt.text)
+                };
+              }
+              // If the option is an object with just a text property
+              else if (opt && typeof opt === "object" && "text" in opt) {
+                return {
+                  id: String(index + 1),
+                  text: String(opt.text)
+                };
+              }
+              // If the option is a string, create an Options object
+              else {
+                return {
+                  id: String(index + 1),
+                  text: String(opt)
+                };
+              }
+            });
+
+            addDebug(`Processed options: ${JSON.stringify(options)}`);
+          }
+
+          // Get state safely - this could be a string or an object
+          const sessionState = result.state;
+          addDebug(`Session state type: ${typeof sessionState}`);
+
+          setState({
+            status: "question",
+            question: questionText,
+            options: options,
+            state: sessionState, // Store the entire state object
           });
 
-          addDebug(`Processed options: ${JSON.stringify(options)}`);
+          return;
         }
-
-        // Get state safely - this could be a string or an object
-        const sessionState = result.state;
-        addDebug(`Session state type: ${typeof sessionState}`);
-
-        setState({
-          status: "question",
-          question: questionText,
-          options: options,
-          state: sessionState,
-        });
-
-        return;
-      }
-
-      // If result has final_code, it's the final classification
-      if (result && typeof result === "object" && "final_code" in result) {
-        addDebug(`Received final code in JSON: ${result.final_code}`);
-        
-        // Show result immediately but continue the visual animation
-        const finalCode = typeof result.final_code === "string"
-          ? result.final_code
-          : String(result.final_code || "Unknown");
+        // If result has final_code (legacy format), it's the final classification
+        else if ("final_code" in result) {
+          addDebug(`Processing legacy final code format: ${result.final_code}`);
           
-        const description = typeof result.enriched_query === "string"
-          ? result.enriched_query
-          : productDescription || "Product";
+          // Show result immediately but continue the visual animation
+          const finalCode = typeof result.final_code === "string"
+            ? result.final_code
+            : String(result.final_code || "Unknown");
+            
+          const description = typeof result.enriched_query === "string"
+            ? result.enriched_query
+            : productDescription || "Product";
+            
+          const path = typeof result.full_path === "string" ? result.full_path : undefined;
           
-        const path = typeof result.full_path === "string" ? result.full_path : undefined;
-        
-        // Log usage only when we get a final result
-        try {
-          // Pass userId (will be null for anonymous users, which logUsage handles)
-          await logUsage(userId, 'final_classification');
-          addDebug(`Logged final result usage for user: ${userId || 'anonymous'}`);
-        } catch (error) {
-          addDebug(`Error logging usage: ${error}`);
-        }
+          // Log usage only when we get a final result
+          try {
+            // Pass userId (will be null for anonymous users, which logUsage handles)
+            await logUsage(userId, 'final_classification');
+            addDebug(`Logged final result usage for user: ${userId || 'anonymous'}`);
+          } catch (error) {
+            addDebug(`Error logging usage: ${error}`);
+          }
 
-        // Track the final classification result
-        trackClassificationResult(finalCode);
-        
-        // Calculate confidence score based on available information
-        const hasDescription = !!result.enriched_query;
-        const hasPath = !!result.full_path;
-        
-        // Start with base confidence of 94%
-        let confidence = 94;
-        
-        // Add confidence if we have enriched description
-        if (hasDescription) {
-          confidence += 2;
-        }
-        
-        // Add confidence if we have full path
-        if (hasPath) {
-          confidence += 3;
-        }
-        
-        // Cap at 99% - high confidence but never 100%
-        confidence = Math.min(confidence, 99);
+          // Track the final classification result
+          trackClassificationResult(finalCode);
+          
+          // Calculate confidence score based on available information
+          const hasDescription = !!result.enriched_query;
+          const hasPath = !!result.full_path;
+          
+          // Start with base confidence of 94%
+          let confidence = 94;
+          
+          // Add confidence if we have enriched description
+          if (hasDescription) {
+            confidence += 2;
+          }
+          
+          // Add confidence if we have full path
+          if (hasPath) {
+            confidence += 3;
+          }
+          
+          // Cap at 99% - high confidence but never 100%
+          confidence = Math.min(confidence, 99);
 
-        // Update state to show result immediately
-        setState({
-          status: "result",
-          code: finalCode,
-          description: description,
-          path: path,
-          confidence: confidence,
-        });
-        return;
+          // Update state to show result immediately
+          setState({
+            status: "result",
+            code: finalCode,
+            description: description,
+            path: path,
+            confidence: confidence,
+          });
+          return;
+        }
       }
 
       // If we get here, we don't understand the response format

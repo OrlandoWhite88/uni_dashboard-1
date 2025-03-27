@@ -341,6 +341,7 @@ const Index = () => {
                 optionsType: Array.isArray(state.options)
                   ? "array"
                   : typeof state.options,
+                state: state.state, // This contains the entire state object from the API
               })}
               
               {/* Progress bar container - shown during questions too */}
@@ -360,6 +361,7 @@ const Index = () => {
                       ? state.question
                       : "Please provide more information about your product",
                   options: Array.isArray(state.options) ? state.options : [],
+                  question_type: state.state?.clarification_question?.question_type || "text",
                 }}
                 onAnswer={handleAnswer}
                 isLoading={false}
