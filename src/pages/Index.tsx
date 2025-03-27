@@ -1,6 +1,6 @@
 // src/pages/Index.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import { useClassifier } from "@/lib/classifierService";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
@@ -71,10 +71,78 @@ const Index = () => {
   const { state, classify, continueWithAnswer, reset, debugInfo } =
     useClassifier();
   const [progressPercent, setProgressPercent] = useState(0);
+  const progressTimerRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const elapsedTimeRef = useRef<number>(0);
   const navigate = useNavigate();
 
   // Get usage limits hook
   const { checkCanMakeRequest, reloadUsageData } = useUsageLimits();
+
+  // Progress management system
+  useEffect(() => {
+    // Start progress when loading begins, pause on question, complete on result
+    if (state.status === "loading") {
+      // Only start a new timer if one isn't already running
+      if (progressTimerRef.current === null) {
+        // Start or resume progress tracking
+        startTimeRef.current = Date.now() - elapsedTimeRef.current;
+        const duration = 10000; // 10 seconds total
+        
+        const updateProgress = () => {
+          const currentTime = Date.now();
+          const elapsed = currentTime - startTimeRef.current;
+          elapsedTimeRef.current = elapsed;
+          
+          // Calculate progress as a percentage (0-100)
+          const progress = Math.min((elapsed / duration) * 100, 99.5);
+          setProgressPercent(progress);
+          
+          // Continue animation if still in loading state and not complete
+          if (state.status === "loading" && elapsed < duration) {
+            progressTimerRef.current = requestAnimationFrame(updateProgress);
+          } else if (elapsed >= duration) {
+            // If we hit the time limit, cap at 99.5% until completion
+            setProgressPercent(99.5);
+          }
+        };
+        
+        // Start the animation
+        progressTimerRef.current = requestAnimationFrame(updateProgress);
+      }
+    } else if (state.status === "result") {
+      // Complete the progress bar when we get a result
+      setProgressPercent(100);
+      
+      // Clean up the animation
+      if (progressTimerRef.current !== null) {
+        cancelAnimationFrame(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+    } else if (state.status === "question") {
+      // Pause the animation but keep the current progress
+      if (progressTimerRef.current !== null) {
+        cancelAnimationFrame(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+    } else if (state.status === "idle") {
+      // Reset progress and clean up animation
+      setProgressPercent(0);
+      elapsedTimeRef.current = 0;
+      
+      if (progressTimerRef.current !== null) {
+        cancelAnimationFrame(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+    }
+    
+    // Clean up animation on unmount
+    return () => {
+      if (progressTimerRef.current !== null) {
+        cancelAnimationFrame(progressTimerRef.current);
+      }
+    };
+  }, [state.status]);
 
   // Handle product submission
   const handleClassify = async (description: string) => {
@@ -89,24 +157,9 @@ const Index = () => {
     // Track the classification start event
     trackClassificationStart(description);
     
-    // Reset and start the progress bar
+    // Reset progress tracking
     setProgressPercent(0);
-    
-    // Start progress bar animation - will take 10 seconds to complete
-    const startTime = Date.now();
-    const duration = 10000; // 10 seconds
-    
-    const updateProgress = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min((elapsed / duration) * 100, 99.5); // Cap at 99.5% until complete
-      setProgressPercent(progress);
-      
-      if (elapsed < duration && state.status === "loading") {
-        requestAnimationFrame(updateProgress);
-      }
-    };
-    
-    requestAnimationFrame(updateProgress);
+    elapsedTimeRef.current = 0;
     
     // If allowed, proceed with classification
     classify(description);
