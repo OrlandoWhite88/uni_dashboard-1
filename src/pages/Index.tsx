@@ -1,6 +1,6 @@
 // src/pages/Index.tsx
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Layout from "@/components/Layout";
 import { useClassifier } from "@/lib/classifierService";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
@@ -79,70 +79,114 @@ const Index = () => {
   // Get usage limits hook
   const { checkCanMakeRequest, reloadUsageData } = useUsageLimits();
 
-  // Progress management system
-  useEffect(() => {
-    // Start progress when loading begins, pause on question, complete on result
-    if (state.status === "loading") {
-      // Only start a new timer if one isn't already running
-      if (progressTimerRef.current === null) {
-        // Start or resume progress tracking
-        startTimeRef.current = Date.now() - elapsedTimeRef.current;
-        const duration = 10000; // 10 seconds total
-        
-        const updateProgress = () => {
-          const currentTime = Date.now();
-          const elapsed = currentTime - startTimeRef.current;
-          elapsedTimeRef.current = elapsed;
-          
-          // Calculate progress as a percentage (0-100)
-          const progress = Math.min((elapsed / duration) * 100, 99.5);
-          setProgressPercent(progress);
-          
-          // Continue animation if still in loading state and not complete
-          if (state.status === "loading" && elapsed < duration) {
-            progressTimerRef.current = requestAnimationFrame(updateProgress);
-          } else if (elapsed >= duration) {
-            // If we hit the time limit, cap at 99.5% until completion
-            setProgressPercent(99.5);
-          }
-        };
-        
-        // Start the animation
-        progressTimerRef.current = requestAnimationFrame(updateProgress);
-      }
-    } else if (state.status === "result") {
-      // Complete the progress bar when we get a result
-      setProgressPercent(100);
+  // Reference to track classification state
+  const classificationActiveRef = useRef<boolean>(false);
+  const timerIdRef = useRef<NodeJS.Timeout | null>(null);
+  const elapsedMsRef = useRef<number>(0);
+  const lastTickTimeRef = useRef<number>(0);
+
+  // Progress bar controller that pauses on questions
+  const startProgressBar = useCallback(() => {
+    // Clear any existing timer
+    if (timerIdRef.current) {
+      clearInterval(timerIdRef.current);
+      timerIdRef.current = null;
+    }
+    
+    // Reset progress
+    setProgressPercent(0);
+    elapsedMsRef.current = 0;
+    
+    // Mark classification as active
+    classificationActiveRef.current = true;
+    lastTickTimeRef.current = Date.now();
+    
+    // Start the progress timer
+    updateProgressTimer();
+  }, []);
+  
+  // Function to update/create the timer
+  const updateProgressTimer = useCallback(() => {
+    // Clear any existing timer
+    if (timerIdRef.current) {
+      clearInterval(timerIdRef.current);
+      timerIdRef.current = null;
+    }
+    
+    // Only run the timer if we're in the loading state
+    if (state.status !== "loading") {
+      return;
+    }
+    
+    const totalDuration = 10000; // 10 seconds in ms
+    const updateInterval = 50; // update every 50ms for smoother animation
+    
+    // Start interval to update progress bar
+    timerIdRef.current = setInterval(() => {
+      const now = Date.now();
+      const tickDelta = now - lastTickTimeRef.current;
+      lastTickTimeRef.current = now;
       
-      // Clean up the animation
-      if (progressTimerRef.current !== null) {
-        cancelAnimationFrame(progressTimerRef.current);
-        progressTimerRef.current = null;
+      // Add the time since last tick
+      elapsedMsRef.current += tickDelta;
+      
+      // Calculate progress as percentage
+      const progress = Math.min((elapsedMsRef.current / totalDuration) * 100, 99.5);
+      setProgressPercent(progress);
+      
+      // If we're at the end of our time, cap at 99.5% until complete
+      if (elapsedMsRef.current >= totalDuration) {
+        // Stop timer but maintain 99.5% progress until result
+        if (timerIdRef.current) {
+          clearInterval(timerIdRef.current);
+          timerIdRef.current = null;
+        }
       }
-    } else if (state.status === "question") {
-      // Pause the animation but keep the current progress
-      if (progressTimerRef.current !== null) {
-        cancelAnimationFrame(progressTimerRef.current);
-        progressTimerRef.current = null;
+    }, updateInterval);
+  }, [state.status]);
+  
+  // Handle progress bar based on state changes
+  useEffect(() => {
+    if (state.status === "loading" && classificationActiveRef.current) {
+      // Update the last tick time to now when we enter loading state
+      lastTickTimeRef.current = Date.now();
+      // Resume the timer
+      updateProgressTimer();
+    } else if (state.status === "question" && classificationActiveRef.current) {
+      // Pause the timer but keep progress
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+      }
+    } else if (state.status === "result" && classificationActiveRef.current) {
+      // Classification is complete, set progress to 100%
+      setProgressPercent(100);
+      classificationActiveRef.current = false;
+      
+      // Clean up any running timer
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
       }
     } else if (state.status === "idle") {
-      // Reset progress and clean up animation
+      // Reset everything when returning to idle
       setProgressPercent(0);
-      elapsedTimeRef.current = 0;
+      elapsedMsRef.current = 0;
+      classificationActiveRef.current = false;
       
-      if (progressTimerRef.current !== null) {
-        cancelAnimationFrame(progressTimerRef.current);
-        progressTimerRef.current = null;
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
       }
     }
     
-    // Clean up animation on unmount
+    // Clean up on unmount
     return () => {
-      if (progressTimerRef.current !== null) {
-        cancelAnimationFrame(progressTimerRef.current);
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
       }
     };
-  }, [state.status]);
+  }, [state.status, updateProgressTimer]);
 
   // Handle product submission
   const handleClassify = async (description: string) => {
@@ -157,9 +201,8 @@ const Index = () => {
     // Track the classification start event
     trackClassificationStart(description);
     
-    // Reset progress tracking
-    setProgressPercent(0);
-    elapsedTimeRef.current = 0;
+    // Start the independent progress bar (runs for exactly 10 seconds)
+    startProgressBar();
     
     // If allowed, proceed with classification
     classify(description);
@@ -299,6 +342,15 @@ const Index = () => {
                   ? "array"
                   : typeof state.options,
               })}
+              
+              {/* Progress bar container - shown during questions too */}
+              <div className="w-full h-2 bg-secondary/30 rounded-full overflow-hidden mb-4">
+                {/* Progress bar */}
+                <div 
+                  className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-in-out"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
 
               <QuestionFlow
                 question={{
