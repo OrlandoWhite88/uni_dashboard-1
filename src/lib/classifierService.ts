@@ -348,7 +348,7 @@ export type ClassificationStage =
 
 export type ClassifierState =
   | { status: "idle" }
-  | { status: "loading"; stage?: ClassificationStage; path?: string }
+  | { status: "loading"; stage?: ClassificationStage; path?: string; state?: any }
   | {
       status: "question";
       question: string;
@@ -589,14 +589,19 @@ export function useClassifier() {
 
       try {
         addDebug(`Continuing with answer: ${answer}`);
-
+        
+        // Keep a reference to the API state object
+        const apiState = state.state;
+        addDebug(`Using API state object for continuation: ${typeof apiState}`);
+        
         // We start with the heading classification stage
         const currentStage = { type: "classifying_heading" as const };
         
-        // Set loading state with appropriate stage
+        // Set loading state with appropriate stage and preserve API state
         setState({ 
           status: "loading", 
-          stage: currentStage
+          stage: currentStage,
+          state: apiState // Keep the state while loading
         });
         
         // Call the API to continue classification

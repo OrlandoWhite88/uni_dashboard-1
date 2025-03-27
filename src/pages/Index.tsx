@@ -234,6 +234,58 @@ const Index = () => {
   React.useEffect(() => {
     console.log("[Index] Current classifier state:", state);
   }, [state]);
+  
+  // Function to get display text for the current classification stage
+  const getStageDisplayText = (state: any) => {
+    // Check if we have the API state object available (in question state or passed to loading)
+    if (state.state && typeof state.state === 'object') {
+      // Use the state information from the API
+      if (state.state.pending_stage) {
+        // Convert pending_stage (like "material_identification") to a readable format
+        const stageName = state.state.pending_stage
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase());
+        
+        return `${stageName}...`;
+      }
+      
+      // If we have a current node, display its info
+      if (state.state.current_node && state.state.current_node.code) {
+        return `Classifying in ${state.state.current_node.code}${state.state.current_node.description ? `: ${state.state.current_node.description}` : ''}`;
+      }
+      
+      // Check for selection info
+      if (state.state.selection) {
+        if (state.state.selection.chapter) {
+          return `Working with Chapter ${state.state.selection.chapter}`;
+        }
+      }
+    }
+    
+    // Fallback to the traditional local stage information
+    if (!state.stage) return "Processing your request...";
+    
+    switch (state.stage.type) {
+      case "starting":
+        return "Initializing classification...";
+      case "analyzing":
+        return "Analyzing product description...";
+      case "identifying_chapter":
+        return `Identifying HS chapter${state.stage.chapter ? `: Chapter ${state.stage.chapter}` : '...'}`;
+      case "classifying_heading":
+        return `Classifying heading${state.stage.heading ? `: Heading ${state.stage.heading}` : '...'}`;
+      case "determining_subheading":
+        return `Determining subheading${state.stage.subheading ? `: Subheading ${state.stage.subheading}` : '...'}`;
+      case "classifying_group":
+        return `Classifying group${state.stage.group ? `: ${state.stage.group}` : '...'}`;
+      case "classifying_title":
+        return `Classifying title${state.stage.title ? `: ${state.stage.title}` : '...'}`;
+      case "finalizing":
+        return `Finalizing classification${state.stage.code ? ` to ${state.stage.code}` : '...'}`;
+      default:
+        return "Processing your classification...";
+    }
+  };
 
   // Force the error boundary to catch any errors during render
   React.useEffect(() => {
@@ -295,21 +347,7 @@ const Index = () => {
             <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
               <p className="text-base font-medium mb-1">
-                {!state.stage && "Processing your request..."}
-                {state.stage?.type === "starting" && "Initializing classification..."}
-                {state.stage?.type === "analyzing" && "Analyzing product description..."}
-                {state.stage?.type === "identifying_chapter" && 
-                  `Identifying HS chapter${state.stage.chapter ? `: Chapter ${state.stage.chapter}` : '...'}`}
-                {state.stage?.type === "classifying_heading" && 
-                  `Classifying heading${state.stage.heading ? `: Heading ${state.stage.heading}` : '...'}`}
-                {state.stage?.type === "determining_subheading" && 
-                  `Determining subheading${state.stage.subheading ? `: Subheading ${state.stage.subheading}` : '...'}`}
-                {state.stage?.type === "classifying_group" && 
-                  `Classifying group${state.stage.group ? `: ${state.stage.group}` : '...'}`}
-                {state.stage?.type === "classifying_title" && 
-                  `Classifying title${state.stage.title ? `: ${state.stage.title}` : '...'}`}
-                {state.stage?.type === "finalizing" && 
-                  `Finalizing classification${state.stage.code ? ` to ${state.stage.code}` : '...'}`}
+                {getStageDisplayText(state)}
               </p>
               
               {/* Progress bar container */}
@@ -343,6 +381,13 @@ const Index = () => {
                   : typeof state.options,
                 state: state.state, // This contains the entire state object from the API
               })}
+              
+              {/* Stage display - show where we are in the classification process */}
+              <div className="mb-3 text-sm text-center">
+                <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
+                  {getStageDisplayText(state)}
+                </span>
+              </div>
               
               {/* Progress bar container - shown during questions too */}
               <div className="w-full h-2 bg-secondary/30 rounded-full overflow-hidden mb-4">
