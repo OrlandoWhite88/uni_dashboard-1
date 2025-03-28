@@ -242,9 +242,15 @@ export async function continueClassification(
 export async function getTariffInfo(hsCode: string): Promise<any> {
   logDebug(`Fetching tariff info for: ${hsCode}`);
 
+  // Format the HS code by removing periods and other non-alphanumeric characters
+  // The API expects codes without periods (e.g., "03028511" instead of "0302.85.11.00")
+  const formattedHsCode = hsCode.replace(/[^a-zA-Z0-9]/g, '');
+
+  logDebug(`Formatted HS code for API request: ${formattedHsCode}`);
+
   try {
-    // Use the new tariff_details endpoint
-    const response = await fetch(`${API_BASE_URL}/tariff_details/${hsCode}`, {
+    // Use the new tariff_details endpoint with the formatted HS code
+    const response = await fetch(`${API_BASE_URL}/tariff_details/${formattedHsCode}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -253,10 +259,21 @@ export async function getTariffInfo(hsCode: string): Promise<any> {
     });
 
     if (!response.ok) {
-      throw new Error(`${response.status} - ${response.statusText}`);
+      // Handle 404 errors specifically
+      if (response.status === 404) {
+        throw new Error(`HS code ${formattedHsCode} not found. Please check the code and try again.`);
+      } else {
+        throw new Error(`${response.status} - ${response.statusText}`);
+      }
     }
 
     const data = await response.json();
+
+    // Check if the data is valid
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+      throw new Error(`No data returned for HS code ${formattedHsCode}`);
+    }
+
     logDebug(`Tariff info retrieved successfully:`, data);
     return data;
   } catch (error) {

@@ -208,19 +208,35 @@ interface TariffData {
 
 // Helper function to format rate values
 const formatRateValue = (value: number | string | undefined): string => {
-  if (value === undefined || value === null) return "None";
+  // Handle undefined, null, or NaN values
+  if (value === undefined || value === null ||
+      (typeof value === 'number' && isNaN(value))) {
+    return "None";
+  }
+
   if (typeof value === "number") {
     // Format as percentage if it's a decimal less than 1
     if (value < 1 && value > 0) return `${(value * 100).toFixed(1)}%`;
     // Format as dollar amount if it's a specific rate
     return `$${value.toFixed(2)}`;
   }
+
+  // Handle string "nan" or "NaN" values that might come from the API
+  if (typeof value === "string" &&
+      (value.toLowerCase() === "nan" || value.toLowerCase() === "null")) {
+    return "None";
+  }
+
   return value.toString();
 };
 
 // Helper function to determine if a country/program is eligible based on indicator
 const isEligible = (indicator?: string): boolean => {
-  return !!indicator && indicator.trim() !== "";
+  // Check if indicator exists, is not empty, and is not "nan" or "NaN"
+  return !!indicator &&
+         indicator.trim() !== "" &&
+         indicator.toLowerCase() !== "nan" &&
+         indicator.toLowerCase() !== "null";
 };
 
 // Helper function to get eligibility status text
@@ -230,20 +246,42 @@ const getEligibilityStatus = (indicator?: string): string => {
 };
 
 // Helper function to format date strings
-const formatDate = (dateStr?: string): string => {
+const formatDate = (dateStr?: string | any): string => {
   if (!dateStr) return "";
 
-  // Check if the date is in ISO format (YYYY-MM-DD)
-  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
+  // Handle "nan" or "NaN" strings
+  if (typeof dateStr === "string" &&
+      (dateStr.toLowerCase() === "nan" || dateStr.toLowerCase() === "null")) {
+    return "";
   }
 
-  return dateStr;
+  // Handle Timestamp objects from pandas (which might come as strings like "Timestamp('2020-07-01 00:00:00')")
+  if (typeof dateStr === "string" && dateStr.includes("Timestamp(")) {
+    // Extract the date part from the Timestamp string
+    const match = dateStr.match(/Timestamp\('(\d{4}-\d{2}-\d{2})/);
+    if (match && match[1]) {
+      dateStr = match[1];
+    }
+  }
+
+  try {
+    // Try to create a Date object from the string
+    const date = new Date(dateStr);
+
+    // Check if the date is valid
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    }
+  } catch (e) {
+    console.error("Error formatting date:", e);
+  }
+
+  // If all else fails, return the original string
+  return typeof dateStr === "string" ? dateStr : "";
 };
 
 const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode }) => {
@@ -613,8 +651,29 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode }) => {
       try {
         setLoading(true);
         setError(null);
+
+        // Validate HS code format before making the API call
+        if (!hsCode || hsCode.trim() === "") {
+          setError("Please provide a valid HS code");
+          return;
+        }
+
         const data = await getTariffInfo(hsCode);
         console.log("Received tariff data:", data);
+
+        // Check if the data is valid
+        if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+          setError(`No tariff information found for HS code: ${hsCode}`);
+          return;
+        }
+
+        // Check if the required fields are present
+        if (!data.hts8) {
+          setError(`Invalid tariff data received for HS code: ${hsCode}`);
+          console.error("Invalid tariff data:", data);
+          return;
+        }
+
         setTariffData(data);
       } catch (err) {
         setError(`Error fetching tariff information: ${err.message}`);
@@ -650,7 +709,15 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode }) => {
   };
 
   // Function to extract HS codes from footnote text
-  const extractHsCode = (text: string): string | null => {
+  const extractHsCode = (text: string | null | undefined): string | null => {
+    // Handle null or undefined text
+    if (!text) return null;
+
+    // Handle "nan" or "NaN" strings
+    if (text.toLowerCase() === "nan" || text.toLowerCase() === "null") {
+      return null;
+    }
+
     // Look for patterns like "See 9903.88.03." in the text
     const match = text.match(/See (\d{4}\.\d{2}\.\d{2})/i);
 
@@ -672,7 +739,16 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode }) => {
   };
 
   // Function to fetch footnote reference information
-  const fetchFootnoteReference = async (footnoteText: string) => {
+  const fetchFootnoteReference = async (footnoteText: string | null | undefined) => {
+    // Handle null or undefined text
+    if (!footnoteText) return;
+
+    // Handle "nan" or "NaN" strings
+    if (typeof footnoteText === "string" &&
+        (footnoteText.toLowerCase() === "nan" || footnoteText.toLowerCase() === "null")) {
+      return;
+    }
+
     const hsCode = extractHsCode(footnoteText);
 
     if (!hsCode) return;
