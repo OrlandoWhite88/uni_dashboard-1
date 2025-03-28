@@ -235,23 +235,27 @@ export async function continueClassification(
 
 /**
  * Fetch tariff information for a given HS code
+ *
+ * Uses the new tariff_details endpoint which returns a more comprehensive
+ * set of tariff data from the tariff.xlsx file
  */
 export async function getTariffInfo(hsCode: string): Promise<any> {
   logDebug(`Fetching tariff info for: ${hsCode}`);
-  
+
   try {
-    const response = await fetch(`${API_BASE_URL}/tariff_info/${hsCode}`, {
+    // Use the new tariff_details endpoint
+    const response = await fetch(`${API_BASE_URL}/tariff_details/${hsCode}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
       mode: "cors",
     });
-    
+
     if (!response.ok) {
       throw new Error(`${response.status} - ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     logDebug(`Tariff info retrieved successfully:`, data);
     return data;
