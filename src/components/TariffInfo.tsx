@@ -460,7 +460,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
     const eligiblePrograms = allTradePrograms.filter(program => program.eligible);
 
     return [
-      // Customs Value Section
+      // 0: Customs Value Section
       {
         id: "customs-value",
         title: "Customs value of recent U.S. imports for consumption",
@@ -472,14 +472,14 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         ]
       },
 
-      // Tariff Treatment Section
+      // 1: Tariff Treatment Section
       {
         id: "tariff-treatment",
         title: "Tariff Treatment",
         fields: []
       },
 
-      // Effective Dates Section
+      // 2: Effective Dates Section
       {
         id: "effective-dates",
         title: "Effective Dates",
@@ -497,7 +497,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         ]
       },
 
-      // Units of Quantity Section
+      // 3: Units of Quantity Section
       {
         id: "units-quantity",
         title: "Units of Quantity",
@@ -513,7 +513,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         ]
       },
 
-      // MFN Rates Section
+      // 4: MFN Rates Section
       {
         id: "mfn-rates",
         title: "2024 Normal Trade Relations (NTR) duty rate",
@@ -542,7 +542,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         ]
       },
 
-      // Column 2 Rates Section
+      // 5: Column 2 Rates Section
       {
         id: "col2-rates",
         title: "\"Column 2\" (non-NTR) duty rate",
@@ -571,7 +571,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         ]
       },
 
-      // Special Programs Section - Compact View
+      // 6: Special Programs Section - All Programs
       {
         id: "special-programs",
         title: "Preferential (duty-free or reduced rate) tariff program applicability to this HTS item",
@@ -586,7 +586,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         }))
       },
 
-      // Basic Information Section
+      // 7: Basic Information Section
       {
         id: "basic-info",
         title: "Basic Information",
@@ -602,7 +602,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         ]
       },
 
-      // Additional Information Section
+      // 8: Additional Information Section
       {
         id: "additional-info",
         title: "Additional Information",
@@ -614,7 +614,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         ] : []
       },
 
-      // External Resources Section
+      // 9: External Resources Section
       {
         id: "external-resources",
         title: "External Resources",
@@ -901,13 +901,13 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* Basic Information */}
-        {tariffSections[8]?.fields.length > 0 && (
+        {tariffSections[7] && tariffSections[7].fields && tariffSections[7].fields.length > 0 && (
           <div className="space-y-3">
             <div>
-              <h4 className="text-base font-medium border-b pb-2">{tariffSections[8]?.title}</h4>
+              <h4 className="text-base font-medium border-b pb-2">{tariffSections[7]?.title}</h4>
             </div>
             <div className="grid grid-cols-1 gap-3">
-              {tariffSections[8]?.fields.map((field, index) => (
+              {tariffSections[7]?.fields.map((field, index) => (
                 <div key={index} className="space-y-1">
                   <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
                   <div className="text-sm p-3 rounded-md bg-muted/30">
@@ -920,7 +920,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* Customs Value */}
-        {tariffSections[0]?.fields.length > 0 && (
+        {tariffSections[0] && tariffSections[0].fields && tariffSections[0].fields.length > 0 && (
           <div className="space-y-3">
             <div>
               <h4 className="text-base font-medium border-b pb-2">{tariffSections[0]?.title}</h4>
@@ -939,7 +939,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* Tariff Treatment */}
-        {tariffSections[1]?.title && (
+        {tariffSections[1] && tariffSections[1].title && (
           <div className="space-y-3">
             <div>
               <h4 className="text-base font-medium border-b pb-2">{tariffSections[1]?.title}</h4>
@@ -948,25 +948,27 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* Effective Dates */}
-        <div className="space-y-3">
-          <h4 className="text-base font-medium border-b pb-2">{tariffSections[2]?.title}</h4>
-          <div className="grid grid-cols-1 gap-3">
-            {tariffSections[2]?.fields.map((field, index) => (
-              <div key={index} className="space-y-1">
-                <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                {field.subtitle && (
-                  <p className="text-xs text-muted-foreground mb-1">{field.subtitle}</p>
-                )}
-                <div className="text-sm bg-muted/30 p-3 rounded-md">
-                  {field.value}
+        {tariffSections[2] && tariffSections[2].fields && (
+          <div className="space-y-3">
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[2]?.title}</h4>
+            <div className="grid grid-cols-1 gap-3">
+              {tariffSections[2]?.fields.map((field, index) => (
+                <div key={index} className="space-y-1">
+                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                  {field.subtitle && (
+                    <p className="text-xs text-muted-foreground mb-1">{field.subtitle}</p>
+                  )}
+                  <div className="text-sm bg-muted/30 p-3 rounded-md">
+                    {field.value}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Units of Quantity */}
-        {tariffSections[3]?.fields.length > 0 && (
+        {tariffSections[3] && tariffSections[3].fields && tariffSections[3].fields.length > 0 && (
           <div className="space-y-3">
             <div>
               <h4 className="text-base font-medium border-b pb-2">{tariffSections[3]?.title}</h4>
@@ -985,82 +987,86 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* MFN Rates */}
-        <div className="space-y-3">
-          <div>
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[4]?.title}</h4>
-            {tariffSections[4]?.subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">{tariffSections[4].subtitle}</p>
-            )}
-          </div>
-          <div className="grid grid-cols-1 gap-3">
-            {tariffSections[4]?.fields.map((field, index) => (
-              <div key={index} className="space-y-1">
-                <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                <div className={cn(
-                  "text-sm p-3 rounded-md break-words",
-                  field.value !== "None" && field.label === "MFN Text Rate"
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "bg-muted/30"
-                )}>
-                  {field.value}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Special Rate Text */}
-          {tariffData.col1_special_text && (
-            <div className="mt-3 border border-blue-200 bg-blue-50 rounded-lg p-3">
-              <h5 className="text-sm font-medium text-blue-700 mb-2">Special Rate Information</h5>
-              <p className="text-sm text-blue-800">{tariffData.col1_special_text}</p>
-
-              {/* Extract country codes from special text for reference */}
-              {tariffData.col1_special_text.includes("(") && (
-                <div className="mt-3 text-xs text-blue-600">
-                  <p className="font-medium mb-1">Country/Program Codes:</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {Array.from(tariffData.col1_special_text.matchAll(/\(([A-Z\*,]+)\)/g)).map((match, idx) => {
-                      const codes = match[1].split(',');
-                      return codes.map((code, codeIdx) => (
-                        <div key={`${idx}-${codeIdx}`} className="bg-white/50 px-2 py-1 rounded border border-blue-100">
-                          {code}
-                        </div>
-                      ));
-                    })}
-                  </div>
-                </div>
+        {tariffSections[4] && tariffSections[4].fields && (
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-base font-medium border-b pb-2">{tariffSections[4]?.title}</h4>
+              {tariffSections[4]?.subtitle && (
+                <p className="text-sm text-muted-foreground mt-1">{tariffSections[4].subtitle}</p>
               )}
             </div>
-          )}
-        </div>
+            <div className="grid grid-cols-1 gap-3">
+              {tariffSections[4]?.fields.map((field, index) => (
+                <div key={index} className="space-y-1">
+                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                  <div className={cn(
+                    "text-sm p-3 rounded-md break-words",
+                    field.value !== "None" && field.label === "MFN Text Rate"
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "bg-muted/30"
+                  )}>
+                    {field.value}
+                  </div>
+                </div>
+              ))}
+            </div>
 
-        {/* Column 2 Rates */}
-        <div className="space-y-3">
-          <div>
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[5]?.title}</h4>
-            {tariffSections[5]?.subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">{tariffSections[5].subtitle}</p>
+            {/* Special Rate Text */}
+            {tariffData && tariffData.col1_special_text && (
+              <div className="mt-3 border border-blue-200 bg-blue-50 rounded-lg p-3">
+                <h5 className="text-sm font-medium text-blue-700 mb-2">Special Rate Information</h5>
+                <p className="text-sm text-blue-800">{tariffData.col1_special_text}</p>
+
+                {/* Extract country codes from special text for reference */}
+                {tariffData.col1_special_text.includes("(") && (
+                  <div className="mt-3 text-xs text-blue-600">
+                    <p className="font-medium mb-1">Country/Program Codes:</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {Array.from(tariffData.col1_special_text.matchAll(/\(([A-Z\*,]+)\)/g)).map((match, idx) => {
+                        const codes = match[1].split(',');
+                        return codes.map((code, codeIdx) => (
+                          <div key={`${idx}-${codeIdx}`} className="bg-white/50 px-2 py-1 rounded border border-blue-100">
+                            {code}
+                          </div>
+                        ));
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-3">
-            {tariffSections[5]?.fields.map((field, index) => (
-              <div key={index} className="space-y-1">
-                <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                <div className={cn(
-                  "text-sm p-3 rounded-md break-words",
-                  field.value !== "None" && field.label === "COL2 Text Rate"
-                    ? "bg-destructive/10 text-destructive font-medium"
-                    : "bg-muted/30"
-                )}>
-                  {field.value}
+        )}
+
+        {/* Column 2 Rates */}
+        {tariffSections[5] && tariffSections[5].fields && (
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-base font-medium border-b pb-2">{tariffSections[5]?.title}</h4>
+              {tariffSections[5]?.subtitle && (
+                <p className="text-sm text-muted-foreground mt-1">{tariffSections[5].subtitle}</p>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {tariffSections[5]?.fields.map((field, index) => (
+                <div key={index} className="space-y-1">
+                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                  <div className={cn(
+                    "text-sm p-3 rounded-md break-words",
+                    field.value !== "None" && field.label === "COL2 Text Rate"
+                      ? "bg-destructive/10 text-destructive font-medium"
+                      : "bg-muted/30"
+                  )}>
+                    {field.value}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Special Programs */}
-        {tariffSections[6]?.fields.length > 0 && (
+        {tariffSections[6] && tariffSections[6].fields && tariffSections[6].fields.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-base font-medium border-b pb-2">{tariffSections[6]?.title}</h4>
             {tariffSections[6]?.subtitle && (
@@ -1109,11 +1115,11 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* Additional Information */}
-        {tariffSections[9]?.fields.length > 0 && (
+        {tariffSections[8] && tariffSections[8].fields && tariffSections[8].fields.length > 0 && (
           <div className="space-y-3">
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[9]?.title}</h4>
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[8]?.title}</h4>
             <div className="grid grid-cols-1 gap-3">
-              {tariffSections[9]?.fields.map((field, index) => (
+              {tariffSections[8]?.fields.map((field, index) => (
                 <div key={index} className="space-y-1">
                   <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
                   <p className="text-sm bg-muted/30 p-3 rounded-md">{field.value}</p>
@@ -1124,7 +1130,9 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* If there's a footnote_comment but it wasn't included in additionalInfo */}
-        {tariffData.footnote_comment && !tariffSections[9]?.fields.some(f => f.label === "Footnote") && (
+        {tariffData && tariffData.footnote_comment &&
+         (!tariffSections[8] || !tariffSections[8].fields ||
+          !tariffSections[8].fields.some(f => f.label === "Footnote")) && (
           <div className="space-y-3">
             <h4 className="text-base font-medium border-b pb-2">Footnotes</h4>
             <div className="grid grid-cols-1 gap-3">
@@ -1136,13 +1144,15 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* External Resources */}
-        <div className="space-y-3">
-          <h4 className="text-base font-medium border-b pb-2">{tariffSections[10]?.title}</h4>
-          {tariffSections[10]?.content}
-        </div>
+        {tariffSections[9] && tariffSections[9].title && (
+          <div className="space-y-3">
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[9]?.title}</h4>
+            {tariffSections[9]?.content}
+          </div>
+        )}
 
         {/* Footnote References */}
-        {Object.keys(footnoteReferences).length > 0 && (
+        {footnoteReferences && Object.keys(footnoteReferences).length > 0 && (
           <div className="space-y-3">
             <h4 className="text-base font-medium border-b pb-2">Referenced HS Codes</h4>
             <div className="space-y-4">
@@ -1150,18 +1160,18 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
                 <div key={code} className="border border-border rounded-lg overflow-hidden">
                   <div className="bg-muted/30 px-3 py-2 border-b border-border flex justify-between items-center">
                     <h5 className="font-medium text-sm">{code}</h5>
-                    {reference.loading && (
+                    {reference && reference.loading && (
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     )}
                   </div>
                   <div className="p-3">
-                    {reference.loading ? (
+                    {reference && reference.loading ? (
                       <div className="text-xs text-muted-foreground">Loading reference...</div>
-                    ) : reference.error ? (
+                    ) : reference && reference.error ? (
                       <div className="text-xs text-destructive">
                         {reference.error}
                       </div>
-                    ) : (
+                    ) : reference && reference.data ? (
                       <div className="space-y-2 text-sm">
                         <div>
                           <span className="font-medium">Description:</span>{" "}
@@ -1186,6 +1196,8 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
                           </div>
                         )}
                       </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">No reference data available</div>
                     )}
                   </div>
                 </div>
