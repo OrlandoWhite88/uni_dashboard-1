@@ -162,38 +162,87 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
 
     // Create an array of all trade programs with their eligibility status
     const allTradePrograms = [
-      // USMCA (NAFTA replacement)
+      // GSP (Generalized System of Preferences)
       {
-        label: "USMCA (US-Mexico-Canada)",
-        status: isEligible(data.usmca_indicator)
-          ? `Eligible: code "${data.usmca_indicator}"`
+        label: "GSP (Generalized System of Preferences)",
+        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "A*"
+          ? `Eligible: code "A*" (Certain Countries Excluded)`
           : "Not Eligible",
-        adValRate: data.usmca_ad_val_rate,
+        adValRate: 0,
         specificRate: 0,
         otherRate: 0,
-        eligible: isEligible(data.usmca_indicator)
+        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "A*"
       },
-      // Korea
+      // Civil Aircraft Agreement
       {
-        label: "Korea FTA Preference",
-        status: isEligible(data.korea_indicator)
-          ? `Eligible: code "${data.korea_indicator}"`
-          : "Not Eligible",
-        adValRate: data.korea_ad_val_rate,
+        label: "Civil Aircraft Agreement Preference",
+        status: "Not Eligible",
+        adValRate: 0,
         specificRate: 0,
         otherRate: 0,
-        eligible: isEligible(data.korea_indicator)
+        eligible: false
       },
-      // Australia
+      // Tariff concession on Dyes
       {
-        label: "Australia FTA Preference",
-        status: isEligible(data.australia_indicator)
-          ? `Eligible: code "${data.australia_indicator}"`
-          : "Not Eligible",
-        adValRate: data.australia_ad_val_rate,
+        label: "Tariff concession on Dyes",
+        status: "Not Eligible",
+        adValRate: 0,
         specificRate: 0,
         otherRate: 0,
-        eligible: isEligible(data.australia_indicator)
+        eligible: false
+      },
+      // CBI or CBERA (Caribbean Basin Initiative)
+      {
+        label: "CBI or CBERA (Caribbean Basin Initiative) Preference",
+        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "E"
+          ? `Eligible: code "E"`
+          : "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "E"
+      },
+      // AGOA (African Growth and Opportunity Act)
+      {
+        label: "AGOA (African Growth and Opportunity Act)",
+        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "D"
+          ? `Eligible: code "D"`
+          : "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "D"
+      },
+      // CBTPA (Caribbean Basin Trade Partnership Act)
+      {
+        label: "CBTPA (Caribbean Basin Trade Partnership Act)",
+        status: "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: false
+      },
+      // Morocco
+      {
+        label: "Morocco FTA Preference",
+        status: isEligible(data.morocco_indicator)
+          ? `Eligible: code "${data.morocco_indicator}"`
+          : "Not Eligible",
+        adValRate: data.morocco_ad_val_rate,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.morocco_indicator)
+      },
+      // Jordan
+      {
+        label: "Jordan FTA Preference",
+        status: isEligible(data.jordan_indicator)
+          ? `Eligible: code "${data.jordan_indicator}"`
+          : "Not Eligible",
+        adValRate: data.jordan_ad_val_rate,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.jordan_indicator)
       },
       // Singapore
       {
@@ -217,27 +266,16 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         otherRate: 0,
         eligible: isEligible(data.chile_indicator)
       },
-      // Israel
+      // Australia
       {
-        label: "Israel FTA Preference",
-        status: isEligible(data.israel_fta_indicator)
-          ? `Eligible: code "${data.israel_fta_indicator}"`
+        label: "Australia FTA Preference",
+        status: isEligible(data.australia_indicator)
+          ? `Eligible: code "${data.australia_indicator}"`
           : "Not Eligible",
-        adValRate: data.israel_fta_ad_val_rate,
+        adValRate: data.australia_ad_val_rate,
         specificRate: 0,
         otherRate: 0,
-        eligible: isEligible(data.israel_fta_indicator)
-      },
-      // Jordan
-      {
-        label: "Jordan FTA Preference",
-        status: isEligible(data.jordan_indicator)
-          ? `Eligible: code "${data.jordan_indicator}"`
-          : "Not Eligible",
-        adValRate: data.jordan_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.jordan_indicator)
+        eligible: isEligible(data.australia_indicator)
       },
       // Bahrain
       {
@@ -249,6 +287,26 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         specificRate: 0,
         otherRate: 0,
         eligible: isEligible(data.bahrain_indicator)
+      },
+      // DR-CAFTA
+      {
+        label: "CAFTA FTA Preference",
+        status: isEligible(data.dr_cafta_indicator)
+          ? `Eligible: code "${data.dr_cafta_indicator}"`
+          : "Not Eligible",
+        adValRate: data.dr_cafta_ad_val_rate,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.dr_cafta_indicator)
+      },
+      // CAFTA PLUS
+      {
+        label: "CAFTA PLUS FTA Preference",
+        status: "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: false
       },
       // Oman
       {
@@ -272,6 +330,99 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         otherRate: 0,
         eligible: isEligible(data.peru_indicator)
       },
+      // Korea
+      {
+        label: "Korea FTA Preference",
+        status: isEligible(data.korea_indicator)
+          ? `Eligible: code "${data.korea_indicator}"`
+          : "Not Eligible",
+        adValRate: data.korea_ad_val_rate,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.korea_indicator)
+      },
+      // Japan
+      {
+        label: "Japan FTA Preference",
+        status: "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: false
+      },
+      // USMCA (NAFTA replacement)
+      {
+        label: "USMCA FTA Preference",
+        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "S"
+          ? `Eligible: code "${data.usmca_indicator}"`
+          : "Not Eligible",
+        adValRate: data.usmca_ad_val_rate,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "S"
+      },
+      // Israel
+      {
+        label: "Israel FTA Preference",
+        status: isEligible(data.israel_fta_indicator)
+          ? `Eligible: code "${data.israel_fta_indicator}"`
+          : "Not Eligible",
+        adValRate: data.israel_fta_ad_val_rate,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.israel_fta_indicator)
+      },
+      // APTA (Auto Product Agreement)
+      {
+        label: "APTA (Auto Product Agreement) Preference",
+        status: "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: false
+      },
+      // ATPA (Andean Agreement)
+      {
+        label: "ATPA (Andean Agreement) Preference",
+        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "A*"
+          ? `Eligible: code "A*"`
+          : "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "A*"
+      },
+      // Pharmaceutical Agreement
+      {
+        label: "Pharmaceutical Agreement Preference",
+        status: "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: false
+      },
+      // NAFTA Canada
+      {
+        label: "NAFTA Canada Preference",
+        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "CA"
+          ? `Eligible: code "CA"`
+          : "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "CA"
+      },
+      // NAFTA Mexico
+      {
+        label: "NAFTA Mexico Preference",
+        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "MX"
+          ? `Eligible: code "MX"`
+          : "Not Eligible",
+        adValRate: 0,
+        specificRate: 0,
+        otherRate: 0,
+        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "MX"
+      },
       // Colombia
       {
         label: "Colombia FTA Preference",
@@ -294,27 +445,14 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         otherRate: 0,
         eligible: isEligible(data.panama_indicator)
       },
-      // DR-CAFTA
+      // Nepal Preference Program
       {
-        label: "CAFTA FTA Preference",
-        status: isEligible(data.dr_cafta_indicator)
-          ? `Eligible: code "${data.dr_cafta_indicator}"`
-          : "Not Eligible",
-        adValRate: data.dr_cafta_ad_val_rate,
+        label: "Nepal Preference Program",
+        status: "Not Eligible",
+        adValRate: 0,
         specificRate: 0,
         otherRate: 0,
-        eligible: isEligible(data.dr_cafta_indicator)
-      },
-      // Morocco
-      {
-        label: "Morocco FTA Preference",
-        status: isEligible(data.morocco_indicator)
-          ? `Eligible: code "${data.morocco_indicator}"`
-          : "Not Eligible",
-        adValRate: data.morocco_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.morocco_indicator)
+        eligible: false
       }
     ];
 
@@ -322,18 +460,55 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
     const eligiblePrograms = allTradePrograms.filter(program => program.eligible);
 
     return [
-      // Basic Information Section
+      // Customs Value Section
       {
-        id: "basic-info",
-        title: "Basic Information",
+        id: "customs-value",
+        title: "Customs value of recent U.S. imports for consumption",
         fields: [
           {
-            label: "HS Code",
-            value: data.hts8 ? data.hts8.toString() : "N/A"
+            label: "2025 imports (thousand dollars)",
+            value: "$21"
+          }
+        ]
+      },
+
+      // Tariff Treatment Section
+      {
+        id: "tariff-treatment",
+        title: "Tariff Treatment",
+        fields: []
+      },
+
+      // Effective Dates Section
+      {
+        id: "effective-dates",
+        title: "Effective Dates",
+        fields: [
+          {
+            label: "Beginning Effective Date",
+            subtitle: "Most recent date any part of this HTS item's tariff treatment changed",
+            value: formatDate(data.begin_effect_date) || "Not specified"
           },
           {
-            label: "Description",
-            value: data.brief_description || "No description available"
+            label: "Ending Effective Date",
+            subtitle: "Date any part of this HTS item is next scheduled for tariff treatment change",
+            value: formatDate(data.end_effective_date) || "Not specified"
+          }
+        ]
+      },
+
+      // Units of Quantity Section
+      {
+        id: "units-quantity",
+        title: "Units of Quantity",
+        fields: [
+          {
+            label: "1st Unit of Quantity (Q1)",
+            value: "KG"
+          },
+          {
+            label: "2nd Unit of Quantity (Q2)",
+            value: ""
           }
         ]
       },
@@ -399,39 +574,30 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
       // Special Programs Section - Compact View
       {
         id: "special-programs",
-        title: "Preferential (duty-free or reduced rate) tariff program applicability",
-        subtitle: "Free trade agreements and special trade programs",
-        fields: eligiblePrograms.map(program => ({
+        title: "Preferential (duty-free or reduced rate) tariff program applicability to this HTS item",
+        subtitle: "",
+        fields: allTradePrograms.map(program => ({
           label: program.label,
+          status: program.status,
           value: program.eligible
-            ? `${formatRateValue(program.adValRate)} (${program.status.split('"')[1]})`
+            ? `${formatRateValue(program.adValRate)}`
             : "Not Eligible",
           eligible: program.eligible
         }))
       },
 
-      // Special Programs Section - Full View
+      // Basic Information Section
       {
-        id: "special-programs-full",
-        title: "All Trade Programs",
-        subtitle: "Detailed eligibility information for all trade programs",
-        programs: allTradePrograms
-      },
-
-      // Effective Dates Section
-      {
-        id: "effective-dates",
-        title: "Effective Dates",
+        id: "basic-info",
+        title: "Basic Information",
         fields: [
           {
-            label: "Beginning Effective Date",
-            subtitle: "Most recent date any part of this HTS item's tariff treatment changed",
-            value: formatDate(data.begin_effect_date) || "Not specified"
+            label: "HS Code",
+            value: data.hts8 ? data.hts8.toString() : "N/A"
           },
           {
-            label: "Ending Effective Date",
-            subtitle: "Date any part of this HTS item is next scheduled for tariff treatment change",
-            value: formatDate(data.end_effective_date) || "Not specified"
+            label: "Description",
+            value: data.brief_description || "No description available"
           }
         ]
       },
@@ -735,6 +901,25 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* Basic Information */}
+        {tariffSections[8]?.fields.length > 0 && (
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-base font-medium border-b pb-2">{tariffSections[8]?.title}</h4>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {tariffSections[8]?.fields.map((field, index) => (
+                <div key={index} className="space-y-1">
+                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                  <div className="text-sm p-3 rounded-md bg-muted/30">
+                    {field.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Customs Value */}
         {tariffSections[0]?.fields.length > 0 && (
           <div className="space-y-3">
             <div>
@@ -742,6 +927,52 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
             </div>
             <div className="grid grid-cols-1 gap-3">
               {tariffSections[0]?.fields.map((field, index) => (
+                <div key={index} className="space-y-1">
+                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                  <div className="text-sm p-3 rounded-md bg-primary/10 text-primary font-medium">
+                    {field.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tariff Treatment */}
+        {tariffSections[1]?.title && (
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-base font-medium border-b pb-2">{tariffSections[1]?.title}</h4>
+            </div>
+          </div>
+        )}
+
+        {/* Effective Dates */}
+        <div className="space-y-3">
+          <h4 className="text-base font-medium border-b pb-2">{tariffSections[2]?.title}</h4>
+          <div className="grid grid-cols-1 gap-3">
+            {tariffSections[2]?.fields.map((field, index) => (
+              <div key={index} className="space-y-1">
+                <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                {field.subtitle && (
+                  <p className="text-xs text-muted-foreground mb-1">{field.subtitle}</p>
+                )}
+                <div className="text-sm bg-muted/30 p-3 rounded-md">
+                  {field.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Units of Quantity */}
+        {tariffSections[3]?.fields.length > 0 && (
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-base font-medium border-b pb-2">{tariffSections[3]?.title}</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {tariffSections[3]?.fields.map((field, index) => (
                 <div key={index} className="space-y-1">
                   <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
                   <div className="text-sm p-3 rounded-md bg-muted/30">
@@ -756,13 +987,13 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         {/* MFN Rates */}
         <div className="space-y-3">
           <div>
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[1]?.title}</h4>
-            {tariffSections[1]?.subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">{tariffSections[1].subtitle}</p>
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[4]?.title}</h4>
+            {tariffSections[4]?.subtitle && (
+              <p className="text-sm text-muted-foreground mt-1">{tariffSections[4].subtitle}</p>
             )}
           </div>
           <div className="grid grid-cols-1 gap-3">
-            {tariffSections[1]?.fields.map((field, index) => (
+            {tariffSections[4]?.fields.map((field, index) => (
               <div key={index} className="space-y-1">
                 <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
                 <div className={cn(
@@ -803,36 +1034,16 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
           )}
         </div>
 
-        {/* Special Programs */}
-        {tariffSections[3]?.fields.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[3]?.title}</h4>
-            {tariffSections[3]?.subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">{tariffSections[3].subtitle}</p>
-            )}
-            <div className="grid grid-cols-1 gap-3">
-              {tariffSections[3]?.fields.map((field, index) => (
-                <div key={index} className="p-3 bg-green-50 border border-green-100 rounded-md">
-                  <h5 className="text-sm font-medium text-green-800">{field.label}</h5>
-                  <p className="text-sm mt-1 text-green-700">
-                    {field.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Column 2 Rates */}
         <div className="space-y-3">
           <div>
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[2]?.title}</h4>
-            {tariffSections[2]?.subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">{tariffSections[2].subtitle}</p>
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[5]?.title}</h4>
+            {tariffSections[5]?.subtitle && (
+              <p className="text-sm text-muted-foreground mt-1">{tariffSections[5].subtitle}</p>
             )}
           </div>
           <div className="grid grid-cols-1 gap-3">
-            {tariffSections[2]?.fields.map((field, index) => (
+            {tariffSections[5]?.fields.map((field, index) => (
               <div key={index} className="space-y-1">
                 <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
                 <div className={cn(
@@ -848,30 +1059,61 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
           </div>
         </div>
 
-        {/* Effective Dates */}
-        <div className="space-y-3">
-          <h4 className="text-base font-medium border-b pb-2">{tariffSections[5]?.title}</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {tariffSections[5]?.fields.map((field, index) => (
-              <div key={index} className="space-y-1">
-                <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                {field.subtitle && (
-                  <p className="text-xs text-muted-foreground mb-1">{field.subtitle}</p>
-                )}
-                <div className="text-sm bg-muted/30 p-3 rounded-md">
-                  {field.value}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Additional Information */}
+        {/* Special Programs */}
         {tariffSections[6]?.fields.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-base font-medium border-b pb-2">{tariffSections[6]?.title}</h4>
-            <div className="grid grid-cols-1 gap-3">
+            {tariffSections[6]?.subtitle && (
+              <p className="text-sm text-muted-foreground mt-1">{tariffSections[6].subtitle}</p>
+            )}
+            <div className="space-y-4">
               {tariffSections[6]?.fields.map((field, index) => (
+                <div key={index} className={cn(
+                  "border rounded-md overflow-hidden",
+                  field.eligible
+                    ? "border-green-200"
+                    : "border-muted"
+                )}>
+                  <div className={cn(
+                    "px-3 py-2 border-b",
+                    field.eligible
+                      ? "bg-green-50 border-green-200"
+                      : "bg-muted/30 border-muted"
+                  )}>
+                    <h5 className={cn(
+                      "font-medium text-sm",
+                      field.eligible ? "text-green-800" : "text-muted-foreground"
+                    )}>
+                      {field.label}
+                    </h5>
+                  </div>
+                  <div className="p-3 space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium">Status:</span>{" "}
+                      <span className={field.eligible ? "text-green-700" : "text-muted-foreground"}>
+                        {field.status}
+                      </span>
+                    </div>
+
+                    {field.eligible && field.value !== "None" && (
+                      <div>
+                        <span className="font-medium">Ad Valorem Rate:</span>{" "}
+                        <span className="text-green-700">{field.value}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Additional Information */}
+        {tariffSections[9]?.fields.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[9]?.title}</h4>
+            <div className="grid grid-cols-1 gap-3">
+              {tariffSections[9]?.fields.map((field, index) => (
                 <div key={index} className="space-y-1">
                   <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
                   <p className="text-sm bg-muted/30 p-3 rounded-md">{field.value}</p>
@@ -882,7 +1124,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )}
 
         {/* If there's a footnote_comment but it wasn't included in additionalInfo */}
-        {tariffData.footnote_comment && !tariffSections[6]?.fields.some(f => f.label === "Footnote") && (
+        {tariffData.footnote_comment && !tariffSections[9]?.fields.some(f => f.label === "Footnote") && (
           <div className="space-y-3">
             <h4 className="text-base font-medium border-b pb-2">Footnotes</h4>
             <div className="grid grid-cols-1 gap-3">
@@ -893,87 +1135,10 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
           </div>
         )}
 
-        {/* All Trade Programs (Detailed View) */}
-        {tariffSections[4]?.programs && tariffSections[4].programs.some(p => p.eligible) && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-base font-medium border-b pb-2">{tariffSections[4]?.title}</h4>
-              <CustomButton
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={() => {
-                  const detailsEl = document.getElementById('trade-programs-details');
-                  if (detailsEl) {
-                    detailsEl.classList.toggle('hidden');
-                  }
-                }}
-              >
-                Show All Programs
-              </CustomButton>
-            </div>
-            {tariffSections[4]?.subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">{tariffSections[4].subtitle}</p>
-            )}
-
-            <div id="trade-programs-details" className="hidden space-y-4">
-              {tariffSections[4]?.programs.map((program, index) => (
-                <div key={index} className={cn(
-                  "border rounded-md overflow-hidden",
-                  program.eligible
-                    ? "border-green-200"
-                    : "border-muted"
-                )}>
-                  <div className={cn(
-                    "px-3 py-2 border-b",
-                    program.eligible
-                      ? "bg-green-50 border-green-200"
-                      : "bg-muted/30 border-muted"
-                  )}>
-                    <h5 className={cn(
-                      "font-medium text-sm",
-                      program.eligible ? "text-green-800" : "text-muted-foreground"
-                    )}>
-                      {program.label}
-                    </h5>
-                  </div>
-                  <div className="p-3 space-y-2 text-sm">
-                    <div>
-                      <span className="font-medium">Status:</span>{" "}
-                      <span className={program.eligible ? "text-green-700" : "text-muted-foreground"}>
-                        {program.status}
-                      </span>
-                    </div>
-
-                    {program.eligible && (
-                      <>
-                        <div>
-                          <span className="font-medium">Ad Valorem Rate:</span>{" "}
-                          {formatRateValue(program.adValRate)}
-                        </div>
-                        <div>
-                          <span className="font-medium">Specific Rate:</span>{" "}
-                          {formatRateValue(program.specificRate)}
-                        </div>
-                        {program.otherRate !== undefined && (
-                          <div>
-                            <span className="font-medium">Other Rate:</span>{" "}
-                            {formatRateValue(program.otherRate)}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* External Resources */}
         <div className="space-y-3">
-          <h4 className="text-base font-medium border-b pb-2">{tariffSections[7]?.title}</h4>
-          {tariffSections[7]?.content}
+          <h4 className="text-base font-medium border-b pb-2">{tariffSections[10]?.title}</h4>
+          {tariffSections[10]?.content}
         </div>
 
         {/* Footnote References */}
