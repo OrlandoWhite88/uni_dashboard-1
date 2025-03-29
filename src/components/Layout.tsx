@@ -50,6 +50,9 @@ const Layout = ({ children, className }: LayoutProps) => {
               <Link to="/bulk-import" className="text-sm font-medium hover:text-primary transition-colors">
                 Batch Processing
               </Link>
+              <Link to="/tariff-calculator" className="text-sm font-medium hover:text-primary transition-colors">
+                Tariff Calculator
+              </Link>
             </nav>
           </div>
           
