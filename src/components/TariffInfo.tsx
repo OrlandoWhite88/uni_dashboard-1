@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { getTariffInfo, explainTariff } from "@/lib/classifierService";
-import { Loader2, AlertCircle, ExternalLink, BookOpen, LightbulbIcon, Calculator } from "lucide-react";
+import { Loader2, AlertCircle, ExternalLink, BookOpen, LightbulbIcon, Calculator, Info } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
@@ -10,13 +10,144 @@ interface TariffInfoProps {
   className?: string;
 }
 
-interface FootnoteReference {
-  id: string;
-  text: string;
+// Define a proper interface for the tariff data
+interface TariffData {
+  hts8: string | number;
+  brief_description?: string;
+  col1_special_text?: string;
+  mfn_text_rate?: string;
+  mfn_rate_type_code?: string | number;
+  mfn_ad_val_rate?: number;
+  mfn_specific_rate?: number;
+  mfn_other_rate?: number;
+  col2_text_rate?: string;
+  col2_rate_type_code?: string | number;
+  col2_ad_val_rate?: number;
+  col2_specific_rate?: number;
+  col2_other_rate?: number;
+  begin_effect_date?: string;
+  end_effective_date?: string;
+  footnote_comment?: string;
+  additional_duty?: string;
+  
+  // Special program indicators
+  usmca_indicator?: string;
+  usmca_ad_val_rate?: number;
+  korea_indicator?: string;
+  korea_ad_val_rate?: number;
+  australia_indicator?: string;
+  australia_ad_val_rate?: number;
+  singapore_indicator?: string;
+  singapore_ad_val_rate?: number;
+  chile_indicator?: string;
+  chile_ad_val_rate?: number;
+  israel_fta_indicator?: string;
+  israel_fta_ad_val_rate?: number;
+  jordan_indicator?: string;
+  jordan_ad_val_rate?: number;
+  bahrain_indicator?: string;
+  bahrain_ad_val_rate?: number;
+  oman_indicator?: string;
+  oman_ad_val_rate?: number;
+  peru_indicator?: string;
+  peru_ad_val_rate?: number;
+  columbia_indicator?: string;
+  columbia_ad_val_rate?: number;
+  panama_indicator?: string;
+  panama_ad_val_rate?: number;
+  dr_cafta_indicator?: string;
+  dr_cafta_ad_val_rate?: number;
+  morocco_indicator?: string;
+  morocco_ad_val_rate?: number;
 }
 
+interface FootnoteReference {
+  code: string;
+  data: any;
+  loading: boolean;
+  error: string | null;
+}
+
+// Helper function to format rate values
+const formatRateValue = (value: number | string | undefined): string => {
+  // Handle undefined, null, or NaN values
+  if (value === undefined || value === null || 
+      (typeof value === 'number' && isNaN(value))) {
+    return "None";
+  }
+  
+  if (typeof value === "number") {
+    // Format as percentage if it's a decimal less than 1
+    if (value < 1 && value > 0) return `${(value * 100).toFixed(1)}%`;
+    // Format as dollar amount if it's a specific rate
+    return `$${value.toFixed(2)}`;
+  }
+  
+  // Handle string "nan" or "NaN" values that might come from the API
+  if (typeof value === "string" && 
+      (value.toLowerCase() === "nan" || value.toLowerCase() === "null")) {
+    return "None";
+  }
+  
+  return value.toString();
+};
+
+// Helper function to determine if a country/program is eligible based on indicator
+const isEligible = (indicator?: string): boolean => {
+  // Check if indicator exists, is not empty, and is not "nan" or "NaN"
+  return !!indicator && 
+         indicator.trim() !== "" && 
+         indicator.toLowerCase() !== "nan" &&
+         indicator.toLowerCase() !== "null";
+};
+
+// Helper function to get eligibility status text
+const getEligibilityStatus = (indicator?: string): string => {
+  if (!indicator) return "Not Eligible";
+  return `Eligible: code "${indicator}"`;
+};
+
+// Helper function to format date strings
+const formatDate = (dateStr?: string | any): string => {
+  if (!dateStr) return "";
+  
+  // Handle "nan" or "NaN" strings
+  if (typeof dateStr === "string" && 
+      (dateStr.toLowerCase() === "nan" || dateStr.toLowerCase() === "null")) {
+    return "";
+  }
+  
+  // Handle Timestamp objects from pandas (which might come as strings like "Timestamp('2020-07-01 00:00:00')")
+  if (typeof dateStr === "string" && dateStr.includes("Timestamp(")) {
+    // Extract the date part from the Timestamp string
+    const match = dateStr.match(/Timestamp\('(\d{4}-\d{2}-\d{2})/);
+    if (match && match[1]) {
+      dateStr = match[1];
+    }
+  }
+  
+  try {
+    // Try to create a Date object from the string
+    const date = new Date(dateStr);
+    
+    // Check if the date is valid
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+      });
+    }
+  } catch (e) {
+    console.error("Error formatting date:", e);
+  }
+  
+  // If all else fails, return the original string
+  return typeof dateStr === "string" ? dateStr : "";
+};
+
 const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
-  const [tariffData, setTariffData] = useState<any | null>(null);
+  const [tariffData, setTariffData] = useState<TariffData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<string | null>(null);
@@ -25,35 +156,205 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
   const [footnoteReferences, setFootnoteReferences] = useState<Record<string, FootnoteReference>>({});
   const navigate = useNavigate();
 
-  // Format duty rate as percentage
-  const formatRate = (rate: number | undefined) => {
-    if (rate === undefined || rate === null) return "N/A";
-    return `${(rate * 100).toFixed(2)}%`;
+  // Function to organize tariff data into logical sections for display
+  const getTariffSections = (data: TariffData) => {
+    if (!data) return [];
+    
+    return [
+      // Basic Information Section
+      {
+        id: "basic-info",
+        title: "Basic Information",
+        fields: [
+          {
+            label: "HS Code",
+            value: data.hts8 ? data.hts8.toString() : "N/A"
+          },
+          {
+            label: "Description",
+            value: data.brief_description || "No description available"
+          }
+        ]
+      },
+      
+      // MFN Rates Section
+      {
+        id: "mfn-rates",
+        title: "Most Favored Nation (MFN) Rates",
+        subtitle: "Standard duty rates applicable to all WTO member countries",
+        fields: [
+          {
+            label: "MFN Text Rate",
+            value: data.mfn_text_rate || "None"
+          },
+          {
+            label: "MFN Ad Valorem Rate",
+            value: formatRateValue(data.mfn_ad_val_rate)
+          },
+          {
+            label: "MFN Specific Rate",
+            value: formatRateValue(data.mfn_specific_rate)
+          }
+        ]
+      },
+      
+      // Column 2 Rates Section
+      {
+        id: "col2-rates",
+        title: "Column 2 Rates",
+        subtitle: "Higher duty rates applicable to non-MFN countries",
+        fields: [
+          {
+            label: "Column 2 Text Rate",
+            value: data.col2_text_rate || "None"
+          },
+          {
+            label: "Column 2 Ad Valorem Rate",
+            value: formatRateValue(data.col2_ad_val_rate)
+          },
+          {
+            label: "Column 2 Specific Rate",
+            value: formatRateValue(data.col2_specific_rate)
+          }
+        ]
+      },
+      
+      // Special Programs Section
+      {
+        id: "special-programs",
+        title: "Special Trade Programs",
+        subtitle: "Preferential duty rates under free trade agreements",
+        fields: [
+          // USMCA (NAFTA replacement)
+          {
+            label: "USMCA (US-Mexico-Canada)",
+            value: isEligible(data.usmca_indicator) 
+              ? `${formatRateValue(data.usmca_ad_val_rate)} (${data.usmca_indicator})` 
+              : "Not Eligible",
+            eligible: isEligible(data.usmca_indicator)
+          },
+          // Korea
+          {
+            label: "Korea FTA",
+            value: isEligible(data.korea_indicator) 
+              ? `${formatRateValue(data.korea_ad_val_rate)} (${data.korea_indicator})` 
+              : "Not Eligible",
+            eligible: isEligible(data.korea_indicator)
+          },
+          // Australia
+          {
+            label: "Australia FTA",
+            value: isEligible(data.australia_indicator) 
+              ? `${formatRateValue(data.australia_ad_val_rate)} (${data.australia_indicator})` 
+              : "Not Eligible",
+            eligible: isEligible(data.australia_indicator)
+          },
+          // Singapore
+          {
+            label: "Singapore FTA",
+            value: isEligible(data.singapore_indicator) 
+              ? `${formatRateValue(data.singapore_ad_val_rate)} (${data.singapore_indicator})` 
+              : "Not Eligible",
+            eligible: isEligible(data.singapore_indicator)
+          },
+          // Chile
+          {
+            label: "Chile FTA",
+            value: isEligible(data.chile_indicator) 
+              ? `${formatRateValue(data.chile_ad_val_rate)} (${data.chile_indicator})` 
+              : "Not Eligible",
+            eligible: isEligible(data.chile_indicator)
+          }
+        ].filter(field => field.value !== "Not Eligible") // Only show eligible programs
+      },
+      
+      // Effective Dates Section
+      {
+        id: "effective-dates",
+        title: "Effective Dates",
+        fields: [
+          {
+            label: "Begin Date",
+            value: formatDate(data.begin_effect_date) || "Not specified"
+          },
+          {
+            label: "End Date",
+            value: formatDate(data.end_effective_date) || "Not specified"
+          }
+        ]
+      },
+      
+      // Additional Information Section
+      {
+        id: "additional-info",
+        title: "Additional Information",
+        fields: data.footnote_comment ? [
+          {
+            label: "Footnote",
+            value: data.footnote_comment
+          }
+        ] : []
+      },
+      
+      // External Resources Section
+      {
+        id: "external-resources",
+        title: "External Resources",
+        content: (
+          <div className="space-y-2">
+            <a
+              href={`https://hts.usitc.gov/?query=${hsCode}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline flex items-center"
+            >
+              <ExternalLink size={14} className="mr-1.5" />
+              View on USITC Harmonized Tariff Schedule
+            </a>
+            <CustomButton
+              onClick={() => navigate(`/tariff-calculator?hsCode=${hsCode}`)}
+              variant="outline"
+              size="sm"
+              className="flex items-center text-xs w-full justify-center"
+            >
+              <Calculator size={14} className="mr-1.5" />
+              Calculate Duties & Fees
+            </CustomButton>
+          </div>
+        )
+      }
+    ];
   };
 
   useEffect(() => {
-    const fetchTariffData = async () => {
-      if (!hsCode) return;
-
+    const fetchTariffInfo = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getTariffInfo(hsCode);
-        setTariffData(data);
-
-        // Process footnote references if they exist
-        if (data.footnotes) {
-          const footnoteRefs: Record<string, FootnoteReference> = {};
-          data.footnotes.forEach((footnote: any) => {
-            if (footnote.footnote_id && footnote.footnote_text) {
-              footnoteRefs[footnote.footnote_id] = {
-                id: footnote.footnote_id,
-                text: footnote.footnote_text
-              };
-            }
-          });
-          setFootnoteReferences(footnoteRefs);
+        
+        // Validate HS code format before making the API call
+        if (!hsCode || hsCode.trim() === "") {
+          setError("Please provide a valid HS code");
+          return;
         }
+        
+        const data = await getTariffInfo(hsCode);
+        console.log("Received tariff data:", data);
+        
+        // Check if the data is valid
+        if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+          setError(`No tariff information found for HS code: ${hsCode}`);
+          return;
+        }
+        
+        // Check if the required fields are present
+        if (!data.hts8) {
+          setError(`Invalid tariff data received for HS code: ${hsCode}`);
+          console.error("Invalid tariff data:", data);
+          return;
+        }
+        
+        setTariffData(data);
       } catch (err: any) {
         setError(`Error fetching tariff information: ${err.message}`);
         console.error("Tariff fetch error:", err);
@@ -62,31 +363,123 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
       }
     };
 
-    fetchTariffData();
+    fetchTariffInfo();
   }, [hsCode]);
 
-  const fetchTariffExplanation = useCallback(async () => {
-    // If we already have an explanation, toggle it off
-    if (explanation) {
-      setExplanation(null);
-      return;
-    }
-
-    if (!tariffData) return;
-
+  // Function to fetch AI explanation of tariff
+  const fetchTariffExplanation = async () => {
     try {
       setLoadingExplanation(true);
       setExplanationError(null);
-
-      const result = await explainTariff(hsCode, tariffData);
-      setExplanation(result.explanation);
+      
+      // If we already have explanation, toggle visibility
+      if (explanation) {
+        setExplanation(null);
+        return;
+      }
+      
+      // Make sure we have tariff data before requesting an explanation
+      if (!tariffData) {
+        throw new Error("No tariff data available to explain");
+      }
+      
+      console.log("Requesting explanation for HS code:", hsCode);
+      const explanationText = await explainTariff(hsCode, true, 'medium');
+      
+      // Validate the explanation text
+      if (!explanationText || explanationText.trim() === "") {
+        throw new Error("Received empty explanation from the API");
+      }
+      
+      console.log("Received explanation:", explanationText);
+      setExplanation(explanationText);
     } catch (err: any) {
-      setExplanationError(`Failed to generate explanation: ${err.message}`);
-      console.error("Explanation error:", err);
+      setExplanationError(`Error getting explanation: ${err.message}`);
+      console.error("Tariff explanation error:", err);
     } finally {
       setLoadingExplanation(false);
     }
-  }, [explanation, hsCode, tariffData]);
+  };
+
+  // Function to extract HS codes from footnote text
+  const extractHsCode = (text: string | null | undefined): string | null => {
+    // Handle null or undefined text
+    if (!text) return null;
+    
+    // Handle "nan" or "NaN" strings
+    if (text.toLowerCase() === "nan" || text.toLowerCase() === "null") {
+      return null;
+    }
+    
+    // Look for patterns like "See 9903.88.03." in the text
+    const match = text.match(/See (\d{4}\.\d{2}\.\d{2})/i);
+    
+    // Also look for patterns in the special text like "(AU)"
+    if (!match && tariffData?.col1_special_text) {
+      // Extract country codes from special text
+      const countryMatch = text.match(/\(([A-Z]{2})\)/);
+      if (countryMatch && countryMatch[1]) {
+        const countryCode = countryMatch[1];
+        // Check if this country has a specific indicator in the tariff data
+        const countryField = `${countryCode.toLowerCase()}_indicator`;
+        if (tariffData[countryField as keyof TariffData]) {
+          return countryCode;
+        }
+      }
+    }
+    
+    return match ? match[1] : null;
+  };
+
+  // Function to fetch footnote reference information
+  const fetchFootnoteReference = async (footnoteText: string | null | undefined) => {
+    // Handle null or undefined text
+    if (!footnoteText) return;
+    
+    // Handle "nan" or "NaN" strings
+    if (typeof footnoteText === "string" && 
+        (footnoteText.toLowerCase() === "nan" || footnoteText.toLowerCase() === "null")) {
+      return;
+    }
+    
+    const hsCode = extractHsCode(footnoteText);
+    
+    if (!hsCode) return;
+    
+    // If we already have this reference and it's not in loading state, toggle visibility
+    if (footnoteReferences[hsCode] && !footnoteReferences[hsCode].loading) {
+      setFootnoteReferences(prev => {
+        const newRefs = { ...prev };
+        delete newRefs[hsCode];
+        return newRefs;
+      });
+      return;
+    }
+    
+    // Initialize loading state
+    setFootnoteReferences(prev => ({
+      ...prev,
+      [hsCode]: { code: hsCode, data: null, loading: true, error: null }
+    }));
+    
+    try {
+      const data = await getTariffInfo(hsCode);
+      setFootnoteReferences(prev => ({
+        ...prev,
+        [hsCode]: { code: hsCode, data, loading: false, error: null }
+      }));
+    } catch (err: any) {
+      setFootnoteReferences(prev => ({
+        ...prev,
+        [hsCode]: { 
+          code: hsCode, 
+          data: null, 
+          loading: false, 
+          error: `Error fetching reference: ${err.message}` 
+        }
+      }));
+    }
+  };
 
   if (loading) {
     return (
@@ -125,113 +518,18 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
     );
   }
 
-  // Format duty rate as percentage
-  const formatRate = (rate: number | undefined) => {
-    if (rate === undefined || rate === null) return "N/A";
-    return `${(rate * 100).toFixed(2)}%`;
-  };
-
-  // Define tariff sections for display
-  const tariffSections = tariffData ? [
-    {
-      id: "description",
-      title: "Description",
-      content: (
-        <p className="text-sm bg-muted/30 p-3 rounded-md">
-          {tariffData.brief_description || "No description available"}
-        </p>
-      )
-    },
-    {
-      id: "rates",
-      title: "Duty Rates",
-      content: (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h5 className="text-xs font-medium mb-1">General Duty Rate (MFN)</h5>
-            <p className="text-sm bg-muted/30 p-3 rounded-md">
-              {formatRate(tariffData.mfn_ad_val_rate)}
-            </p>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-medium mb-1">USMCA Rate (Canada/Mexico)</h5>
-            <p className="text-sm bg-muted/30 p-3 rounded-md">
-              {tariffData.usmca_indicator ? formatRate(tariffData.usmca_ad_val_rate) : "Not applicable"}
-            </p>
-          </div>
-
-          {tariffData.korea_indicator && (
-            <div>
-              <h5 className="text-xs font-medium mb-1">Korea FTA Rate</h5>
-              <p className="text-sm bg-muted/30 p-3 rounded-md">
-                {formatRate(tariffData.korea_ad_val_rate)}
-              </p>
-            </div>
-          )}
-
-          <div>
-            <h5 className="text-xs font-medium mb-1">Column 1 Rate</h5>
-            <p className="text-sm bg-muted/30 p-3 rounded-md">
-              {formatRate(tariffData.column_1_rate)}
-            </p>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-medium mb-1">Column 2 Rate</h5>
-            <p className="text-sm bg-muted/30 p-3 rounded-md">
-              {formatRate(tariffData.column_2_rate)}
-            </p>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "special",
-      title: "Special Program Indicators",
-      content: (
-        <p className="text-sm bg-muted/30 p-3 rounded-md">
-          {tariffData.special_program_indicators || "None"}
-        </p>
-      )
-    },
-    {
-      id: "links",
-      title: "External Resources",
-      content: (
-        <div className="space-y-2">
-          <a
-            href={`https://hts.usitc.gov/?query=${hsCode}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary hover:underline flex items-center"
-          >
-            <ExternalLink size={14} className="mr-1.5" />
-            View on USITC Harmonized Tariff Schedule
-          </a>
-          <CustomButton
-            onClick={() => navigate(`/tariff-calculator?hsCode=${hsCode}`)}
-            variant="outline"
-            size="sm"
-            className="flex items-center text-xs w-full justify-center"
-          >
-            <Calculator size={14} className="mr-1.5" />
-            Calculate Duties & Fees
-          </CustomButton>
-        </div>
-      )
-    }
-  ] : [];
+  // Get organized tariff sections for display
+  const tariffSections = getTariffSections(tariffData);
 
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden animate-fade-in">
       <div className="bg-muted/40 px-4 py-3 border-b border-border flex justify-between items-center">
-        <h3 className="font-medium">Tariff Information for {tariffData?.hts8}</h3>
+        <h3 className="font-medium">Tariff Information for {hsCode}</h3>
         <CustomButton
           onClick={fetchTariffExplanation}
           variant={explanation ? "default" : "outline"}
           size="sm"
-          className="flex items-center text-xs bg-blue-500 hover:bg-blue-600 text-white"
+          className="flex items-center text-xs"
           disabled={loadingExplanation}
         >
           {loadingExplanation ? (
@@ -249,15 +547,22 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Display explanation if available */}
+        {/* AI-Generated Explanation */}
         {explanation && (
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 animate-fade-in">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 animate-fade-in">
             <div className="flex items-start">
-              <LightbulbIcon className="h-5 w-5 text-blue-500 shrink-0 mr-2 mt-0.5" />
+              <BookOpen className="h-5 w-5 text-blue-500 mr-2 mt-0.5 shrink-0" />
               <div>
-                <h4 className="font-medium text-blue-700">Tariff Explanation</h4>
-                <div className="text-sm mt-1 text-blue-900 whitespace-pre-wrap">
-                  {explanation}
+                <h4 className="font-medium text-blue-700 mb-2">Tariff Explanation</h4>
+                <div className="text-sm text-blue-800 prose-sm">
+                  {explanation.split('\n').filter(p => p.trim() !== '').map((paragraph, idx) => (
+                    <p key={idx} className="mb-2">{paragraph}</p>
+                  ))}
+                  
+                  {/* Add a note about the explanation being AI-generated */}
+                  <p className="mt-4 text-xs text-blue-600 italic">
+                    This explanation was generated by AI and may not reflect all legal nuances of tariff classification.
+                  </p>
                 </div>
               </div>
             </div>
@@ -277,13 +582,194 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
           </div>
         )}
 
-        {/* Display tariff data sections */}
-        {!error && tariffData && tariffSections.map((section) => (
-          <div key={section.id} className="space-y-3">
-            <h4 className="font-medium text-sm">{section.title}</h4>
-            {section.content}
+        {/* MFN Rates */}
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[1]?.title}</h4>
+            {tariffSections[1]?.subtitle && (
+              <p className="text-sm text-muted-foreground mt-1">{tariffSections[1].subtitle}</p>
+            )}
           </div>
-        ))}
+          <div className="grid grid-cols-1 gap-3">
+            {tariffSections[1]?.fields.map((field, index) => (
+              <div key={index} className="space-y-1">
+                <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                <div className={cn(
+                  "text-sm p-3 rounded-md break-words",
+                  field.value !== "None" ? "bg-primary/10 text-primary font-medium" : "bg-muted/30"
+                )}>
+                  {field.value}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Special Rate Text */}
+          {tariffData.col1_special_text && (
+            <div className="mt-3 border border-blue-200 bg-blue-50 rounded-lg p-3">
+              <h5 className="text-sm font-medium text-blue-700 mb-2">Special Rate Information</h5>
+              <p className="text-sm text-blue-800">{tariffData.col1_special_text}</p>
+              
+              {/* Extract country codes from special text for reference */}
+              {tariffData.col1_special_text.includes("(") && (
+                <div className="mt-3 text-xs text-blue-600">
+                  <p className="font-medium mb-1">Country/Program Codes:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {Array.from(tariffData.col1_special_text.matchAll(/\(([A-Z\*,]+)\)/g)).map((match, idx) => {
+                      const codes = match[1].split(',');
+                      return codes.map((code, codeIdx) => (
+                        <div key={`${idx}-${codeIdx}`} className="bg-white/50 px-2 py-1 rounded border border-blue-100">
+                          {code}
+                        </div>
+                      ));
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Special Programs */}
+        {tariffSections[3]?.fields.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[3]?.title}</h4>
+            {tariffSections[3]?.subtitle && (
+              <p className="text-sm text-muted-foreground mt-1">{tariffSections[3].subtitle}</p>
+            )}
+            <div className="grid grid-cols-1 gap-3">
+              {tariffSections[3]?.fields.map((field, index) => (
+                <div key={index} className="p-3 bg-green-50 border border-green-100 rounded-md">
+                  <h5 className="text-sm font-medium text-green-800">{field.label}</h5>
+                  <p className="text-sm mt-1 text-green-700">
+                    {field.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Column 2 Rates */}
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[2]?.title}</h4>
+            {tariffSections[2]?.subtitle && (
+              <p className="text-sm text-muted-foreground mt-1">{tariffSections[2].subtitle}</p>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {tariffSections[2]?.fields.map((field, index) => (
+              <div key={index} className="space-y-1">
+                <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                <div className="text-sm bg-muted/30 p-3 rounded-md">
+                  {field.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Effective Dates */}
+        <div className="space-y-3">
+          <h4 className="text-base font-medium border-b pb-2">{tariffSections[4]?.title}</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {tariffSections[4]?.fields.map((field, index) => (
+              <div key={index} className="space-y-1">
+                <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                <div className="text-sm bg-muted/30 p-3 rounded-md">
+                  {field.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Additional Information */}
+        {tariffSections[5]?.fields.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-base font-medium border-b pb-2">{tariffSections[5]?.title}</h4>
+            <div className="grid grid-cols-1 gap-3">
+              {tariffSections[5]?.fields.map((field, index) => (
+                <div key={index} className="space-y-1">
+                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                  <p className="text-sm bg-muted/30 p-3 rounded-md">{field.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* If there's a footnote_comment but it wasn't included in additionalInfo */}
+        {tariffData.footnote_comment && !tariffSections[5]?.fields.some(f => f.label === "Footnote") && (
+          <div className="space-y-3">
+            <h4 className="text-base font-medium border-b pb-2">Footnotes</h4>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-1">
+                <p className="text-sm bg-muted/30 p-3 rounded-md">{tariffData.footnote_comment}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* External Resources */}
+        <div className="space-y-3">
+          <h4 className="text-base font-medium border-b pb-2">{tariffSections[6]?.title}</h4>
+          {tariffSections[6]?.content}
+        </div>
+
+        {/* Footnote References */}
+        {Object.keys(footnoteReferences).length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-base font-medium border-b pb-2">Referenced HS Codes</h4>
+            <div className="space-y-4">
+              {Object.entries(footnoteReferences).map(([code, reference]) => (
+                <div key={code} className="border border-border rounded-lg overflow-hidden">
+                  <div className="bg-muted/30 px-3 py-2 border-b border-border flex justify-between items-center">
+                    <h5 className="font-medium text-sm">{code}</h5>
+                    {reference.loading && (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="p-3">
+                    {reference.loading ? (
+                      <div className="text-xs text-muted-foreground">Loading reference...</div>
+                    ) : reference.error ? (
+                      <div className="text-xs text-destructive">
+                        {reference.error}
+                      </div>
+                    ) : (
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="font-medium">Description:</span>{" "}
+                          {reference.data.brief_description || "No description available"}
+                        </div>
+                        {reference.data.mfn_text_rate && (
+                          <div>
+                            <span className="font-medium">MFN Rate:</span>{" "}
+                            {reference.data.mfn_text_rate}
+                          </div>
+                        )}
+                        {reference.data.col1_special_text && (
+                          <div>
+                            <span className="font-medium">Special Rate:</span>{" "}
+                            {reference.data.col1_special_text}
+                          </div>
+                        )}
+                        {reference.data.begin_effect_date && (
+                          <div>
+                            <span className="font-medium">Effective From:</span>{" "}
+                            {formatDate(reference.data.begin_effect_date)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
