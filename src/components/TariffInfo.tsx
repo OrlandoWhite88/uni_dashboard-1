@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getTariffInfo, explainTariff } from "@/lib/classifierService";
 import { Loader2, AlertCircle, ExternalLink, BookOpen, LightbulbIcon, Calculator } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -10,53 +10,83 @@ interface TariffInfoProps {
   className?: string;
 }
 
+interface FootnoteReference {
+  id: string;
+  text: string;
+}
+
 const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
   const [tariffData, setTariffData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [explanation, setExplanation] = useState<string>("");
+  const [explanation, setExplanation] = useState<string | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [explanationError, setExplanationError] = useState<string | null>(null);
+  const [footnoteReferences, setFootnoteReferences] = useState<Record<string, FootnoteReference>>({});
   const navigate = useNavigate();
 
+  // Format duty rate as percentage
+  const formatRate = (rate: number | undefined) => {
+    if (rate === undefined || rate === null) return "N/A";
+    return `${(rate * 100).toFixed(2)}%`;
+  };
+
   useEffect(() => {
-    const fetchTariffInfo = async () => {
+    const fetchTariffData = async () => {
       if (!hsCode) return;
-      
+
       try {
         setLoading(true);
         setError(null);
         const data = await getTariffInfo(hsCode);
         setTariffData(data);
+
+        // Process footnote references if they exist
+        if (data.footnotes) {
+          const footnoteRefs: Record<string, FootnoteReference> = {};
+          data.footnotes.forEach((footnote: any) => {
+            if (footnote.footnote_id && footnote.footnote_text) {
+              footnoteRefs[footnote.footnote_id] = {
+                id: footnote.footnote_id,
+                text: footnote.footnote_text
+              };
+            }
+          });
+          setFootnoteReferences(footnoteRefs);
+        }
       } catch (err: any) {
         setError(`Error fetching tariff information: ${err.message}`);
-        console.error("Tariff info error:", err);
+        console.error("Tariff fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTariffInfo();
+    fetchTariffData();
   }, [hsCode]);
 
-  const handleExplainClick = async () => {
-    if (loadingExplanation || explanation) {
-      setShowExplanation(!showExplanation);
+  const fetchTariffExplanation = useCallback(async () => {
+    // If we already have an explanation, toggle it off
+    if (explanation) {
+      setExplanation(null);
       return;
     }
-    
+
+    if (!tariffData) return;
+
     try {
       setLoadingExplanation(true);
-      const explanationText = await explainTariff(hsCode);
-      setExplanation(explanationText);
-      setShowExplanation(true);
+      setExplanationError(null);
+
+      const result = await explainTariff(hsCode, tariffData);
+      setExplanation(result.explanation);
     } catch (err: any) {
-      console.error("Error fetching explanation:", err);
-      setExplanation("Sorry, we couldn't generate an explanation for this tariff code.");
+      setExplanationError(`Failed to generate explanation: ${err.message}`);
+      console.error("Explanation error:", err);
     } finally {
       setLoadingExplanation(false);
     }
-  };
+  }, [explanation, hsCode, tariffData]);
 
   if (loading) {
     return (
@@ -101,127 +131,159 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
     return `${(rate * 100).toFixed(2)}%`;
   };
 
-  return (
-    <div className={cn("bg-card border border-border rounded-lg overflow-hidden", className)}>
-      <div className="bg-muted/40 px-4 py-3 border-b border-border flex justify-between items-center">
-        <h3 className="font-medium">Tariff Information</h3>
-        <div className="flex items-center space-x-2">
-          <CustomButton
-            onClick={() => navigate(`/tariff-calculator?hsCode=${hsCode}`)}
-            variant="outline"
-            size="sm"
-            className="flex items-center text-xs"
-          >
-            <Calculator size={14} className="mr-1.5" />
-            Calculate Duties & Fees
-          </CustomButton>
-          <CustomButton
-            onClick={handleExplainClick}
-            variant="outline"
-            size="sm"
-            className="flex items-center text-xs"
-          >
-            <LightbulbIcon size={14} className="mr-1.5" />
-            {loadingExplanation ? "Loading..." : explanation ? (showExplanation ? "Hide" : "Show") + " Explanation" : "Explain"}
-          </CustomButton>
-        </div>
-      </div>
-      
-      <div className="p-4">
-        {/* Basic tariff information */}
-        <div className="space-y-4">
+  // Define tariff sections for display
+  const tariffSections = tariffData ? [
+    {
+      id: "description",
+      title: "Description",
+      content: (
+        <p className="text-sm bg-muted/30 p-3 rounded-md">
+          {tariffData.brief_description || "No description available"}
+        </p>
+      )
+    },
+    {
+      id: "rates",
+      title: "Duty Rates",
+      content: (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <h4 className="text-sm font-medium mb-2">Description</h4>
+            <h5 className="text-xs font-medium mb-1">General Duty Rate (MFN)</h5>
             <p className="text-sm bg-muted/30 p-3 rounded-md">
-              {tariffData.brief_description || "No description available"}
+              {formatRate(tariffData.mfn_ad_val_rate)}
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">General Duty Rate (MFN)</h4>
-              <p className="text-sm bg-muted/30 p-3 rounded-md">
-                {formatRate(tariffData.mfn_ad_val_rate)}
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium mb-2">USMCA Rate (Canada/Mexico)</h4>
-              <p className="text-sm bg-muted/30 p-3 rounded-md">
-                {tariffData.usmca_indicator ? formatRate(tariffData.usmca_ad_val_rate) : "Not applicable"}
-              </p>
-            </div>
+
+          <div>
+            <h5 className="text-xs font-medium mb-1">USMCA Rate (Canada/Mexico)</h5>
+            <p className="text-sm bg-muted/30 p-3 rounded-md">
+              {tariffData.usmca_indicator ? formatRate(tariffData.usmca_ad_val_rate) : "Not applicable"}
+            </p>
           </div>
-          
-          {/* Additional trade agreement rates if available */}
+
           {tariffData.korea_indicator && (
             <div>
-              <h4 className="text-sm font-medium mb-2">Korea FTA Rate</h4>
+              <h5 className="text-xs font-medium mb-1">Korea FTA Rate</h5>
               <p className="text-sm bg-muted/30 p-3 rounded-md">
                 {formatRate(tariffData.korea_ad_val_rate)}
               </p>
             </div>
           )}
-          
-          {/* Special program indicators */}
+
           <div>
-            <h4 className="text-sm font-medium mb-2">Special Program Indicators</h4>
+            <h5 className="text-xs font-medium mb-1">Column 1 Rate</h5>
             <p className="text-sm bg-muted/30 p-3 rounded-md">
-              {tariffData.special_program_indicators || "None"}
+              {formatRate(tariffData.column_1_rate)}
             </p>
           </div>
-          
-          {/* Column 1 and Column 2 rates if available */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Column 1 Rate</h4>
-              <p className="text-sm bg-muted/30 p-3 rounded-md">
-                {formatRate(tariffData.column_1_rate)}
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium mb-2">Column 2 Rate</h4>
-              <p className="text-sm bg-muted/30 p-3 rounded-md">
-                {formatRate(tariffData.column_2_rate)}
-              </p>
-            </div>
-          </div>
-          
-          {/* External links */}
-          <div className="pt-2">
-            <a 
-              href={`https://hts.usitc.gov/?query=${hsCode}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline flex items-center"
-            >
-              <ExternalLink size={14} className="mr-1.5" />
-              View on USITC Harmonized Tariff Schedule
-            </a>
+
+          <div>
+            <h5 className="text-xs font-medium mb-1">Column 2 Rate</h5>
+            <p className="text-sm bg-muted/30 p-3 rounded-md">
+              {formatRate(tariffData.column_2_rate)}
+            </p>
           </div>
         </div>
-        
-        {/* AI-generated explanation */}
-        {showExplanation && (
-          <div className="mt-6 border-t border-border pt-4">
-            <div className="flex items-center mb-3">
-              <BookOpen size={16} className="mr-2 text-primary" />
-              <h4 className="font-medium">Tariff Explanation</h4>
+      )
+    },
+    {
+      id: "special",
+      title: "Special Program Indicators",
+      content: (
+        <p className="text-sm bg-muted/30 p-3 rounded-md">
+          {tariffData.special_program_indicators || "None"}
+        </p>
+      )
+    },
+    {
+      id: "links",
+      title: "External Resources",
+      content: (
+        <div className="space-y-2">
+          <a
+            href={`https://hts.usitc.gov/?query=${hsCode}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-primary hover:underline flex items-center"
+          >
+            <ExternalLink size={14} className="mr-1.5" />
+            View on USITC Harmonized Tariff Schedule
+          </a>
+          <CustomButton
+            onClick={() => navigate(`/tariff-calculator?hsCode=${hsCode}`)}
+            variant="outline"
+            size="sm"
+            className="flex items-center text-xs w-full justify-center"
+          >
+            <Calculator size={14} className="mr-1.5" />
+            Calculate Duties & Fees
+          </CustomButton>
+        </div>
+      )
+    }
+  ] : [];
+
+  return (
+    <div className="bg-card border border-border rounded-lg overflow-hidden animate-fade-in">
+      <div className="bg-muted/40 px-4 py-3 border-b border-border flex justify-between items-center">
+        <h3 className="font-medium">Tariff Information for {tariffData?.hts8}</h3>
+        <CustomButton
+          onClick={fetchTariffExplanation}
+          variant={explanation ? "default" : "outline"}
+          size="sm"
+          className="flex items-center text-xs bg-blue-500 hover:bg-blue-600 text-white"
+          disabled={loadingExplanation}
+        >
+          {loadingExplanation ? (
+            <>
+              <Loader2 size={14} className="mr-1.5 animate-spin" />
+              Getting Explanation...
+            </>
+          ) : (
+            <>
+              <LightbulbIcon size={14} className="mr-1.5" />
+              {explanation ? "Hide Explanation" : "Explain Tariff"}
+            </>
+          )}
+        </CustomButton>
+      </div>
+
+      <div className="p-4 space-y-6">
+        {/* Display explanation if available */}
+        {explanation && (
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 animate-fade-in">
+            <div className="flex items-start">
+              <LightbulbIcon className="h-5 w-5 text-blue-500 shrink-0 mr-2 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-700">Tariff Explanation</h4>
+                <div className="text-sm mt-1 text-blue-900 whitespace-pre-wrap">
+                  {explanation}
+                </div>
+              </div>
             </div>
-            
-            {loadingExplanation ? (
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
-                <span className="text-sm">Generating explanation...</span>
-              </div>
-            ) : (
-              <div className="bg-muted/30 p-3 rounded-md text-sm whitespace-pre-line">
-                {explanation}
-              </div>
-            )}
           </div>
         )}
+
+        {/* Display error if there is one */}
+        {(error || explanationError) && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <div className="flex items-start">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mr-2 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-destructive">Unable to load tariff data</h4>
+                <p className="text-sm mt-1">{error || explanationError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Display tariff data sections */}
+        {!error && tariffData && tariffSections.map((section) => (
+          <div key={section.id} className="space-y-3">
+            <h4 className="font-medium text-sm">{section.title}</h4>
+            {section.content}
+          </div>
+        ))}
       </div>
     </div>
   );

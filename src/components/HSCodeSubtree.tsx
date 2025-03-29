@@ -19,7 +19,13 @@ const HSCodeSubtree: React.FC<HSCodeSubtreeProps> = ({ hsCode }) => {
   const formatHsCode = (code: string): string => {
     // Remove any non-digit characters
     const digitsOnly = code.replace(/[^\d]/g, '');
-    
+
+    // If empty, return empty string
+    if (digitsOnly.length === 0) {
+      return '';
+    }
+
+    // Format based on length
     if (digitsOnly.length <= 4) {
       return digitsOnly;
     } else if (digitsOnly.length <= 6) {
@@ -67,14 +73,29 @@ const HSCodeSubtree: React.FC<HSCodeSubtreeProps> = ({ hsCode }) => {
 
   const handlePrefixChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
-    
+
     // Remove any non-digit characters for validation
     const digitsOnly = value.replace(/[^\d]/g, '');
-    
+
     // Only allow up to 8 digits
     if (digitsOnly.length <= 8) {
       // Format with dots
-      setPrefix(formatHsCode(digitsOnly));
+      const formattedCode = formatHsCode(digitsOnly);
+      setPrefix(formattedCode);
+
+      // Set cursor position after the last digit
+      const input = e.target as HTMLInputElement;
+      const cursorPos = input.selectionStart || 0;
+
+      // Schedule the cursor position update after React's re-render
+      setTimeout(() => {
+        // Calculate new cursor position based on dots added
+        const dotsBefore = (value.substring(0, cursorPos).match(/\./g) || []).length;
+        const dotsAfter = (formattedCode.substring(0, cursorPos).match(/\./g) || []).length;
+        const newPos = cursorPos + (dotsAfter - dotsBefore);
+
+        input.setSelectionRange(newPos, newPos);
+      }, 0);
     }
   };
 
@@ -121,9 +142,10 @@ const HSCodeSubtree: React.FC<HSCodeSubtreeProps> = ({ hsCode }) => {
                 onChange={handlePrefixChange}
                 placeholder="Enter HS code prefix (2-8 digits)"
                 className="w-full p-2 pr-10 border border-input rounded-md text-sm"
+                maxLength={11} // 8 digits + 3 dots max
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">
-                {prefix.length}/8
+                {prefix.replace(/[^\d]/g, '').length}/8
               </div>
             </div>
             <CustomButton 

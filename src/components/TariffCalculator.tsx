@@ -13,15 +13,15 @@ interface TariffCalculatorProps {
 interface ShipmentDetails {
   hsCode: string;
   description: string;
-  value: number;
-  quantity: number;
-  weight: number;
+  value: string | number;
+  quantity: string | number;
+  weight: string | number;
   countryOfOrigin: string;
   destinationCountry: string;
   transportMode: string;
   bondType: string;
-  insuranceValue: number;
-  freightCost: number;
+  insuranceValue: string | number;
+  freightCost: string | number;
 }
 
 interface CalculationResult {
@@ -49,15 +49,15 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
   const [shipmentDetails, setShipmentDetails] = useState<ShipmentDetails>({
     hsCode: initialHsCode,
     description: "",
-    value: 0,
-    quantity: 1,
-    weight: 0,
+    value: "",
+    quantity: "1",
+    weight: "",
     countryOfOrigin: "",
     destinationCountry: "US",
     transportMode: "ocean",
     bondType: "single-entry",
-    insuranceValue: 0,
-    freightCost: 0,
+    insuranceValue: "",
+    freightCost: "",
   });
 
   const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
@@ -98,9 +98,12 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     const { name, value } = e.target;
 
     if (["value", "quantity", "weight", "insuranceValue", "freightCost"].includes(name)) {
+      // For numeric fields, store the raw value without leading zeros
+      // Only convert to number when needed for calculations
+      const numericValue = value === "" ? "" : String(parseFloat(value) || 0);
       setShipmentDetails(prev => ({
         ...prev,
-        [name]: parseFloat(value) || 0
+        [name]: numericValue
       }));
     } else {
       setShipmentDetails(prev => ({
@@ -112,7 +115,9 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
 
   // Calculate duty and fees
   const calculateTariff = () => {
-    if (!tariffData || !shipmentDetails.value) {
+    const productValue = parseFloat(shipmentDetails.value as string) || 0;
+
+    if (!tariffData || !productValue) {
       setError("Missing required information. Please ensure you've entered an HS code and product value.");
       return;
     }
@@ -130,14 +135,14 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     }
 
     // Calculate duty amount
-    const dutyAmount = shipmentDetails.value * dutyRate;
+    const dutyAmount = productValue * dutyRate;
 
     // Calculate Merchandise Processing Fee (MPF)
-    let mpfAmount = shipmentDetails.value * 0.003464;
+    let mpfAmount = productValue * 0.003464;
     mpfAmount = Math.max(27.23, Math.min(mpfAmount, 528.33));
 
     // Calculate Harbor Maintenance Fee (HMF) - only for ocean shipments
-    const hmfAmount = shipmentDetails.transportMode === "ocean" ? shipmentDetails.value * 0.00125 : 0;
+    const hmfAmount = shipmentDetails.transportMode === "ocean" ? productValue * 0.00125 : 0;
 
     // Calculate bond fee - simplified calculation
     let bondFee = 0;
@@ -148,13 +153,14 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     }
 
     // Calculate insurance fee if provided
-    const insuranceFee = shipmentDetails.insuranceValue || 0;
+    const insuranceFee = parseFloat(shipmentDetails.insuranceValue as string) || 0;
+    const freightCost = parseFloat(shipmentDetails.freightCost as string) || 0;
 
     // Calculate total estimate
-    const totalEstimate = dutyAmount + mpfAmount + hmfAmount + bondFee + insuranceFee + (shipmentDetails.freightCost || 0);
+    const totalEstimate = dutyAmount + mpfAmount + hmfAmount + bondFee + insuranceFee + freightCost;
 
     // Calculate effective duty rate
-    const effectiveDutyRate = shipmentDetails.value > 0 ? (totalEstimate / shipmentDetails.value) : 0;
+    const effectiveDutyRate = productValue > 0 ? (totalEstimate / productValue) : 0;
 
     // Create breakdown for detailed view
     const breakdown = [
@@ -361,15 +367,34 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
           <label htmlFor="countryOfOrigin" className="text-sm font-medium">
             Country of Origin
           </label>
-          <input
+          <select
             id="countryOfOrigin"
             name="countryOfOrigin"
-            type="text"
             value={shipmentDetails.countryOfOrigin}
             onChange={handleInputChange}
-            placeholder="Enter country code (e.g., CN for China)"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          />
+          >
+            <option value="">Select a country</option>
+            <option value="CA">Canada (CA)</option>
+            <option value="MX">Mexico (MX)</option>
+            <option value="KR">Korea (KR)</option>
+            <option value="CN">China (CN)</option>
+            <option value="JP">Japan (JP)</option>
+            <option value="VN">Vietnam (VN)</option>
+            <option value="IN">India (IN)</option>
+            <option value="DE">Germany (DE)</option>
+            <option value="UK">United Kingdom (UK)</option>
+            <option value="FR">France (FR)</option>
+            <option value="IT">Italy (IT)</option>
+            <option value="BR">Brazil (BR)</option>
+            <option value="AU">Australia (AU)</option>
+            <option value="ID">Indonesia (ID)</option>
+            <option value="TH">Thailand (TH)</option>
+            <option value="MY">Malaysia (MY)</option>
+            <option value="SG">Singapore (SG)</option>
+            <option value="PH">Philippines (PH)</option>
+            <option value="TW">Taiwan (TW)</option>
+          </select>
         </div>
 
         {error && (
