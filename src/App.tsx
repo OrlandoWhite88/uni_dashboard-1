@@ -15,8 +15,6 @@ import BulkImport from "./pages/BulkImport";
 import BatchClassify from "./pages/BatchClassify";
 import DebugStripe from "./pages/DebugStripe";
 import TariffCalculatorPage from "./pages/TariffCalculatorPage";
-import TariffCalculatorPage from "./pages/TariffCalculatorPage";
-import TariffCalculatorPage from "./pages/TariffCalculatorPage";
 
 // Create Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -42,20 +40,12 @@ const App = () => (
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
-          
+
           {/* Settings route - accessible for all users */}
           <Route
-            path="/settings" 
-            element={<Settings />} 
+            path="/settings"
+            element={<Settings />}
           />
-          <Route
-            path="/tariff-calculator"
-            element={<TariffCalculatorPage />}
-          />
-          <Route
-            path="/tariff-calculator"
-            element={<TariffCalculatorPage />}
-          
           <Route
             path="/bulk-import"
             element={<BulkImport />}
@@ -72,11 +62,11 @@ const App = () => (
               </ProtectedRoute>
             }
           />
-         
+
           {/* Authentication callback routes */}
           <Route path="/oauth-callback" element={<OAuthCallback />} />
           <Route path="/sso-callback" element={<SSOCallback />} />
-          
+
           {/* Fallback route */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,8 +1,10 @@
+// At the top of src/components/TariffCalculator.tsx
 import React, { useState, useEffect } from "react";
 import { getTariffInfo } from "@/lib/classifierService";
 import { Loader2, AlertCircle, DollarSign, Package, Truck, FileText, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomButton from "./ui/CustomButton";
+
 
 interface TariffCalculatorProps {
   initialHsCode?: string;
