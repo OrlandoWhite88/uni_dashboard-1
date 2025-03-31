@@ -237,17 +237,207 @@ export async function getMonthlyUsageCount(userId: string) {
   const today = new Date();
   const firstDay = new Date(today.getUTCFullYear(), today.getUTCMonth(), 1);
   firstDay.setUTCHours(0, 0, 0, 0);
-  
+
   const { count, error } = await supabase
     .from('usage_logs')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .gte('created_at', firstDay.toISOString());
-    
+
   if (error) {
     console.error('Error getting monthly usage count:', error);
     return 0;
   }
-  
+
   return count || 0;
+}
+
+// Product Classifications Functions
+
+export interface ProductClassification {
+  id?: string;
+  user_id: string;
+  user_email?: string;
+  product_description: string;
+  hs_code: string;
+  confidence?: number;
+  classification_date?: string;
+  full_path?: string;
+  tariff_data?: any;
+  notes?: string;
+  is_favorite?: boolean;
+}
+
+/**
+ * Save a product classification to Supabase
+ */
+export async function saveProductClassification(
+  userId: string,
+  userEmail: string | null,
+  classification: Omit<ProductClassification, 'user_id' | 'user_email' | 'classification_date'>
+): Promise<ProductClassification | null> {
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .insert([{
+        user_id: userId,
+        user_email: userEmail,
+        product_description: classification.product_description,
+        hs_code: classification.hs_code,
+        confidence: classification.confidence,
+        full_path: classification.full_path,
+        tariff_data: classification.tariff_data,
+        notes: classification.notes,
+        is_favorite: classification.is_favorite || false,
+        classification_date: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving product classification:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Unexpected error in saveProductClassification:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all product classifications for a user
+ */
+export async function getUserProductClassifications(
+  userId: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    searchTerm?: string;
+  }
+): Promise<{ data: ProductClassification[]; count: number }> {
+  try {
+    const {
+      limit = 50,
+      offset = 0,
+      sortBy = 'classification_date',
+      sortOrder = 'desc',
+      searchTerm
+    } = options || {};
+
+    // Start building the query
+    let query = supabase
+      .from('product_classifications')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId);
+
+    // Add search term if provided
+    if (searchTerm) {
+      query = query.or(`product_description.ilike.%${searchTerm}%,hs_code.ilike.%${searchTerm}%`);
+    }
+
+    // Add sorting
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+    // Add pagination
+    query = query.range(offset, offset + limit - 1);
+
+    // Execute the query
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error getting user product classifications:', error);
+      return { data: [], count: 0 };
+    }
+
+    return { data: data || [], count: count || 0 };
+  } catch (error) {
+    console.error('Unexpected error in getUserProductClassifications:', error);
+    return { data: [], count: 0 };
+  }
+}
+
+/**
+ * Get a single product classification by ID
+ */
+export async function getProductClassification(
+  userId: string,
+  classificationId: string
+): Promise<ProductClassification | null> {
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('id', classificationId)
+      .single();
+
+    if (error) {
+      console.error('Error getting product classification:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Unexpected error in getProductClassification:', error);
+    return null;
+  }
+}
+
+/**
+ * Update a product classification
+ */
+export async function updateProductClassification(
+  userId: string,
+  classificationId: string,
+  updates: Partial<Omit<ProductClassification, 'id' | 'user_id' | 'classification_date'>>
+): Promise<ProductClassification | null> {
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .update(updates)
+      .eq('user_id', userId)
+      .eq('id', classificationId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating product classification:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Unexpected error in updateProductClassification:', error);
+    return null;
+  }
+}
+
+/**
+ * Delete a product classification
+ */
+export async function deleteProductClassification(
+  userId: string,
+  classificationId: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('product_classifications')
+      .delete()
+      .eq('user_id', userId)
+      .eq('id', classificationId);
+
+    if (error) {
+      console.error('Error deleting product classification:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Unexpected error in deleteProductClassification:', error);
+    return false;
+  }
 }
