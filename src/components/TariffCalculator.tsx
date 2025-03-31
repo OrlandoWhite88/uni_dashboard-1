@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { getTariffInfo } from "@/lib/classifierService";
 import { Loader2, AlertCircle, DollarSign, Package, Truck, FileText, Calculator } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import CustomButton from "./ui/CustomButton";
 
@@ -127,67 +126,30 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     let dutyRate = tariffData.mfn_ad_val_rate || 0;
     const origin = shipmentDetails.countryOfOrigin.toUpperCase();
 
-    // Check for FTA eligibility and apply appropriate rates
     if ((origin === "CA" || origin === "CANADA") && tariffData.usmca_indicator) {
       dutyRate = tariffData.usmca_ad_val_rate || 0;
     } else if ((origin === "MX" || origin === "MEXICO") && tariffData.usmca_indicator) {
       dutyRate = tariffData.usmca_ad_val_rate || 0;
     } else if ((origin === "KR" || origin === "KOREA") && tariffData.korea_indicator) {
       dutyRate = tariffData.korea_ad_val_rate || 0;
-    } else if ((origin === "AU" || origin === "AUSTRALIA") && tariffData.australia_indicator) {
-      dutyRate = tariffData.australia_ad_val_rate || 0;
-    } else if ((origin === "SG" || origin === "SINGAPORE") && tariffData.singapore_indicator) {
-      dutyRate = tariffData.singapore_ad_val_rate || 0;
-    } else if ((origin === "CL" || origin === "CHILE") && tariffData.chile_indicator) {
-      dutyRate = tariffData.chile_ad_val_rate || 0;
-    } else if ((origin === "IL" || origin === "ISRAEL") && tariffData.israel_fta_indicator) {
-      dutyRate = tariffData.israel_fta_ad_val_rate || 0;
-    } else if ((origin === "JO" || origin === "JORDAN") && tariffData.jordan_indicator) {
-      dutyRate = tariffData.jordan_ad_val_rate || 0;
-    } else if ((origin === "BH" || origin === "BAHRAIN") && tariffData.bahrain_indicator) {
-      dutyRate = tariffData.bahrain_ad_val_rate || 0;
-    } else if ((origin === "OM" || origin === "OMAN") && tariffData.oman_indicator) {
-      dutyRate = tariffData.oman_ad_val_rate || 0;
-    } else if ((origin === "PE" || origin === "PERU") && tariffData.peru_indicator) {
-      dutyRate = tariffData.peru_ad_val_rate || 0;
-    } else if ((origin === "CO" || origin === "COLOMBIA") && tariffData.columbia_indicator) {
-      dutyRate = tariffData.columbia_ad_val_rate || 0;
-    } else if ((origin === "PA" || origin === "PANAMA") && tariffData.panama_indicator) {
-      dutyRate = tariffData.panama_ad_val_rate || 0;
-    } else if (origin && ["GT", "SV", "HN", "NI", "CR", "DO"].includes(origin) && tariffData.dr_cafta_indicator) {
-      // DR-CAFTA countries: Guatemala, El Salvador, Honduras, Nicaragua, Costa Rica, Dominican Republic
-      dutyRate = tariffData.dr_cafta_ad_val_rate || 0;
-    } else if ((origin === "MA" || origin === "MOROCCO") && tariffData.morocco_indicator) {
-      dutyRate = tariffData.morocco_ad_val_rate || 0;
     }
-
-    // Ensure duty rate is a valid number
-    dutyRate = typeof dutyRate === 'number' && !isNaN(dutyRate) ? dutyRate : 0;
 
     // Calculate duty amount
     const dutyAmount = productValue * dutyRate;
 
     // Calculate Merchandise Processing Fee (MPF)
-    // 2025 rates: 0.3464% with min $32.71 and max $634.62
     let mpfAmount = productValue * 0.003464;
-    mpfAmount = Math.max(32.71, Math.min(mpfAmount, 634.62));
+    mpfAmount = Math.max(27.23, Math.min(mpfAmount, 528.33));
 
     // Calculate Harbor Maintenance Fee (HMF) - only for ocean shipments
-    // Current rate is 0.125% of value
     const hmfAmount = shipmentDetails.transportMode === "ocean" ? productValue * 0.00125 : 0;
 
-    // Calculate bond fee - more accurate calculation
+    // Calculate bond fee - simplified calculation
     let bondFee = 0;
     if (shipmentDetails.bondType === "single-entry") {
-      // Single entry bond is typically $100 minimum or 1% of duties, taxes, and fees
-      const feesForBondCalculation = dutyAmount + mpfAmount + hmfAmount;
-      bondFee = Math.max(100, feesForBondCalculation * 0.01);
+      bondFee = Math.max(100, (dutyAmount + mpfAmount + hmfAmount) * 0.01);
     } else if (shipmentDetails.bondType === "continuous") {
-      // Continuous bond is typically $50,000 per year, but we'll allocate a portion
-      // based on the shipment value relative to expected annual imports
-      // Assuming $1M in annual imports, this shipment's portion would be:
-      const annualImportEstimate = 1000000; // $1M
-      bondFee = Math.min(50, (productValue / annualImportEstimate) * 500);
+      bondFee = 50;
     }
 
     // Calculate insurance fee if provided
@@ -205,12 +167,12 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       {
         label: "Customs Duty",
         value: dutyAmount,
-        description: `${(dutyRate * 100).toFixed(2)}% of declared value${origin ? ` (${origin})` : ''}`
+        description: `${(dutyRate * 100).toFixed(2)}% of declared value`
       },
       {
         label: "Merchandise Processing Fee (MPF)",
         value: mpfAmount,
-        description: "0.3464% of value (min $32.71, max $634.62)"
+        description: "0.3464% of value (min $27.23, max $528.33)"
       },
       {
         label: "Harbor Maintenance Fee (HMF)",
@@ -221,8 +183,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
         label: "Customs Bond Fee",
         value: bondFee,
         description: shipmentDetails.bondType === "single-entry" ?
-          "Single entry bond fee (min $100 or 1% of duties & fees)" :
-          "Portion of continuous bond fee (based on shipment value)"
+          "Single entry bond fee" : "Portion of continuous bond fee"
       },
       {
         label: "Insurance",
@@ -267,9 +228,6 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       maximumFractionDigits: 2
     }).format(value);
 
-  // Navigate to the main classification page
-  const navigate = useNavigate();
-
   // Render step 1: HS Code input
   const renderHSCodeStep = () => (
     <div className="space-y-6">
@@ -301,26 +259,6 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
             <p className="text-sm">{error}</p>
           </div>
         )}
-
-        {/* Don't have an HS code? Classify here button */}
-        <div className="bg-secondary/20 p-4 rounded-lg border border-border/50">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div>
-              <h3 className="font-medium text-sm">Don't have an HS code?</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Use our AI-powered classifier to find the right HS code for your product
-              </p>
-            </div>
-            <CustomButton
-              variant="secondary"
-              onClick={() => navigate('/')}
-              className="whitespace-nowrap text-sm"
-              size="sm"
-            >
-              Classify Here
-            </CustomButton>
-          </div>
-        </div>
 
         <div className="flex justify-end">
           <CustomButton

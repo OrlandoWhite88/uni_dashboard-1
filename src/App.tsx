@@ -15,7 +15,6 @@ import BulkImport from "./pages/BulkImport";
 import BatchClassify from "./pages/BatchClassify";
 import DebugStripe from "./pages/DebugStripe";
 import TariffCalculatorPage from "./pages/TariffCalculatorPage";
-import MyClassifications from "./pages/MyClassifications";
 
 // Create Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -60,14 +59,6 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <DebugStripe />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/my-classifications"
-            element={
-              <ProtectedRoute>
-                <MyClassifications />
               </ProtectedRoute>
             }
           />

@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from "react";
 import CustomButton from "./ui/CustomButton";
-import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X, AlertTriangle, Loader2, Save, Check } from "lucide-react";
+import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import TariffInfo from "./TariffInfo";
 import HSCodeSubtree from "./HSCodeSubtree";
-import { explainTariff, getTariffInfo } from "@/lib/classifierService";
-import { useAuth, useUser } from "@clerk/clerk-react";
-import { saveProductClassification } from "@/lib/supabaseService";
-import { useToast } from "@/hooks/use-toast";
+import { explainTariff } from "@/lib/classifierService";
 
 interface HSCodeResultProps {
   hsCode: string;
@@ -21,29 +18,6 @@ interface HSCodeResultProps {
 const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HSCodeResultProps) => {
   const [copied, setCopied] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [tariffData, setTariffData] = useState<any>(null);
-
-  const { userId, isSignedIn } = useAuth();
-  const { user } = useUser();
-  const { toast } = useToast();
-
-  // Fetch tariff data for saving
-  useEffect(() => {
-    const fetchTariffData = async () => {
-      if (hsCode && hsCode.length >= 6) {
-        try {
-          const data = await getTariffInfo(hsCode);
-          setTariffData(data);
-        } catch (err) {
-          console.error("Error fetching tariff data for saving:", err);
-        }
-      }
-    };
-
-    fetchTariffData();
-  }, [hsCode]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(hsCode);
@@ -55,66 +29,17 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
     const content = `HS Code: ${hsCode}\nDescription: ${description}\nConfidence: ${confidence}%${fullPath ? `\nClassification Path: ${fullPath}` : ''}`;
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-
+    
     const a = document.createElement("a");
     a.href = url;
     a.download = `hs-code-${hsCode}.txt`;
     document.body.appendChild(a);
     a.click();
-
+    
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 100);
-  };
-
-  const handleSave = async () => {
-    if (!userId || !isSignedIn) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to save classifications",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const userEmail = user?.primaryEmailAddress?.emailAddress || null;
-
-      const result = await saveProductClassification(userId, userEmail, {
-        product_description: description,
-        hs_code: hsCode,
-        confidence,
-        full_path: fullPath,
-        tariff_data: tariffData || undefined
-      });
-
-      if (result) {
-        setSaved(true);
-        toast({
-          title: "Classification saved",
-          description: "You can view it in My Classifications",
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: "Save failed",
-          description: "Could not save classification. Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (err) {
-      console.error("Error saving classification:", err);
-      toast({
-        title: "Save failed",
-        description: "An error occurred while saving",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
   };
 
   return (
@@ -164,47 +89,31 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
             
             <TabsContent value="result" className="mt-0">
               <div className="flex flex-wrap gap-3 justify-center w-full">
-                <CustomButton
-                  onClick={handleCopy}
-                  variant="outline"
+                <CustomButton 
+                  onClick={handleCopy} 
+                  variant="outline" 
                   className="flex-1 min-w-[120px]"
                 >
                   {copied ? <CheckCircle size={16} className="mr-2" /> : <Copy size={16} className="mr-2" />}
                   {copied ? "Copied" : "Copy Code"}
                 </CustomButton>
-
-                <CustomButton
-                  onClick={handleDownload}
+                
+                <CustomButton 
+                  onClick={handleDownload} 
                   variant="outline"
                   className="flex-1 min-w-[120px]"
                 >
                   <DownloadCloud size={16} className="mr-2" />
                   Download
                 </CustomButton>
-
-                <CustomButton
-                  onClick={() => setShowExplanation(!showExplanation)}
+                
+                <CustomButton 
+                  onClick={() => setShowExplanation(!showExplanation)} 
                   variant={showExplanation ? "default" : "outline"}
                   className="flex-1 min-w-[120px]"
                 >
                   <HelpCircle size={16} className="mr-2" />
                   Explain
-                </CustomButton>
-
-                <CustomButton
-                  onClick={handleSave}
-                  variant={saved ? "default" : "outline"}
-                  className="flex-1 min-w-[120px]"
-                  disabled={saving || saved}
-                >
-                  {saving ? (
-                    <Loader2 size={16} className="mr-2 animate-spin" />
-                  ) : saved ? (
-                    <Check size={16} className="mr-2" />
-                  ) : (
-                    <Save size={16} className="mr-2" />
-                  )}
-                  {saving ? "Saving..." : saved ? "Saved" : "Save"}
                 </CustomButton>
               </div>
               
