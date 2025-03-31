@@ -138,8 +138,9 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     const dutyAmount = productValue * dutyRate;
 
     // Calculate Merchandise Processing Fee (MPF)
+    // 2025 rates: 0.3464% with min $32.71 and max $634.62
     let mpfAmount = productValue * 0.003464;
-    mpfAmount = Math.max(27.23, Math.min(mpfAmount, 528.33));
+    mpfAmount = Math.max(32.71, Math.min(mpfAmount, 634.62));
 
     // Calculate Harbor Maintenance Fee (HMF) - only for ocean shipments
     const hmfAmount = shipmentDetails.transportMode === "ocean" ? productValue * 0.00125 : 0;
@@ -172,7 +173,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       {
         label: "Merchandise Processing Fee (MPF)",
         value: mpfAmount,
-        description: "0.3464% of value (min $27.23, max $528.33)"
+        description: "0.3464% of value (min $32.71, max $634.62)"
       },
       {
         label: "Harbor Maintenance Fee (HMF)",
