@@ -134,6 +134,8 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
   // Calculate duty and fees
   const calculateTariff = () => {
     const productValue = parseFloat(shipmentDetails.value as string) || 0;
+    const productQuantity = parseFloat(shipmentDetails.quantity as string) || 1;
+    const productWeight = parseFloat(shipmentDetails.weight as string) || 0;
 
     if (!tariffData || !productValue) {
       setError("Missing required information. Please ensure you've entered an HS code and product value.");
@@ -142,45 +144,135 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
 
     console.log("Tariff data received:", tariffData);
     console.log("Product value:", productValue);
+    console.log("Product quantity:", productQuantity);
+    console.log("Product weight:", productWeight);
 
-    // Get the appropriate duty rate based on country of origin
-    // Ensure we're getting a valid number for the duty rate
-    let dutyRate = typeof tariffData.mfn_ad_val_rate === 'number' && !isNaN(tariffData.mfn_ad_val_rate) 
-      ? tariffData.mfn_ad_val_rate 
-      : 0;
+    // Determine the duty calculation method based on the tariff data
+    const dutyCalculationMethod = tariffData.mfn_rate_type_code || 
+                                 (tariffData.mfn_specific_rate ? "specific" : 
+                                  tariffData.mfn_ad_val_rate ? "ad_valorem" : "unknown");
     
-    // Convert percentage to decimal if needed (e.g., if API returns 5.0 instead of 0.05)
-    if (dutyRate > 1) {
-      dutyRate = dutyRate / 100;
-    }
+    console.log("Duty calculation method:", dutyCalculationMethod);
+    console.log("MFN text rate:", tariffData.mfn_text_rate);
+    console.log("MFN specific rate:", tariffData.mfn_specific_rate);
+    console.log("MFN ad valorem rate:", tariffData.mfn_ad_val_rate);
+
+    // Initialize duty amount
+    let dutyAmount = 0;
+    let dutyRateDescription = "0%";
+    let dutyRate = 0;
     
     const origin = shipmentDetails.countryOfOrigin.toUpperCase();
     console.log("Country of origin:", origin);
-    console.log("Initial duty rate:", dutyRate);
 
-    // Apply FTA rates if applicable
-    if ((origin === "CA" || origin === "CANADA") && tariffData.usmca_indicator) {
-      const usmcaRate = typeof tariffData.usmca_ad_val_rate === 'number' && !isNaN(tariffData.usmca_ad_val_rate)
-        ? tariffData.usmca_ad_val_rate
-        : dutyRate;
-      dutyRate = usmcaRate > 1 ? usmcaRate / 100 : usmcaRate;
-      console.log("Applied USMCA rate:", dutyRate);
-    } else if ((origin === "MX" || origin === "MEXICO") && tariffData.usmca_indicator) {
-      const usmcaRate = typeof tariffData.usmca_ad_val_rate === 'number' && !isNaN(tariffData.usmca_ad_val_rate)
-        ? tariffData.usmca_ad_val_rate
-        : dutyRate;
-      dutyRate = usmcaRate > 1 ? usmcaRate / 100 : usmcaRate;
-      console.log("Applied USMCA rate:", dutyRate);
-    } else if ((origin === "KR" || origin === "KOREA") && tariffData.korea_indicator) {
-      const koreaRate = typeof tariffData.korea_ad_val_rate === 'number' && !isNaN(tariffData.korea_ad_val_rate)
-        ? tariffData.korea_ad_val_rate
-        : dutyRate;
-      dutyRate = koreaRate > 1 ? koreaRate / 100 : koreaRate;
-      console.log("Applied Korea FTA rate:", dutyRate);
+    // Check if this product is eligible for duty-free treatment under an FTA
+    let isFtaEligible = false;
+    let ftaName = "";
+
+    // Check USMCA (US-Mexico-Canada Agreement)
+    if ((origin === "CA" || origin === "CANADA" || origin === "MX" || origin === "MEXICO") && 
+        tariffData.usmca_indicator) {
+      isFtaEligible = true;
+      ftaName = "USMCA";
+    } 
+    // Check Korea FTA
+    else if ((origin === "KR" || origin === "KOREA") && tariffData.korea_indicator) {
+      isFtaEligible = true;
+      ftaName = "Korea FTA";
     }
+    // Check Australia FTA
+    else if ((origin === "AU" || origin === "AUSTRALIA") && tariffData.australia_indicator) {
+      isFtaEligible = true;
+      ftaName = "Australia FTA";
+    }
+    // Check Singapore FTA
+    else if ((origin === "SG" || origin === "SINGAPORE") && tariffData.singapore_indicator) {
+      isFtaEligible = true;
+      ftaName = "Singapore FTA";
+    }
+    // Check Chile FTA
+    else if ((origin === "CL" || origin === "CHILE") && tariffData.chile_indicator) {
+      isFtaEligible = true;
+      ftaName = "Chile FTA";
+    }
+    // Check other FTAs similarly...
 
-    // Calculate duty amount
-    const dutyAmount = productValue * dutyRate;
+    console.log("FTA eligible:", isFtaEligible, ftaName);
+
+    // If eligible for FTA, duty is zero
+    if (isFtaEligible) {
+      dutyAmount = 0;
+      dutyRateDescription = `0% (${ftaName})`;
+    } 
+    // Otherwise, calculate based on the duty type
+    else {
+      // Handle specific rate duties (e.g., cents per liter)
+      if (dutyCalculationMethod === "specific" || tariffData.mfn_specific_rate) {
+        // Get the specific rate (e.g., $0.0026 per liter)
+        const specificRate = typeof tariffData.mfn_specific_rate === 'number' && !isNaN(tariffData.mfn_specific_rate)
+          ? tariffData.mfn_specific_rate
+          : 0;
+        
+        // Extract rate from text if available (e.g., "0.26 cents/liter")
+        let rateFromText = 0;
+        let unit = "unit";
+        
+        if (tariffData.mfn_text_rate) {
+          const rateText = tariffData.mfn_text_rate.toString();
+          console.log("Parsing rate from text:", rateText);
+          
+          // Extract numeric value and unit
+          const centsPerUnitMatch = rateText.match(/(\d+\.?\d*)\s*cents?\/(liter|kg|piece|dozen|m2|m3|pair)/i);
+          const dollarsPerUnitMatch = rateText.match(/\$(\d+\.?\d*)\/(liter|kg|piece|dozen|m2|m3|pair)/i);
+          
+          if (centsPerUnitMatch) {
+            rateFromText = parseFloat(centsPerUnitMatch[1]) / 100; // Convert cents to dollars
+            unit = centsPerUnitMatch[2].toLowerCase();
+            console.log(`Extracted ${rateFromText} per ${unit} from text`);
+          } else if (dollarsPerUnitMatch) {
+            rateFromText = parseFloat(dollarsPerUnitMatch[1]);
+            unit = dollarsPerUnitMatch[2].toLowerCase();
+            console.log(`Extracted ${rateFromText} per ${unit} from text`);
+          }
+        }
+        
+        // Use the extracted rate if available, otherwise use the specific rate from the data
+        const effectiveSpecificRate = rateFromText > 0 ? rateFromText : specificRate;
+        console.log("Effective specific rate:", effectiveSpecificRate, "per", unit);
+        
+        // Calculate duty based on quantity or weight depending on the unit
+        if (unit.includes("liter") || unit.includes("l")) {
+          // Use quantity for liter-based duties
+          dutyAmount = effectiveSpecificRate * productQuantity;
+          dutyRateDescription = `${(effectiveSpecificRate * 100).toFixed(2)}¢ per liter`;
+        } else if (unit.includes("kg")) {
+          // Use weight for kg-based duties
+          dutyAmount = effectiveSpecificRate * (productWeight || productQuantity);
+          dutyRateDescription = `${(effectiveSpecificRate * 100).toFixed(2)}¢ per kg`;
+        } else {
+          // Default to quantity for other units
+          dutyAmount = effectiveSpecificRate * productQuantity;
+          dutyRateDescription = `${(effectiveSpecificRate * 100).toFixed(2)}¢ per unit`;
+        }
+      } 
+      // Handle ad valorem duties (percentage of value)
+      else {
+        // Get the ad valorem rate
+        dutyRate = typeof tariffData.mfn_ad_val_rate === 'number' && !isNaN(tariffData.mfn_ad_val_rate) 
+          ? tariffData.mfn_ad_val_rate 
+          : 0;
+        
+        // Convert percentage to decimal if needed (e.g., if API returns 5.0 instead of 0.05)
+        if (dutyRate > 1) {
+          dutyRate = dutyRate / 100;
+        }
+        
+        // Calculate duty amount
+        dutyAmount = productValue * dutyRate;
+        dutyRateDescription = `${(dutyRate * 100).toFixed(2)}% of declared value`;
+      }
+    }
+    
     console.log("Calculated duty amount:", dutyAmount);
 
     // Calculate Merchandise Processing Fee (MPF)
@@ -228,7 +320,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       {
         label: "Customs Duty",
         value: dutyAmount,
-        description: `${(dutyRate * 100).toFixed(2)}% of declared value${origin ? ` (${origin})` : ''}`
+        description: dutyRateDescription + (origin ? ` (${origin})` : '')
       },
       {
         label: "Merchandise Processing Fee (MPF)",
@@ -392,8 +484,13 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
           </div>
 
           <div className="grid gap-2">
-            <label htmlFor="quantity" className="text-sm font-medium">
+            <label htmlFor="quantity" className="text-sm font-medium flex items-center">
               Quantity
+              {tariffData?.mfn_specific_rate || (tariffData?.mfn_text_rate && tariffData.mfn_text_rate.toString().includes('cents')) ? (
+                <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">
+                  Required for this HS code
+                </span>
+              ) : null}
             </label>
             <input
               id="quantity"
@@ -402,15 +499,30 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
               min="1"
               value={shipmentDetails.quantity}
               onChange={handleInputChange}
-              placeholder="Enter quantity"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Enter quantity (e.g., number of liters, kg, pieces)"
+              className={cn(
+                "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                tariffData?.mfn_specific_rate || (tariffData?.mfn_text_rate && tariffData.mfn_text_rate.toString().includes('cents')) 
+                  ? "border-yellow-300 bg-yellow-50" 
+                  : "border-input"
+              )}
             />
+            {tariffData?.mfn_specific_rate || (tariffData?.mfn_text_rate && tariffData.mfn_text_rate.toString().includes('cents')) ? (
+              <p className="text-xs text-yellow-600 mt-1">
+                This HS code has a specific rate duty ({tariffData.mfn_text_rate}). Quantity is required for accurate calculation.
+              </p>
+            ) : null}
           </div>
         </div>
 
         <div className="grid gap-2">
-          <label htmlFor="weight" className="text-sm font-medium">
+          <label htmlFor="weight" className="text-sm font-medium flex items-center">
             Weight (kg)
+            {tariffData?.mfn_text_rate && tariffData.mfn_text_rate.toString().includes('kg') ? (
+              <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">
+                Required for this HS code
+              </span>
+            ) : null}
           </label>
           <input
             id="weight"
@@ -421,8 +533,18 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
             value={shipmentDetails.weight}
             onChange={handleInputChange}
             placeholder="Enter weight in kg"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className={cn(
+              "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+              tariffData?.mfn_text_rate && tariffData.mfn_text_rate.toString().includes('kg')
+                ? "border-yellow-300 bg-yellow-50" 
+                : "border-input"
+            )}
           />
+          {tariffData?.mfn_text_rate && tariffData.mfn_text_rate.toString().includes('kg') ? (
+            <p className="text-xs text-yellow-600 mt-1">
+              This HS code has a weight-based duty ({tariffData.mfn_text_rate}). Weight is required for accurate calculation.
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-2">
@@ -437,10 +559,42 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="">Select a country</option>
-            <option value="CA">Canada (CA)</option>
-            <option value="MX">Mexico (MX)</option>
-            <option value="KR">Korea (KR)</option>
-            <option value="CN">China (CN)</option>
+            <optgroup label="USMCA Countries">
+              <option value="CA">Canada (CA)</option>
+              <option value="MX">Mexico (MX)</option>
+            </optgroup>
+            <optgroup label="Free Trade Agreement Partners">
+              <option value="AU">Australia (AU)</option>
+              <option value="BH">Bahrain (BH)</option>
+              <option value="CL">Chile (CL)</option>
+              <option value="CO">Colombia (CO)</option>
+              <option value="CR">Costa Rica (CR)</option>
+              <option value="DO">Dominican Republic (DO)</option>
+              <option value="SV">El Salvador (SV)</option>
+              <option value="GT">Guatemala (GT)</option>
+              <option value="HN">Honduras (HN)</option>
+              <option value="IL">Israel (IL)</option>
+              <option value="JO">Jordan (JO)</option>
+              <option value="KR">Korea (KR)</option>
+              <option value="MA">Morocco (MA)</option>
+              <option value="NI">Nicaragua (NI)</option>
+              <option value="OM">Oman (OM)</option>
+              <option value="PA">Panama (PA)</option>
+              <option value="PE">Peru (PE)</option>
+              <option value="SG">Singapore (SG)</option>
+            </optgroup>
+            <optgroup label="Other Major Trading Partners">
+              <option value="CN">China (CN)</option>
+              <option value="JP">Japan (JP)</option>
+              <option value="DE">Germany (DE)</option>
+              <option value="UK">United Kingdom (UK)</option>
+              <option value="FR">France (FR)</option>
+              <option value="IT">Italy (IT)</option>
+              <option value="BR">Brazil (BR)</option>
+              <option value="IN">India (IN)</option>
+              <option value="VN">Vietnam (VN)</option>
+              <option value="TW">Taiwan (TW)</option>
+            </optgroup>
             <option value="JP">Japan (JP)</option>
             <option value="VN">Vietnam (VN)</option>
             <option value="IN">India (IN)</option>
