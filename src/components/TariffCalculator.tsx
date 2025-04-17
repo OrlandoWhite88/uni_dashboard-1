@@ -73,7 +73,25 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     setLoading(true);
     setError(null);
     try {
+      console.log("Fetching tariff data for HS code:", code);
       const data = await getTariffInfo(code);
+      console.log("Received tariff data:", data);
+      
+      // Validate the tariff data
+      if (!data || typeof data !== 'object') {
+        throw new Error("Invalid tariff data received");
+      }
+      
+      // Check for required fields
+      if (data.hts8 === undefined) {
+        console.warn("Missing hts8 field in tariff data");
+      }
+      
+      // Log duty rates for debugging
+      console.log("MFN ad valorem rate:", data.mfn_ad_val_rate);
+      console.log("USMCA indicator:", data.usmca_indicator);
+      console.log("USMCA ad valorem rate:", data.usmca_ad_val_rate);
+      
       setTariffData(data);
 
       // Update shipment details with HS code description if available
@@ -87,7 +105,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
 
       setLoading(false);
     } catch (err: any) {
-      setError("Failed to fetch tariff information. Please try again.");
+      setError(`Failed to fetch tariff information: ${err.message}`);
       setLoading(false);
       console.error("Error fetching tariff data:", err);
     }
@@ -122,28 +140,58 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       return;
     }
 
-    // Get the appropriate duty rate based on country of origin
-    let dutyRate = tariffData.mfn_ad_val_rate || 0;
-    const origin = shipmentDetails.countryOfOrigin.toUpperCase();
+    console.log("Tariff data received:", tariffData);
+    console.log("Product value:", productValue);
 
+    // Get the appropriate duty rate based on country of origin
+    // Ensure we're getting a valid number for the duty rate
+    let dutyRate = typeof tariffData.mfn_ad_val_rate === 'number' && !isNaN(tariffData.mfn_ad_val_rate) 
+      ? tariffData.mfn_ad_val_rate 
+      : 0;
+    
+    // Convert percentage to decimal if needed (e.g., if API returns 5.0 instead of 0.05)
+    if (dutyRate > 1) {
+      dutyRate = dutyRate / 100;
+    }
+    
+    const origin = shipmentDetails.countryOfOrigin.toUpperCase();
+    console.log("Country of origin:", origin);
+    console.log("Initial duty rate:", dutyRate);
+
+    // Apply FTA rates if applicable
     if ((origin === "CA" || origin === "CANADA") && tariffData.usmca_indicator) {
-      dutyRate = tariffData.usmca_ad_val_rate || 0;
+      const usmcaRate = typeof tariffData.usmca_ad_val_rate === 'number' && !isNaN(tariffData.usmca_ad_val_rate)
+        ? tariffData.usmca_ad_val_rate
+        : dutyRate;
+      dutyRate = usmcaRate > 1 ? usmcaRate / 100 : usmcaRate;
+      console.log("Applied USMCA rate:", dutyRate);
     } else if ((origin === "MX" || origin === "MEXICO") && tariffData.usmca_indicator) {
-      dutyRate = tariffData.usmca_ad_val_rate || 0;
+      const usmcaRate = typeof tariffData.usmca_ad_val_rate === 'number' && !isNaN(tariffData.usmca_ad_val_rate)
+        ? tariffData.usmca_ad_val_rate
+        : dutyRate;
+      dutyRate = usmcaRate > 1 ? usmcaRate / 100 : usmcaRate;
+      console.log("Applied USMCA rate:", dutyRate);
     } else if ((origin === "KR" || origin === "KOREA") && tariffData.korea_indicator) {
-      dutyRate = tariffData.korea_ad_val_rate || 0;
+      const koreaRate = typeof tariffData.korea_ad_val_rate === 'number' && !isNaN(tariffData.korea_ad_val_rate)
+        ? tariffData.korea_ad_val_rate
+        : dutyRate;
+      dutyRate = koreaRate > 1 ? koreaRate / 100 : koreaRate;
+      console.log("Applied Korea FTA rate:", dutyRate);
     }
 
     // Calculate duty amount
     const dutyAmount = productValue * dutyRate;
+    console.log("Calculated duty amount:", dutyAmount);
 
     // Calculate Merchandise Processing Fee (MPF)
     // 2025 rates: 0.3464% with min $32.71 and max $634.62
     let mpfAmount = productValue * 0.003464;
     mpfAmount = Math.max(32.71, Math.min(mpfAmount, 634.62));
+    console.log("Calculated MPF amount:", mpfAmount);
 
     // Calculate Harbor Maintenance Fee (HMF) - only for ocean shipments
     const hmfAmount = shipmentDetails.transportMode === "ocean" ? productValue * 0.00125 : 0;
+    console.log("Calculated HMF amount:", hmfAmount);
 
     // Calculate bond fee - simplified calculation
     let bondFee = 0;
@@ -152,13 +200,25 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     } else if (shipmentDetails.bondType === "continuous") {
       bondFee = 50;
     }
+    console.log("Calculated bond fee:", bondFee);
 
     // Calculate insurance fee if provided
     const insuranceFee = parseFloat(shipmentDetails.insuranceValue as string) || 0;
+    console.log("Insurance fee:", insuranceFee);
+    
     const freightCost = parseFloat(shipmentDetails.freightCost as string) || 0;
+    console.log("Freight cost:", freightCost);
 
-    // Calculate total estimate
-    const totalEstimate = dutyAmount + mpfAmount + hmfAmount + bondFee + insuranceFee + freightCost;
+    // Calculate total estimate - ensure all values are valid numbers
+    const totalEstimate = 
+      (isNaN(dutyAmount) ? 0 : dutyAmount) + 
+      (isNaN(mpfAmount) ? 0 : mpfAmount) + 
+      (isNaN(hmfAmount) ? 0 : hmfAmount) + 
+      (isNaN(bondFee) ? 0 : bondFee) + 
+      (isNaN(insuranceFee) ? 0 : insuranceFee) + 
+      (isNaN(freightCost) ? 0 : freightCost);
+    
+    console.log("Total estimate:", totalEstimate);
 
     // Calculate effective duty rate
     const effectiveDutyRate = productValue > 0 ? (totalEstimate / productValue) : 0;
@@ -168,7 +228,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       {
         label: "Customs Duty",
         value: dutyAmount,
-        description: `${(dutyRate * 100).toFixed(2)}% of declared value`
+        description: `${(dutyRate * 100).toFixed(2)}% of declared value${origin ? ` (${origin})` : ''}`
       },
       {
         label: "Merchandise Processing Fee (MPF)",
@@ -184,7 +244,8 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
         label: "Customs Bond Fee",
         value: bondFee,
         description: shipmentDetails.bondType === "single-entry" ?
-          "Single entry bond fee" : "Portion of continuous bond fee"
+          "Single entry bond fee (min $100 or 1% of duties & fees)" : 
+          "Portion of continuous bond fee (based on shipment value)"
       },
       {
         label: "Insurance",
@@ -193,7 +254,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       },
       {
         label: "Freight Cost",
-        value: shipmentDetails.freightCost,
+        value: parseFloat(shipmentDetails.freightCost as string) || 0,
         description: "Cost of transportation"
       }
     ];
