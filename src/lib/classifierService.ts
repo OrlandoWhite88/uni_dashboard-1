@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
-import { logUsage } from "@/lib/supabaseService";
+import { logUsage, saveClassification } from "@/lib/supabaseService";
 import { useAuth } from "@clerk/clerk-react";
 import { trackClassificationResult } from "@/lib/analyticsService";
 
@@ -408,7 +408,7 @@ export function useClassifier() {
   /**
    * Start the classification process
    */
-  const { userId } = useAuth();
+  const { userId, user } = useAuth();
 
   /**
    * Update the classification stage and loading state
@@ -738,6 +738,25 @@ export function useClassifier() {
         // Use a fixed high confidence range between 94-99%
         let confidence = 94; // Base confidence
         
+        // Save classification to database if user is logged in
+        if (userId && productDescription) {
+          try {
+            await saveClassification({
+              user_id: userId,
+              user_email: user?.primaryEmailAddress?.emailAddress,
+              product_description: productDescription,
+              hs_code: finalCode,
+              confidence: confidence,
+              full_path: undefined, // String results don't have path info
+              tariff_data: null,
+              notes: null
+            });
+            addDebug(`Classification saved to database for user: ${userId}`);
+          } catch (error) {
+            addDebug(`Error saving classification: ${error}`);
+          }
+        }
+        
         // Update state to show result immediately
         setState({
           status: "result",
@@ -796,6 +815,25 @@ export function useClassifier() {
             
             // Cap at 99% - high confidence but never 100%
             confidence = Math.min(confidence, 99);
+
+            // Save classification to database if user is logged in
+            if (userId && (productDescription || description)) {
+              try {
+                await saveClassification({
+                  user_id: userId,
+                  user_email: user?.primaryEmailAddress?.emailAddress,
+                  product_description: productDescription || description,
+                  hs_code: finalCode,
+                  confidence: confidence,
+                  full_path: path,
+                  tariff_data: null,
+                  notes: null
+                });
+                addDebug(`Classification saved to database for user: ${userId}`);
+              } catch (error) {
+                addDebug(`Error saving classification: ${error}`);
+              }
+            }
 
             // Update state to show result immediately
             setState({

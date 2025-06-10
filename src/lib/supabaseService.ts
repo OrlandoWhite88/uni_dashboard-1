@@ -251,3 +251,150 @@ export async function getMonthlyUsageCount(userId: string) {
   
   return count || 0;
 }
+
+// Classification history functions
+export interface ClassificationRecord {
+  id?: string;
+  user_id: string;
+  user_email?: string;
+  product_description: string;
+  hs_code: string;
+  confidence?: number;
+  classification_date?: string;
+  full_path?: string;
+  tariff_data?: any;
+  notes?: string;
+  is_favorite?: boolean;
+}
+
+export async function saveClassification(classification: ClassificationRecord) {
+  console.log('Saving classification:', classification);
+  
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .insert([{
+        user_id: classification.user_id,
+        user_email: classification.user_email,
+        product_description: classification.product_description,
+        hs_code: classification.hs_code,
+        confidence: classification.confidence,
+        full_path: classification.full_path,
+        tariff_data: classification.tariff_data,
+        notes: classification.notes,
+        is_favorite: classification.is_favorite || false
+      }])
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error saving classification:', error);
+      return null;
+    }
+    
+    console.log('Classification saved successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Unexpected error saving classification:', error);
+    return null;
+  }
+}
+
+export async function getUserClassifications(userId: string, limit: number = 50, offset: number = 0) {
+  console.log('Getting user classifications:', { userId, limit, offset });
+  
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('classification_date', { ascending: false })
+      .range(offset, offset + limit - 1);
+      
+    if (error) {
+      console.error('Error getting user classifications:', error);
+      return [];
+    }
+    
+    console.log('Retrieved classifications:', data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('Unexpected error getting classifications:', error);
+    return [];
+  }
+}
+
+export async function updateClassification(id: string, updates: Partial<ClassificationRecord>) {
+  console.log('Updating classification:', { id, updates });
+  
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating classification:', error);
+      return null;
+    }
+    
+    console.log('Classification updated successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Unexpected error updating classification:', error);
+    return null;
+  }
+}
+
+export async function deleteClassification(id: string) {
+  console.log('Deleting classification:', id);
+  
+  try {
+    const { error } = await supabase
+      .from('product_classifications')
+      .delete()
+      .eq('id', id);
+      
+    if (error) {
+      console.error('Error deleting classification:', error);
+      return false;
+    }
+    
+    console.log('Classification deleted successfully');
+    return true;
+  } catch (error) {
+    console.error('Unexpected error deleting classification:', error);
+    return false;
+  }
+}
+
+export async function toggleClassificationFavorite(id: string, isFavorite: boolean) {
+  return updateClassification(id, { is_favorite: isFavorite });
+}
+
+export async function searchClassifications(userId: string, searchTerm: string, limit: number = 50) {
+  console.log('Searching classifications:', { userId, searchTerm, limit });
+  
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .select('*')
+      .eq('user_id', userId)
+      .or(`product_description.ilike.%${searchTerm}%,hs_code.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`)
+      .order('classification_date', { ascending: false })
+      .limit(limit);
+      
+    if (error) {
+      console.error('Error searching classifications:', error);
+      return [];
+    }
+    
+    console.log('Search results:', data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('Unexpected error searching classifications:', error);
+    return [];
+  }
+}
