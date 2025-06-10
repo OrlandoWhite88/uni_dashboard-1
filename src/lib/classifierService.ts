@@ -240,31 +240,23 @@ export async function continueClassification(
  * set of tariff data from the tariff.xlsx file
  */
 export async function getTariffInfo(hsCode: string): Promise<any> {
-  const startTime = performance.now();
-  console.log(`🔍 getTariffInfo called for: ${hsCode} at ${new Date().toISOString()}`);
   logDebug(`Fetching tariff info for: ${hsCode}`);
 
   // Format the HS code by removing periods and other non-alphanumeric characters
   // The API expects codes without periods (e.g., "03028511" instead of "0302.85.11.00")
   const formattedHsCode = hsCode.replace(/[^a-zA-Z0-9]/g, '');
 
-  console.log(`🔧 Formatted HS code: ${formattedHsCode} at ${performance.now() - startTime}ms`);
   logDebug(`Formatted HS code for API request: ${formattedHsCode}`);
 
   try {
-    const fetchUrl = `${API_BASE_URL}/tariff_details/${formattedHsCode}`;
-    console.log(`🌐 About to fetch: ${fetchUrl} at ${performance.now() - startTime}ms`);
-    
     // Use the new tariff_details endpoint with the formatted HS code
-    const response = await fetch(fetchUrl, {
+    const response = await fetch(`${API_BASE_URL}/tariff_details/${formattedHsCode}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
       mode: "cors",
     });
-
-    console.log(`📥 Fetch completed with status ${response.status} at ${performance.now() - startTime}ms`);
 
     if (!response.ok) {
       // Handle 404 errors specifically
@@ -275,20 +267,16 @@ export async function getTariffInfo(hsCode: string): Promise<any> {
       }
     }
 
-    console.log(`📋 About to parse JSON at ${performance.now() - startTime}ms`);
     const data = await response.json();
-    console.log(`✅ JSON parsed at ${performance.now() - startTime}ms`);
 
     // Check if the data is valid
     if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
       throw new Error(`No data returned for HS code ${formattedHsCode}`);
     }
 
-    console.log(`🎉 getTariffInfo completed successfully in ${performance.now() - startTime}ms`);
     logDebug(`Tariff info retrieved successfully:`, data);
     return data;
   } catch (error) {
-    console.log(`💥 getTariffInfo error after ${performance.now() - startTime}ms:`, error.message);
     logDebug(`Error fetching tariff info: ${error.message}`);
     throw error;
   }
