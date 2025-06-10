@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import Layout from '@/components/Layout';
 import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord } from '@/lib/supabaseService';
-import { getTariffInfo } from '@/lib/classifierService';
+import TariffInfo from '@/components/TariffInfo';
 import { 
   Search, 
   Calendar, 
@@ -30,8 +30,7 @@ const ClassificationHistory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  const [loadingTariff, setLoadingTariff] = useState<string | null>(null);
-  const [tariffData, setTariffData] = useState<Record<string, any>>({});
+  const [showTariffFor, setShowTariffFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (userId) {
@@ -125,24 +124,7 @@ const ClassificationHistory = () => {
     }
   };
 
-  const loadTariffData = async (hsCode: string, classificationId: string) => {
-    if (tariffData[classificationId]) return; // Already loaded
-    
-    setLoadingTariff(classificationId);
-    try {
-      const data = await getTariffInfo(hsCode);
-      setTariffData(prev => ({ ...prev, [classificationId]: data }));
-    } catch (error) {
-      console.error('Error loading tariff data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load tariff information",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingTariff(null);
-    }
-  };
+
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -359,41 +341,26 @@ const ClassificationHistory = () => {
                         <CustomButton
                           variant="outline"
                           size="sm"
-                          onClick={() => loadTariffData(classification.hs_code, classification.id!)}
-                          disabled={loadingTariff === classification.id}
+                          onClick={() => setShowTariffFor(showTariffFor === classification.id ? null : classification.id!)}
                         >
-                          {loadingTariff === classification.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                          )}
-                          Load Tariff Info
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          {showTariffFor === classification.id ? 'Hide' : 'Show'} Tariff Info
                         </CustomButton>
                       </div>
 
                       {/* Tariff Information */}
-                      <div>
-                        <h4 className="font-medium mb-3">Tariff Information</h4>
-                        
-                        {tariffData[classification.id!] ? (
-                          <div className="space-y-3">
-                            {Object.entries(tariffData[classification.id!]).map(([key, value]) => (
-                              <div key={key}>
-                                <label className="text-sm font-medium text-muted-foreground capitalize">
-                                  {key.replace(/_/g, ' ')}
-                                </label>
-                                <p className="text-sm mt-1 bg-background p-2 rounded border">
-                                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                                </p>
-                              </div>
-                            ))}
+                      {showTariffFor === classification.id && (
+                        <div>
+                          <h4 className="font-medium mb-3">Tariff Information</h4>
+                          <TariffInfo hsCode={classification.hs_code} />
+                          <div className="text-center mt-4">
+                            <p className="text-xs text-muted-foreground">
+                              Tariff data is provided by official customs sources but may not reflect the most recent updates.
+                              Always consult with a customs broker for the most current information.
+                            </p>
                           </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            Click "Load Tariff Info" to view detailed tariff information for this HS code.
-                          </p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
