@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { getTariffInfo, explainTariff } from "@/lib/classifierService";
 import { Loader2, AlertCircle, ExternalLink, BookOpen, LightbulbIcon, Calculator, Info } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -646,7 +646,11 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
 
   useEffect(() => {
     const fetchTariffInfo = async () => {
+      console.log(`🚀 TariffInfo useEffect triggered for HS code: ${hsCode}`);
+      const startTime = performance.now();
+      
       try {
+        console.log(`⏱️  Setting loading to true at: ${performance.now() - startTime}ms`);
         setLoading(true);
         setError(null);
         
@@ -656,7 +660,9 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
           return;
         }
         
+        console.log(`📡 About to call getTariffInfo at: ${performance.now() - startTime}ms`);
         const data = await getTariffInfo(hsCode);
+        console.log(`✅ getTariffInfo completed at: ${performance.now() - startTime}ms`);
         console.log("Received tariff data:", data);
         
         // Check if the data is valid
@@ -672,11 +678,15 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
           return;
         }
         
+        console.log(`💾 About to setTariffData at: ${performance.now() - startTime}ms`);
         setTariffData(data);
+        console.log(`🎯 setTariffData completed at: ${performance.now() - startTime}ms`);
       } catch (err: any) {
+        console.log(`❌ Error occurred at: ${performance.now() - startTime}ms`);
         setError(`Error fetching tariff information: ${err.message}`);
         console.error("Tariff fetch error:", err);
       } finally {
+        console.log(`🏁 Setting loading to false at: ${performance.now() - startTime}ms`);
         setLoading(false);
       }
     };
@@ -836,8 +846,11 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
     );
   }
 
-  // Get organized tariff sections for display
-  const tariffSections = getTariffSections(tariffData);
+  // Get organized tariff sections for display (memoized to prevent expensive recalculation)
+  const tariffSections = useMemo(() => {
+    console.log(`🧮 Computing tariff sections for tariffData:`, !!tariffData);
+    return getTariffSections(tariffData);
+  }, [tariffData]);
 
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden animate-fade-in">
