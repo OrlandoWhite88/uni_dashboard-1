@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton, useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 
 // Google Ads conversion tracking function
 function gtag_report_conversion(url: string | undefined) {
@@ -29,6 +30,7 @@ interface LayoutProps {
 const Layout = ({ children, className }: LayoutProps) => {
   const { isLoaded, userId } = useAuth();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen w-full bg-background flex flex-col">
@@ -53,10 +55,21 @@ const Layout = ({ children, className }: LayoutProps) => {
               <Link to="/tariff-calculator" className="text-sm font-medium hover:text-primary transition-colors">
                 Tariff Calculator
               </Link>
+              <Link to="/classification-history" className="text-sm font-medium hover:text-primary transition-colors">
+                My Classifications
+              </Link>
             </nav>
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Mobile menu button */}
+            <button
+              className="md:hidden p-2 rounded-md hover:bg-secondary/80 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+
             <SignedIn>
               {/* Show user button for signed in users */}
               <UserButton afterSignOutUrl="/" />
@@ -105,6 +118,67 @@ const Layout = ({ children, className }: LayoutProps) => {
             </Link>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-sm">
+            <nav className="container mx-auto px-4 py-4 space-y-2">
+              <Link 
+                to="/" 
+                className="block py-2 text-sm font-medium hover:text-primary transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Single Product
+              </Link>
+              <Link 
+                to="/bulk-import" 
+                className="block py-2 text-sm font-medium hover:text-primary transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Batch Processing
+              </Link>
+              <Link 
+                to="/tariff-calculator" 
+                className="block py-2 text-sm font-medium hover:text-primary transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Tariff Calculator
+              </Link>
+              <SignedIn>
+                <Link 
+                  to="/classification-history" 
+                  className="block py-2 text-sm font-medium hover:text-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Classifications
+                </Link>
+              </SignedIn>
+              <SignedOut>
+                <div className="pt-2 border-t border-border/40 mt-4">
+                  <SignInButton mode="modal">
+                    <button 
+                      className="block w-full text-left py-2 text-sm font-medium hover:text-primary transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Sign In
+                    </button>
+                  </SignInButton>
+                  <SignUpButton mode="modal">
+                    <button 
+                      className="block w-full text-left py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        gtag_report_conversion(undefined);
+                      }}
+                    >
+                      Sign Up
+                    </button>
+                  </SignUpButton>
+                </div>
+              </SignedOut>
+            </nav>
+          </div>
+        )}
       </header>
       
       <main className={cn("flex-1 pt-16", className)}>
