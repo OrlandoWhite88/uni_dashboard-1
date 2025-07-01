@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getTariffInfo, explainTariff } from "@/lib/classifierService";
-import { Loader2, AlertCircle, ExternalLink, BookOpen, LightbulbIcon, Calculator, Info } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Loader2, AlertCircle, ExternalLink, BookOpen, LightbulbIcon, Calculator } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
 
@@ -10,16 +10,19 @@ interface TariffInfoProps {
   className?: string;
 }
 
-// Define a proper interface for the tariff data
+// Updated interface based on actual API response
 interface TariffData {
   hts8: string | number;
   brief_description?: string;
-  col1_special_text?: string;
+  quantity_1_code?: string;
+  quantity_2_code?: string;
+  wto_binding_code?: string;
   mfn_text_rate?: string;
   mfn_rate_type_code?: string | number;
   mfn_ad_val_rate?: number;
   mfn_specific_rate?: number;
   mfn_other_rate?: number;
+  col1_special_text?: string;
   col2_text_rate?: string;
   col2_rate_type_code?: string | number;
   col2_ad_val_rate?: number;
@@ -28,109 +31,149 @@ interface TariffData {
   begin_effect_date?: string;
   end_effective_date?: string;
   footnote_comment?: string;
-  additional_duty?: string;
   
-  // Special program indicators
-  usmca_indicator?: string;
-  usmca_ad_val_rate?: number;
-  korea_indicator?: string;
-  korea_ad_val_rate?: number;
-  australia_indicator?: string;
-  australia_ad_val_rate?: number;
+  // Trade program indicators - using actual API field names
+  gsp_indicator?: string;
+  gsp_ctry_excluded?: string;
+  nafta_canada_ind?: string;
+  nafta_mexico_ind?: string;
+  cbi_indicator?: string;
+  cbi_ad_val_rate?: number;
+  agoa_indicator?: string;
+  israel_fta_indicator?: string;
+  jordan_indicator?: string;
+  jordan_ad_val_rate?: number;
   singapore_indicator?: string;
   singapore_ad_val_rate?: number;
   chile_indicator?: string;
   chile_ad_val_rate?: number;
-  israel_fta_indicator?: string;
-  israel_fta_ad_val_rate?: number;
-  jordan_indicator?: string;
-  jordan_ad_val_rate?: number;
+  morocco_indicator?: string;
+  morocco_ad_val_rate?: number;
+  australia_indicator?: string;
+  australia_ad_val_rate?: number;
   bahrain_indicator?: string;
   bahrain_ad_val_rate?: number;
+  dr_cafta_indicator?: string;
+  dr_cafta_ad_val_rate?: number;
   oman_indicator?: string;
   oman_ad_val_rate?: number;
   peru_indicator?: string;
   peru_ad_val_rate?: number;
+  korea_indicator?: string;
+  korea_ad_val_rate?: number;
   columbia_indicator?: string;
   columbia_ad_val_rate?: number;
   panama_indicator?: string;
   panama_ad_val_rate?: number;
-  dr_cafta_indicator?: string;
-  dr_cafta_ad_val_rate?: number;
-  morocco_indicator?: string;
-  morocco_ad_val_rate?: number;
+  usmca_indicator?: string;
+  usmca_ad_val_rate?: number;
+  
+  // Additional fields from API
+  requested_hts_code?: string;
+  matched_hts_code?: string;
 }
 
-interface FootnoteReference {
-  code: string;
-  data: any;
-  loading: boolean;
-  error: string | null;
-}
-
-// Helper function to format rate values
+// Optimized helper functions
 const formatRateValue = (value: number | string | undefined): string => {
-  // Handle undefined, null, or NaN values
-  if (value === undefined || value === null || 
-      (typeof value === 'number' && isNaN(value))) {
+  if (value === undefined || value === null || (typeof value === 'number' && isNaN(value))) {
     return "None";
   }
   
   if (typeof value === "number") {
-    // Format as percentage if it's a decimal less than 1
+    if (value === 0) return "Free";
     if (value < 1 && value > 0) return `${(value * 100).toFixed(1)}%`;
-    // Format as dollar amount if it's a specific rate
-    return `$${value.toFixed(2)}`;
+    return `$${value.toFixed(3)}`;
   }
   
-  // Handle string "nan" or "NaN" values that might come from the API
-  if (typeof value === "string" && 
-      (value.toLowerCase() === "nan" || value.toLowerCase() === "null")) {
+  if (typeof value === "string" && (value.toLowerCase() === "nan" || value.toLowerCase() === "null")) {
     return "None";
   }
   
   return value.toString();
 };
 
-// Helper function to determine if a country/program is eligible based on indicator
+// Format specific rates (like $0.022 for cents/kg)
+const formatSpecificRate = (value: number | string | undefined): string => {
+  if (value === undefined || value === null || (typeof value === 'number' && isNaN(value))) {
+    return "$0.0";
+  }
+  
+  if (typeof value === "number") {
+    if (value === 0) return "$0.0";
+    return `$${value.toFixed(3)}`;
+  }
+  
+  if (typeof value === "string" && (value.toLowerCase() === "nan" || value.toLowerCase() === "null")) {
+    return "$0.0";
+  }
+  
+  return value.toString();
+};
+
+// Format percentage rates
+const formatPercentageRate = (value: number | string | undefined): string => {
+  if (value === undefined || value === null || (typeof value === 'number' && isNaN(value))) {
+    return "0%";
+  }
+  
+  if (typeof value === "number") {
+    if (value === 0) return "0%";
+    if (value < 1) return `${(value * 100).toFixed(1)}%`;
+    return `${value.toFixed(1)}%`;
+  }
+  
+  if (typeof value === "string" && (value.toLowerCase() === "nan" || value.toLowerCase() === "null")) {
+    return "0%";
+  }
+  
+  return value.toString();
+};
+
+// Get duty calculation description based on rate type
+const getDutyCalculation = (textRate: string | undefined, isCol2: boolean = false): string => {
+  if (!textRate || textRate.toLowerCase() === "free") {
+    return "Duty rate is free. No computation necessary";
+  }
+  
+  if (textRate.includes("cents") || textRate.includes("/kg") || textRate.includes("/lb")) {
+    return isCol2 ? "Specific rate*Q1" : "Specific rate*Q1";
+  }
+  
+  if (textRate.includes("%")) {
+    return "Ad Valorem rate*Value";
+  }
+  
+  return "Ad Valorem rate*Value";
+};
+
 const isEligible = (indicator?: string): boolean => {
-  // Check if indicator exists, is not empty, and is not "nan" or "NaN"
-  return !!indicator && 
-         indicator.trim() !== "" && 
-         indicator.toLowerCase() !== "nan" &&
-         indicator.toLowerCase() !== "null";
-};
-
-// Helper function to get eligibility status text
-const getEligibilityStatus = (indicator?: string): string => {
-  if (!indicator) return "Not Eligible";
-  return `Eligible: code "${indicator}"`;
-};
-
-// Helper function to format date strings
-const formatDate = (dateStr?: string | any): string => {
-  if (!dateStr) return "";
-  
-  // Handle "nan" or "NaN" strings
-  if (typeof dateStr === "string" && 
-      (dateStr.toLowerCase() === "nan" || dateStr.toLowerCase() === "null")) {
-    return "";
+  if (!indicator || indicator.trim() === "" || indicator.toLowerCase() === "nan" || indicator.toLowerCase() === "null") {
+    return false;
   }
   
-  // Handle Timestamp objects from pandas (which might come as strings like "Timestamp('2020-07-01 00:00:00')")
-  if (typeof dateStr === "string" && dateStr.includes("Timestamp(")) {
-    // Extract the date part from the Timestamp string
-    const match = dateStr.match(/Timestamp\('(\d{4}-\d{2}-\d{2})/);
-    if (match && match[1]) {
-      dateStr = match[1];
-    }
-  }
+  // Trade program indicators that mean "eligible"
+  const eligibleIndicators = [
+    // GSP indicators
+    'A*', 'A', 'A+',
+    // Country codes that indicate eligibility
+    'AU', 'BH', 'CA', 'CL', 'CO', 'D', 'E', 'IL', 'JO', 'KR', 'MA', 'MX', 'OM', 'P', 'PA', 'PE', 'S', 'SG',
+    // Other common eligibility indicators
+    'Free', 'FREE', 'Duty-free', 'DUTY-FREE'
+  ];
+  
+  const cleanIndicator = indicator.trim().toUpperCase();
+  
+  // Check if the indicator matches any known eligible codes
+  return eligibleIndicators.some(code => cleanIndicator === code.toUpperCase()) || 
+         // Also check if it's a valid country/program code (2-3 letter codes)
+         /^[A-Z*+]{1,3}$/.test(cleanIndicator);
+};
+
+const formatDate = (dateStr?: string): string => {
+  if (!dateStr || dateStr.toLowerCase() === "nan" || dateStr.toLowerCase() === "null") return "";
   
   try {
-    // Try to create a Date object from the string
     const date = new Date(dateStr);
-    
-    // Check if the date is valid
     if (!isNaN(date.getTime())) {
       return date.toLocaleDateString('en-US', { 
         year: 'numeric', 
@@ -142,9 +185,251 @@ const formatDate = (dateStr?: string | any): string => {
     console.error("Error formatting date:", e);
   }
   
-  // If all else fails, return the original string
-  return typeof dateStr === "string" ? dateStr : "";
+  return dateStr;
 };
+
+// Trade program configuration with country information - matching US Gov website order
+const TRADE_PROGRAMS = [
+  { 
+    key: 'gsp_indicator', 
+    label: 'GSP (Generalized System of Preferences)', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Developing countries including India, Brazil, Thailand, Turkey, and others'
+  },
+  { 
+    key: 'civil_aircraft_indicator', 
+    label: 'Civil Aircraft Agreement Preference', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'WTO member countries for civil aircraft'
+  },
+  { 
+    key: 'dyes_indicator', 
+    label: 'Tariff concession on Dyes', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Various countries for specific dye products'
+  },
+  { 
+    key: 'cbi_indicator', 
+    label: 'CBI or CBERA (Caribbean Basin Initiative) Preference', 
+    rateField: 'cbi_ad_val_rate',
+    specificRateField: 'cbi_specific_rate',
+    otherRateField: 'cbi_other_rate',
+    countries: 'Antigua, Barbados, Belize, Costa Rica, Dominica, Dominican Republic, El Salvador, Grenada, Guatemala, Guyana, Haiti, Honduras, Jamaica, Montserrat, Nicaragua, Panama, St. Kitts & Nevis, St. Lucia, St. Vincent & Grenadines, Trinidad & Tobago'
+  },
+  { 
+    key: 'agoa_indicator', 
+    label: 'AGOA (African Growth and Opportunity Act)', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Sub-Saharan African countries including South Africa, Kenya, Ghana, Nigeria, Ethiopia, and others'
+  },
+  { 
+    key: 'cbtpa_indicator', 
+    label: 'CBTPA (Caribbean Basin Trade Partnership Act)', 
+    rateField: 'cbtpa_ad_val_rate',
+    specificRateField: 'cbtpa_specific_rate',
+    otherRateField: 'cbtpa_other_rate',
+    countries: 'Caribbean Basin countries under CBTPA'
+  },
+  { 
+    key: 'morocco_indicator', 
+    label: 'Morocco FTA Preference', 
+    rateField: 'morocco_ad_val_rate',
+    specificRateField: 'morocco_specific_rate',
+    otherRateField: 'morocco_other_rate',
+    countries: 'Morocco'
+  },
+  { 
+    key: 'jordan_indicator', 
+    label: 'Jordan FTA Preference', 
+    rateField: 'jordan_ad_val_rate',
+    specificRateField: 'jordan_specific_rate',
+    otherRateField: 'jordan_other_rate',
+    countries: 'Jordan'
+  },
+  { 
+    key: 'singapore_indicator', 
+    label: 'Singapore FTA Preference', 
+    rateField: 'singapore_ad_val_rate',
+    specificRateField: 'singapore_specific_rate',
+    otherRateField: 'singapore_other_rate',
+    countries: 'Singapore'
+  },
+  { 
+    key: 'chile_indicator', 
+    label: 'Chile FTA Preference', 
+    rateField: 'chile_ad_val_rate',
+    specificRateField: 'chile_specific_rate',
+    otherRateField: 'chile_other_rate',
+    countries: 'Chile'
+  },
+  { 
+    key: 'australia_indicator', 
+    label: 'Australia FTA Preference', 
+    rateField: 'australia_ad_val_rate',
+    specificRateField: 'australia_specific_rate',
+    otherRateField: 'australia_other_rate',
+    countries: 'Australia'
+  },
+  { 
+    key: 'bahrain_indicator', 
+    label: 'Bahrain FTA Preference', 
+    rateField: 'bahrain_ad_val_rate',
+    specificRateField: 'bahrain_specific_rate',
+    otherRateField: 'bahrain_other_rate',
+    countries: 'Bahrain'
+  },
+  { 
+    key: 'dr_cafta_indicator', 
+    label: 'CAFTA FTA Preference', 
+    rateField: 'dr_cafta_ad_val_rate',
+    specificRateField: 'dr_cafta_specific_rate',
+    otherRateField: 'dr_cafta_other_rate',
+    countries: 'Costa Rica, Dominican Republic, El Salvador, Guatemala, Honduras, Nicaragua'
+  },
+  { 
+    key: 'cafta_plus_indicator', 
+    label: 'CAFTA PLUS FTA Preference', 
+    rateField: 'cafta_plus_ad_val_rate',
+    specificRateField: 'cafta_plus_specific_rate',
+    otherRateField: 'cafta_plus_other_rate',
+    countries: 'Enhanced CAFTA countries'
+  },
+  { 
+    key: 'oman_indicator', 
+    label: 'Oman FTA Preference', 
+    rateField: 'oman_ad_val_rate',
+    specificRateField: 'oman_specific_rate',
+    otherRateField: 'oman_other_rate',
+    countries: 'Oman'
+  },
+  { 
+    key: 'peru_indicator', 
+    label: 'Peru FTA Preference', 
+    rateField: 'peru_ad_val_rate',
+    specificRateField: 'peru_specific_rate',
+    otherRateField: 'peru_other_rate',
+    countries: 'Peru'
+  },
+  { 
+    key: 'korea_indicator', 
+    label: 'Korea FTA Preference', 
+    rateField: 'korea_ad_val_rate',
+    specificRateField: 'korea_specific_rate',
+    otherRateField: 'korea_other_rate',
+    countries: 'South Korea'
+  },
+  { 
+    key: 'japan_indicator', 
+    label: 'Japan FTA Preference', 
+    rateField: 'japan_ad_val_rate',
+    specificRateField: 'japan_specific_rate',
+    otherRateField: 'japan_other_rate',
+    countries: 'Japan'
+  },
+  { 
+    key: 'usmca_indicator', 
+    label: 'USMCA FTA Preference', 
+    rateField: 'usmca_ad_val_rate',
+    specificRateField: 'usmca_specific_rate',
+    otherRateField: 'usmca_other_rate',
+    countries: 'Canada, Mexico'
+  },
+  { 
+    key: 'israel_fta_indicator', 
+    label: 'Israel FTA Preference', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Israel'
+  },
+  { 
+    key: 'apta_indicator', 
+    label: 'APTA (Auto Product Agreement) Preference', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Canada (automotive products)'
+  },
+  { 
+    key: 'atpa_indicator', 
+    label: 'ATPA (Andean Agreement) Preference', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Bolivia, Colombia, Ecuador, Peru'
+  },
+  { 
+    key: 'pharma_indicator', 
+    label: 'Pharmaceutical Agreement Preference', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'WTO member countries for pharmaceutical products'
+  },
+  { 
+    key: 'nafta_canada_ind', 
+    label: 'NAFTA Canada Preference', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Canada'
+  },
+  { 
+    key: 'nafta_mexico_ind', 
+    label: 'NAFTA Mexico Preference', 
+    rateField: 'nafta_mexico_ad_val_rate',
+    specificRateField: 'nafta_mexico_specific_rate',
+    otherRateField: null,
+    countries: 'Mexico'
+  },
+  { 
+    key: 'atpdea_indicator', 
+    label: 'ATPDEA Indicator', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Bolivia, Colombia, Ecuador, Peru (enhanced preferences)'
+  },
+  { 
+    key: 'nepal_indicator', 
+    label: 'Nepal Preference Program', 
+    rateField: null,
+    specificRateField: null,
+    otherRateField: null,
+    countries: 'Nepal'
+  },
+  { 
+    key: 'columbia_indicator', 
+    label: 'Colombia FTA', 
+    rateField: 'columbia_ad_val_rate',
+    specificRateField: 'columbia_specific_rate',
+    otherRateField: 'columbia_other_rate',
+    countries: 'Colombia'
+  },
+  { 
+    key: 'panama_indicator', 
+    label: 'Panama FTA Preference', 
+    rateField: 'panama_ad_val_rate',
+    specificRateField: 'panama_specific_rate',
+    otherRateField: 'panama_other_rate',
+    countries: 'Panama'
+  },
+] as const;
+
+interface FootnoteReference {
+  code: string;
+  data: any;
+  loading: boolean;
+  error: string | null;
+}
 
 const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
   const [tariffData, setTariffData] = useState<TariffData | null>(null);
@@ -156,471 +441,152 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
   const [footnoteReferences, setFootnoteReferences] = useState<Record<string, FootnoteReference>>({});
   const navigate = useNavigate();
 
-  // Function to organize tariff data into logical sections for display
-  const getTariffSections = (data: TariffData) => {
+  // Memoized function to organize tariff data into logical sections for display
+  const getTariffSections = useMemo(() => {
+    if (!tariffData) return [];
+    
     console.log(`🧮 Computing tariff sections...`);
     const startTime = performance.now();
-    
-    if (!data) {
-      console.log(`⚠️  No data provided to getTariffSections`);
-      return [];
-    }
 
-    // Create an array of all trade programs with their eligibility status
-    const allTradePrograms = [
-      // GSP (Generalized System of Preferences)
-      {
-        label: "GSP (Generalized System of Preferences)",
-        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "A*"
-          ? `Eligible: code "A*" (Certain Countries Excluded)`
-          : "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "A*"
-      },
-      // Civil Aircraft Agreement
-      {
-        label: "Civil Aircraft Agreement Preference",
-        status: "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: false
-      },
-      // Tariff concession on Dyes
-      {
-        label: "Tariff concession on Dyes",
-        status: "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: false
-      },
-      // CBI or CBERA (Caribbean Basin Initiative)
-      {
-        label: "CBI or CBERA (Caribbean Basin Initiative) Preference",
-        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "E"
-          ? `Eligible: code "E"`
-          : "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "E"
-      },
-      // AGOA (African Growth and Opportunity Act)
-      {
-        label: "AGOA (African Growth and Opportunity Act)",
-        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "D"
-          ? `Eligible: code "D"`
-          : "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "D"
-      },
-      // CBTPA (Caribbean Basin Trade Partnership Act)
-      {
-        label: "CBTPA (Caribbean Basin Trade Partnership Act)",
-        status: "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: false
-      },
-      // Morocco
-      {
-        label: "Morocco FTA Preference",
-        status: isEligible(data.morocco_indicator)
-          ? `Eligible: code "${data.morocco_indicator}"`
-          : "Not Eligible",
-        adValRate: data.morocco_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.morocco_indicator)
-      },
-      // Jordan
-      {
-        label: "Jordan FTA Preference",
-        status: isEligible(data.jordan_indicator)
-          ? `Eligible: code "${data.jordan_indicator}"`
-          : "Not Eligible",
-        adValRate: data.jordan_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.jordan_indicator)
-      },
-      // Singapore
-      {
-        label: "Singapore FTA Preference",
-        status: isEligible(data.singapore_indicator)
-          ? `Eligible: code "${data.singapore_indicator}"`
-          : "Not Eligible",
-        adValRate: data.singapore_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.singapore_indicator)
-      },
-      // Chile
-      {
-        label: "Chile FTA Preference",
-        status: isEligible(data.chile_indicator)
-          ? `Eligible: code "${data.chile_indicator}"`
-          : "Not Eligible",
-        adValRate: data.chile_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.chile_indicator)
-      },
-      // Australia
-      {
-        label: "Australia FTA Preference",
-        status: isEligible(data.australia_indicator)
-          ? `Eligible: code "${data.australia_indicator}"`
-          : "Not Eligible",
-        adValRate: data.australia_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.australia_indicator)
-      },
-      // Bahrain
-      {
-        label: "Bahrain FTA Preference",
-        status: isEligible(data.bahrain_indicator)
-          ? `Eligible: code "${data.bahrain_indicator}"`
-          : "Not Eligible",
-        adValRate: data.bahrain_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.bahrain_indicator)
-      },
-      // DR-CAFTA
-      {
-        label: "CAFTA FTA Preference",
-        status: isEligible(data.dr_cafta_indicator)
-          ? `Eligible: code "${data.dr_cafta_indicator}"`
-          : "Not Eligible",
-        adValRate: data.dr_cafta_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.dr_cafta_indicator)
-      },
-      // CAFTA PLUS
-      {
-        label: "CAFTA PLUS FTA Preference",
-        status: "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: false
-      },
-      // Oman
-      {
-        label: "Oman FTA Preference",
-        status: isEligible(data.oman_indicator)
-          ? `Eligible: code "${data.oman_indicator}"`
-          : "Not Eligible",
-        adValRate: data.oman_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.oman_indicator)
-      },
-      // Peru
-      {
-        label: "Peru FTA Preference",
-        status: isEligible(data.peru_indicator)
-          ? `Eligible: code "${data.peru_indicator}"`
-          : "Not Eligible",
-        adValRate: data.peru_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.peru_indicator)
-      },
-      // Korea
-      {
-        label: "Korea FTA Preference",
-        status: isEligible(data.korea_indicator)
-          ? `Eligible: code "${data.korea_indicator}"`
-          : "Not Eligible",
-        adValRate: data.korea_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.korea_indicator)
-      },
-      // Japan
-      {
-        label: "Japan FTA Preference",
-        status: "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: false
-      },
-      // USMCA (NAFTA replacement)
-      {
-        label: "USMCA FTA Preference",
-        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "S"
-          ? `Eligible: code "${data.usmca_indicator}"`
-          : "Not Eligible",
-        adValRate: data.usmca_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "S"
-      },
-      // Israel
-      {
-        label: "Israel FTA Preference",
-        status: isEligible(data.israel_fta_indicator)
-          ? `Eligible: code "${data.israel_fta_indicator}"`
-          : "Not Eligible",
-        adValRate: data.israel_fta_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.israel_fta_indicator)
-      },
-      // APTA (Auto Product Agreement)
-      {
-        label: "APTA (Auto Product Agreement) Preference",
-        status: "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: false
-      },
-      // ATPA (Andean Agreement)
-      {
-        label: "ATPA (Andean Agreement) Preference",
-        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "A*"
-          ? `Eligible: code "A*"`
-          : "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "A*"
-      },
-      // Pharmaceutical Agreement
-      {
-        label: "Pharmaceutical Agreement Preference",
-        status: "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: false
-      },
-      // NAFTA Canada
-      {
-        label: "NAFTA Canada Preference",
-        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "CA"
-          ? `Eligible: code "CA"`
-          : "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "CA"
-      },
-      // NAFTA Mexico
-      {
-        label: "NAFTA Mexico Preference",
-        status: isEligible(data.usmca_indicator) && data.usmca_indicator === "MX"
-          ? `Eligible: code "MX"`
-          : "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.usmca_indicator) && data.usmca_indicator === "MX"
-      },
-      // Colombia
-      {
-        label: "Colombia FTA Preference",
-        status: isEligible(data.columbia_indicator)
-          ? `Eligible: code "${data.columbia_indicator}"`
-          : "Not Eligible",
-        adValRate: data.columbia_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.columbia_indicator)
-      },
-      // Panama
-      {
-        label: "Panama FTA Preference",
-        status: isEligible(data.panama_indicator)
-          ? `Eligible: code "${data.panama_indicator}"`
-          : "Not Eligible",
-        adValRate: data.panama_ad_val_rate,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: isEligible(data.panama_indicator)
-      },
-      // Nepal Preference Program
-      {
-        label: "Nepal Preference Program",
-        status: "Not Eligible",
-        adValRate: 0,
-        specificRate: 0,
-        otherRate: 0,
-        eligible: false
-      }
-    ];
+    // Build trade programs dynamically from API data - process all programs
+    const allPrograms = TRADE_PROGRAMS.map(program => {
+      const indicator = tariffData[program.key as keyof TariffData] as string;
+      const rateValue = program.rateField ? tariffData[program.rateField as keyof TariffData] as number : 0;
+      
+      return {
+        label: program.label,
+        status: isEligible(indicator) ? `Eligible: code "${indicator}"` : "Not Eligible",
+        adValRate: rateValue || 0,
+        eligible: isEligible(indicator),
+        indicator: indicator,
+        countries: program.countries
+      };
+    });
 
-    // Filter to only show eligible programs for the compact view
-    const eligiblePrograms = allTradePrograms.filter(program => program.eligible);
+    // Separate eligible and non-eligible programs
+    const eligiblePrograms = allPrograms.filter(program => program.eligible);
+    const nonEligiblePrograms = allPrograms.filter(program => !program.eligible);
+
+    const endTime = performance.now();
+    console.log(`✅ getTariffSections completed in ${(endTime - startTime).toFixed(1)}ms - ${eligiblePrograms.length} eligible, ${nonEligiblePrograms.length} non-eligible programs`);
 
     return [
-      // 0: Customs Value Section
-      {
-        id: "customs-value",
-        title: "Customs value of recent U.S. imports for consumption",
-        fields: [
-          {
-            label: "2025 imports (thousand dollars)",
-            value: "$21"
-          }
-        ]
-      },
-
-      // 1: Tariff Treatment Section
+      // Tariff Treatment Section
       {
         id: "tariff-treatment",
         title: "Tariff Treatment",
-        fields: []
-      },
-
-      // 2: Effective Dates Section
-      {
-        id: "effective-dates",
-        title: "Effective Dates",
         fields: [
           {
-            label: "Beginning Effective Date",
-            subtitle: "Most recent date any part of this HTS item's tariff treatment changed",
-            value: formatDate(data.begin_effect_date) || "Not specified"
+            label: "Beginning Effective Date (most recent date any part of this HTS item's tariff treatment changed)",
+            value: formatDate(tariffData.begin_effect_date) || "Not specified"
           },
           {
-            label: "Ending Effective Date",
-            subtitle: "Date any part of this HTS item is next scheduled for tariff treatment change",
-            value: formatDate(data.end_effective_date) || "Not specified"
+            label: "Ending Effective Date (date any part of this HTS item is next scheduled for tariff treatment change)",
+            value: formatDate(tariffData.end_effective_date) || "Not specified"
           }
         ]
       },
 
-      // 3: Units of Quantity Section
+      // Units of Quantity Section - using actual API data
       {
         id: "units-quantity",
         title: "Units of Quantity",
         fields: [
           {
             label: "1st Unit of Quantity (Q1)",
-            value: "KG"
+            value: tariffData.quantity_1_code || ""
           },
           {
             label: "2nd Unit of Quantity (Q2)",
-            value: ""
+            value: tariffData.quantity_2_code || ""
           }
         ]
       },
 
-      // 4: MFN Rates Section
+      // MFN Rates Section
       {
         id: "mfn-rates",
-        title: "2024 Normal Trade Relations (NTR) duty rate",
-        subtitle: "Formerly known as the Most Favored Nation (MFN) duty rate",
+        title: "2024 Normal Trade Relations (NTR) duty rate (formerly known as the Most Favored Nation (MFN) duty rate)",
         fields: [
           {
             label: "MFN Text Rate",
-            value: data.mfn_text_rate || "None"
+            value: tariffData.mfn_text_rate || "None"
           },
           {
             label: "Duty calculation",
-            value: "Ad Valorem rate*Value"
+            value: getDutyCalculation(tariffData.mfn_text_rate)
           },
           {
             label: "Ad Valorem (percent of value) component",
-            value: formatRateValue(data.mfn_ad_val_rate)
+            value: formatPercentageRate(tariffData.mfn_ad_val_rate)
           },
           {
             label: "Other duty component",
-            value: formatRateValue(data.mfn_other_rate || 0)
+            value: formatSpecificRate(tariffData.mfn_other_rate || 0)
           },
           {
             label: "Specific (per unit) component",
-            value: formatRateValue(data.mfn_specific_rate || 0)
+            value: formatSpecificRate(tariffData.mfn_specific_rate || 0)
           }
         ]
       },
 
-      // 5: Column 2 Rates Section
+      // Column 2 Rates Section
       {
         id: "col2-rates",
-        title: "\"Column 2\" (non-NTR) duty rate",
-        subtitle: "Applies to imports from a small number of countries that do not enjoy NTR duty status",
+        title: "\"Column 2\" (non-NTR) duty rate (Applies to imports from a small number of countries that do not enjoy NTR duty status)",
         fields: [
           {
             label: "COL2 Text Rate",
-            value: data.col2_text_rate || "None"
+            value: tariffData.col2_text_rate || "None"
           },
           {
             label: "Duty calculation",
-            value: "Ad Valorem rate*Value"
+            value: getDutyCalculation(tariffData.col2_text_rate, true)
           },
           {
             label: "Ad Valorem (percent of value) component",
-            value: formatRateValue(data.col2_ad_val_rate)
+            value: formatPercentageRate(tariffData.col2_ad_val_rate)
           },
           {
             label: "Other duty component",
-            value: formatRateValue(data.col2_other_rate || 0)
+            value: formatSpecificRate(tariffData.col2_other_rate || 0)
           },
           {
             label: "Specific (per unit) component",
-            value: formatRateValue(data.col2_specific_rate || 0)
+            value: formatSpecificRate(tariffData.col2_specific_rate || 0)
           }
         ]
       },
 
-      // 6: Special Programs Section - All Programs
+      // Preferential Programs Section - matching US Gov website exactly
       {
-        id: "special-programs",
+        id: "preferential-programs",
         title: "Preferential (duty-free or reduced rate) tariff program applicability to this HTS item",
-        subtitle: "",
-        fields: allTradePrograms.map(program => ({
+        fields: allPrograms.map(program => ({
           label: program.label,
           status: program.status,
-          value: program.eligible
-            ? `${formatRateValue(program.adValRate)}`
-            : "Not Eligible",
-          eligible: program.eligible
+          adValRate: program.eligible ? formatPercentageRate(program.adValRate) : "",
+          specificRate: "", // Would need API fields for specific rates
+          otherRate: "", // Would need API fields for other rates
+          eligible: program.eligible,
+          indicator: program.indicator,
+          countries: program.countries
         }))
       },
 
-      // 7: Basic Information Section
-      {
-        id: "basic-info",
-        title: "Basic Information",
-        fields: [
-          {
-            label: "HS Code",
-            value: data.hts8 ? data.hts8.toString() : "N/A"
-          },
-          {
-            label: "Description",
-            value: data.brief_description || "No description available"
-          }
-        ]
-      },
 
-      // 8: Additional Information Section
-      {
+      // Additional Information Section
+      ...(tariffData.footnote_comment ? [{
         id: "additional-info",
         title: "Additional Information",
-        fields: data.footnote_comment ? [
-          {
-            label: "Footnote",
-            value: data.footnote_comment
-          }
-        ] : []
-      },
+        fields: [{
+          label: "Footnote",
+          value: tariffData.footnote_comment
+        }]
+      }] : []),
 
-      // 9: External Resources Section
+      // External Resources Section
       {
         id: "external-resources",
         title: "External Resources",
@@ -648,11 +614,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
         )
       }
     ];
-    
-    const endTime = performance.now();
-    console.log(`✅ getTariffSections completed in ${(endTime - startTime).toFixed(1)}ms`);
-    return sections;
-  };
+  }, [tariffData, hsCode, navigate]);
 
   useEffect(() => {
     const fetchTariffInfo = async () => {
@@ -846,8 +808,8 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
     );
   }
 
-  // Get organized tariff sections for display
-  const tariffSections = tariffData ? getTariffSections(tariffData) : [];
+  // Get organized tariff sections for display - getTariffSections is already memoized
+  const tariffSections = getTariffSections;
 
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden animate-fade-in">
@@ -910,119 +872,99 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
           </div>
         )}
 
-        {/* Basic Information */}
-        {tariffSections[7] && tariffSections[7].fields && tariffSections[7].fields.length > 0 && (
-          <div className="space-y-3">
+        {/* Render sections dynamically */}
+        {tariffSections.map((section, sectionIndex) => (
+          <div key={section.id} className="space-y-3">
             <div>
-              <h4 className="text-base font-medium border-b pb-2">{tariffSections[7]?.title}</h4>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              {tariffSections[7]?.fields.map((field, index) => (
-                <div key={index} className="space-y-1">
-                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                  <div className="text-sm p-3 rounded-md bg-muted/30">
-                    {field.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Customs Value */}
-        {tariffSections[0] && tariffSections[0].fields && tariffSections[0].fields.length > 0 && (
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-base font-medium border-b pb-2">{tariffSections[0]?.title}</h4>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              {tariffSections[0]?.fields.map((field, index) => (
-                <div key={index} className="space-y-1">
-                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                  <div className="text-sm p-3 rounded-md bg-primary/10 text-primary font-medium">
-                    {field.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Tariff Treatment */}
-        {tariffSections[1] && tariffSections[1].title && (
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-base font-medium border-b pb-2">{tariffSections[1]?.title}</h4>
-            </div>
-          </div>
-        )}
-
-        {/* Effective Dates */}
-        {tariffSections[2] && tariffSections[2].fields && (
-          <div className="space-y-3">
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[2]?.title}</h4>
-            <div className="grid grid-cols-1 gap-3">
-              {tariffSections[2]?.fields.map((field, index) => (
-                <div key={index} className="space-y-1">
-                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                  {field.subtitle && (
-                    <p className="text-xs text-muted-foreground mb-1">{field.subtitle}</p>
-                  )}
-                  <div className="text-sm bg-muted/30 p-3 rounded-md">
-                    {field.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Units of Quantity */}
-        {tariffSections[3] && tariffSections[3].fields && tariffSections[3].fields.length > 0 && (
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-base font-medium border-b pb-2">{tariffSections[3]?.title}</h4>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {tariffSections[3]?.fields.map((field, index) => (
-                <div key={index} className="space-y-1">
-                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                  <div className="text-sm p-3 rounded-md bg-muted/30">
-                    {field.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* MFN Rates */}
-        {tariffSections[4] && tariffSections[4].fields && (
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-base font-medium border-b pb-2">{tariffSections[4]?.title}</h4>
-              {tariffSections[4]?.subtitle && (
-                <p className="text-sm text-muted-foreground mt-1">{tariffSections[4].subtitle}</p>
+              <h4 className="text-base font-medium border-b pb-2">{section.title}</h4>
+            {(section as any).subtitle && (
+                <p className="text-sm text-muted-foreground mt-1">{(section as any).subtitle}</p>
               )}
             </div>
-            <div className="grid grid-cols-1 gap-3">
-              {tariffSections[4]?.fields.map((field, index) => (
-                <div key={index} className="space-y-1">
-                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                  <div className={cn(
-                    "text-sm p-3 rounded-md break-words",
-                    field.value !== "None" && field.label === "MFN Text Rate"
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "bg-muted/30"
+            
+            {/* Render content if it exists */}
+            {section.content && section.content}
+            
+            {/* Render fields if they exist */}
+            {section.fields && section.fields.length > 0 && (
+              <div className={cn(
+                "grid gap-3",
+                section.id === "units-quantity" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+              )}>
+                {section.fields.map((field, fieldIndex) => (
+                  <div key={fieldIndex} className={cn(
+                    (section.id === "special-programs" || section.id === "all-trade-agreements" || section.id === "preferential-programs") ? "space-y-0" : "space-y-1"
                   )}>
-                    {field.value}
+                    {(section.id === "special-programs" || section.id === "all-trade-agreements" || section.id === "preferential-programs") ? (
+                      // Special rendering for trade programs
+                      <div className={cn(
+                        "border rounded-md overflow-hidden",
+                        field.eligible ? "border-green-200" : "border-muted"
+                      )}>
+                        <div className={cn(
+                          "px-3 py-2 border-b",
+                          field.eligible ? "bg-green-50 border-green-200" : "bg-muted/30 border-muted"
+                        )}>
+                          <h5 className={cn(
+                            "font-medium text-sm",
+                            field.eligible ? "text-green-800" : "text-muted-foreground"
+                          )}>
+                            {field.label}
+                          </h5>
+                        </div>
+                        <div className="p-3 space-y-2 text-sm">
+                          <div>
+                            <span className="font-medium">Status:</span>{" "}
+                            <span className={field.eligible ? "text-green-700" : "text-muted-foreground"}>
+                              {field.status}
+                            </span>
+                          </div>
+                          {field.eligible && field.value !== "None" && field.value !== "Not Applicable" && (
+                            <div>
+                              <span className="font-medium">Ad Valorem Rate:</span>{" "}
+                              <span className="text-green-700">{field.value}</span>
+                            </div>
+                          )}
+                          {field.indicator && field.indicator.trim() !== "" && field.indicator.toLowerCase() !== "nan" && (
+                            <div>
+                              <span className="font-medium">Indicator Code:</span>{" "}
+                              <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">{field.indicator}</span>
+                            </div>
+                          )}
+                          {field.countries && (
+                            <div>
+                              <span className="font-medium">Countries/Regions:</span>{" "}
+                              <span className="text-muted-foreground">{field.countries}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      // Standard field rendering
+                      <>
+                        <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
+                        {field.subtitle && (
+                          <p className="text-xs text-muted-foreground mb-1">{field.subtitle}</p>
+                        )}
+                        <div className={cn(
+                          "text-sm p-3 rounded-md break-words",
+                          field.value !== "None" && field.label === "MFN Text Rate"
+                            ? "bg-primary/10 text-primary font-medium"
+                            : field.value !== "None" && field.label === "COL2 Text Rate"
+                            ? "bg-destructive/10 text-destructive font-medium"
+                            : "bg-muted/30"
+                        )}>
+                          {field.value}
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
-            {/* Special Rate Text */}
-            {tariffData && tariffData.col1_special_text && (
+            {/* Special Rate Text for MFN section */}
+            {section.id === "mfn-rates" && tariffData && tariffData.col1_special_text && (
               <div className="mt-3 border border-blue-200 bg-blue-50 rounded-lg p-3">
                 <h5 className="text-sm font-medium text-blue-700 mb-2">Special Rate Information</h5>
                 <p className="text-sm text-blue-800">{tariffData.col1_special_text}</p>
@@ -1046,103 +988,11 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
               </div>
             )}
           </div>
-        )}
+        ))}
 
-        {/* Column 2 Rates */}
-        {tariffSections[5] && tariffSections[5].fields && (
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-base font-medium border-b pb-2">{tariffSections[5]?.title}</h4>
-              {tariffSections[5]?.subtitle && (
-                <p className="text-sm text-muted-foreground mt-1">{tariffSections[5].subtitle}</p>
-              )}
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              {tariffSections[5]?.fields.map((field, index) => (
-                <div key={index} className="space-y-1">
-                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                  <div className={cn(
-                    "text-sm p-3 rounded-md break-words",
-                    field.value !== "None" && field.label === "COL2 Text Rate"
-                      ? "bg-destructive/10 text-destructive font-medium"
-                      : "bg-muted/30"
-                  )}>
-                    {field.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Special Programs */}
-        {tariffSections[6] && tariffSections[6].fields && tariffSections[6].fields.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[6]?.title}</h4>
-            {tariffSections[6]?.subtitle && (
-              <p className="text-sm text-muted-foreground mt-1">{tariffSections[6].subtitle}</p>
-            )}
-            <div className="space-y-4">
-              {tariffSections[6]?.fields.map((field, index) => (
-                <div key={index} className={cn(
-                  "border rounded-md overflow-hidden",
-                  field.eligible
-                    ? "border-green-200"
-                    : "border-muted"
-                )}>
-                  <div className={cn(
-                    "px-3 py-2 border-b",
-                    field.eligible
-                      ? "bg-green-50 border-green-200"
-                      : "bg-muted/30 border-muted"
-                  )}>
-                    <h5 className={cn(
-                      "font-medium text-sm",
-                      field.eligible ? "text-green-800" : "text-muted-foreground"
-                    )}>
-                      {field.label}
-                    </h5>
-                  </div>
-                  <div className="p-3 space-y-2 text-sm">
-                    <div>
-                      <span className="font-medium">Status:</span>{" "}
-                      <span className={field.eligible ? "text-green-700" : "text-muted-foreground"}>
-                        {field.status}
-                      </span>
-                    </div>
-
-                    {field.eligible && field.value !== "None" && (
-                      <div>
-                        <span className="font-medium">Ad Valorem Rate:</span>{" "}
-                        <span className="text-green-700">{field.value}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Additional Information */}
-        {tariffSections[8] && tariffSections[8].fields && tariffSections[8].fields.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[8]?.title}</h4>
-            <div className="grid grid-cols-1 gap-3">
-              {tariffSections[8]?.fields.map((field, index) => (
-                <div key={index} className="space-y-1">
-                  <h5 className="text-sm font-medium text-muted-foreground">{field.label}</h5>
-                  <p className="text-sm bg-muted/30 p-3 rounded-md">{field.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* If there's a footnote_comment but it wasn't included in additionalInfo */}
+        {/* If there's a footnote_comment but it wasn't included in sections */}
         {tariffData && tariffData.footnote_comment &&
-         (!tariffSections[8] || !tariffSections[8].fields ||
-          !tariffSections[8].fields.some(f => f.label === "Footnote")) && (
+         !tariffSections.some(section => section.id === "additional-info") && (
           <div className="space-y-3">
             <h4 className="text-base font-medium border-b pb-2">Footnotes</h4>
             <div className="grid grid-cols-1 gap-3">
@@ -1150,14 +1000,6 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
                 <p className="text-sm bg-muted/30 p-3 rounded-md">{tariffData.footnote_comment}</p>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* External Resources */}
-        {tariffSections[9] && tariffSections[9].title && (
-          <div className="space-y-3">
-            <h4 className="text-base font-medium border-b pb-2">{tariffSections[9]?.title}</h4>
-            {tariffSections[9]?.content}
           </div>
         )}
 
