@@ -1,0 +1,1769 @@
+[Classifier] Processing API response: {
+  "final": true,
+  "classification": {
+    "code": "0302.85.11.00",
+    "path": "03 - Fish and crustaceans, molluscs and other aquatic invertebrates > 0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304: > [GROUP] Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99: > 0302.85 - Seabream (<i>Sparidae</i>): > 0302.85.11.00 - Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less",
+    "confidence": 0.8145062499999999,
+    "log_score": -0.20517317233967605,
+    "chapter": "03",
+    "steps": [
+      {
+        "step": 1,
+        "stage": "heading",
+        "current_code": "[GROUP]",
+        "selected_code": "0302",
+        "is_group": false,
+        "node_id": 396,
+        "confidence": 0.95,
+        "cumulative_confidence": 0.95,
+        "options": [
+          {
+            "index": 1,
+            "node_id": 377,
+            "code": "0301",
+            "description": "Live fish:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 2,
+            "node_id": 396,
+            "code": "0302",
+            "description": "Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 3,
+            "node_id": 537,
+            "code": "0303",
+            "description": "Fish, frozen, excluding fish fillets and other fish meat of heading 0304:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 4,
+            "node_id": 648,
+            "code": "0304",
+            "description": "Fish fillets and other fish meat (whether or not minced), fresh, chilled or frozen:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 5,
+            "node_id": 880,
+            "code": "0305",
+            "description": "Fish, dried, salted or in brine; smoked fish, whether or not cooked before or during the smoking process:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 6,
+            "node_id": 962,
+            "code": "0306",
+            "description": "Crustaceans, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine; smoked crustaceans, whether in shell or not, whether or not cooked before or during the smoking process; crustaceans, in shell, cooked by steaming or by boiling in water, whether or not chilled, frozen, dried, salted or in brine:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 7,
+            "node_id": 1055,
+            "code": "0307",
+            "description": "Molluscs, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine; smoked molluscs, whether in shell or not, whether or not cooked before or during the smoking process:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 8,
+            "node_id": 1140,
+            "code": "0308",
+            "description": "Aquatic invertebrates other than crustaceans and molluscs, live, fresh, chilled, frozen, dried, salted or in brine; smoked aquatic invertebrates other than crustaceans and molluscs, whether or not cooked before or during the smoking process:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 9,
+            "node_id": 1153,
+            "code": "0309",
+            "description": "Flours, meals and pellets of fish, crustaceans, molluscs and other aquatic invertebrates, fit for human consumption:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 0,
+            "superior": false,
+            "is_group": false
+          }
+        ],
+        "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to fresh or chilled fish rather than frozen or processed fillets. Option 2 (0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304) is the best match."
+      },
+      {
+        "step": 2,
+        "stage": "subheading",
+        "current_code": "0302",
+        "selected_code": "[GROUP]",
+        "is_group": true,
+        "node_id": 491,
+        "confidence": 0.95,
+        "cumulative_confidence": 0.9025,
+        "options": [
+          {
+            "index": 1,
+            "node_id": 397,
+            "code": "[GROUP]",
+            "description": "Salmonidae, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 1,
+            "superior": true,
+            "is_group": true
+          },
+          {
+            "index": 2,
+            "node_id": 418,
+            "code": "[GROUP]",
+            "description": "Flat fish (<i>Pleuronectidae, Bothidae, Cynoglossidae, Soleidae, Scophthalmidae</i> and <i>Citharidae</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 1,
+            "superior": true,
+            "is_group": true
+          },
+          {
+            "index": 3,
+            "node_id": 429,
+            "code": "[GROUP]",
+            "description": "Tunas (of the genus <i>Thunnus</i>), skipjack tuna (stripe-bellied bonito)(<i>Katsuwonus pelamis</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 1,
+            "superior": true,
+            "is_group": true
+          },
+          {
+            "index": 4,
+            "node_id": 437,
+            "code": "[GROUP]",
+            "description": "Herrings (<i>Clupea harengus</i>, <i>Clupea pallasii</i>), anchovies (<i>Engraulis spp</i>.), sardines (<i>Sardina pilchardus</i>, <i>Sardinops spp</i>.), sardinella (<i>Sardinella spp</i>.), brisling or sprats (<i>Sprattus sprattus</i>), mackerel (<i>Scomber scombrus</i>, <i>Scomber australasicus</i>, <i>Scomber japonicus</i>), Indian mackerels (<i>Rastrelliger spp</i>.), seerfishes (<i>Scomberomorus spp</i>.), jack and horse mackerel (<i>Trachurus spp</i>.), jacks, crevalles (<i>Caranx spp</i>.), cobia (<i>Rachycentron canadum</i>), silver pomfrets (<i>Pampus spp</i>.), Pacific saury (<i>Cololabis saira</i>), scads (<i>Decapterus spp</i>.), capelin (<i>Mallotus villosus</i>), swordfish (<i>Xiphias gladius</i>), Kawakawa (<i>Euthynnus affinis</i>), bonitos (<i>Sarda spp</i>.), marlins, sailfishes, spearfish (<i>Istiophoridae</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 1,
+            "superior": true,
+            "is_group": true
+          },
+          {
+            "index": 5,
+            "node_id": 452,
+            "code": "[GROUP]",
+            "description": "Fish of the families <i>Bregmacerotidae, Euclichthyidae Gadidae, Macrouridae, Melanonidae, Merlucciidae, Moridae</i> and <i>Muraenolepididae</i>, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 1,
+            "superior": true,
+            "is_group": true
+          },
+          {
+            "index": 6,
+            "node_id": 472,
+            "code": "[GROUP]",
+            "description": "Tilapias (<i>Oreochromis spp</i>.), catfish (<i>Pangasius spp</i>., <i>Silurus spp</i>., <i>Clarias spp</i>., <i>Ictalurus spp</i>.), carp (<i>Cyprinus spp</i>., <i>Carassius spp</i>., <i>Ctenopharyngodon idellus</i>, <i>Hypophthalmichthys spp</i>., <i>Cirrhinus</i> <i>spp</i>., <i>Mylopharyngodon piceus</i>, <i>Catla catla</i>, <i>Labeo spp</i>., <i>Osteochilus hasselti</i>, <i>Leptobarbus hoeveni</i>, <i>Megalobrama spp</i>.), eels (<i>Anguilla spp</i>.), Nile perch (<i>Lates niloticus</i>) and snakeheads (<i>Channa spp</i>.), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 1,
+            "superior": true,
+            "is_group": true
+          },
+          {
+            "index": 7,
+            "node_id": 491,
+            "code": "[GROUP]",
+            "description": "Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 1,
+            "superior": true,
+            "is_group": true
+          },
+          {
+            "index": 8,
+            "node_id": 529,
+            "code": "[GROUP]",
+            "description": "Livers, roes, milt, fish fins, heads, tails, maws and other edible fish offal:",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 1,
+            "superior": true,
+            "is_group": true
+          }
+        ],
+        "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to the 'Seabream (Sparidae)' category under [GROUP] Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99. This explicit match makes option 7 the most likely classification."
+      },
+      {
+        "step": 3,
+        "stage": "tariff",
+        "current_code": "[GROUP]",
+        "selected_code": "0302.85",
+        "is_group": false,
+        "node_id": 500,
+        "confidence": 0.95,
+        "cumulative_confidence": 0.8573749999999999,
+        "options": [
+          {
+            "index": 1,
+            "node_id": 492,
+            "code": "0302.81.00",
+            "description": "Dogfish and other sharks",
+            "general": "Free",
+            "special": "",
+            "other": "2.2¢/kg",
+            "indent": 2,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 2,
+            "node_id": 495,
+            "code": "0302.82.00.00",
+            "description": "Rays and skates (<i>Rajidae</i>)",
+            "general": "Free",
+            "special": "",
+            "other": "2.2¢/kg",
+            "indent": 2,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 3,
+            "node_id": 496,
+            "code": "0302.83.00.00",
+            "description": "Toothfish (<i>Dissostichus spp.</i>)",
+            "general": "Free",
+            "special": "",
+            "other": "2.2¢/kg",
+            "indent": 2,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 4,
+            "node_id": 497,
+            "code": "0302.84",
+            "description": "Seabass (<i>Dicentrarchus spp.</i>):",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 2,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 5,
+            "node_id": 500,
+            "code": "0302.85",
+            "description": "Seabream (<i>Sparidae</i>):",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 2,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 6,
+            "node_id": 503,
+            "code": "0302.89",
+            "description": "Other :",
+            "general": "",
+            "special": "",
+            "other": "",
+            "indent": 2,
+            "superior": false,
+            "is_group": false
+          }
+        ],
+        "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to the Seabream (Sparidae) category. Although additional details regarding processing (e.g., scaled vs. not scaled) are not provided, the explicit identification as seabream makes option 5 the most likely match."
+      },
+      {
+        "step": 4,
+        "stage": "tariff",
+        "current_code": "0302.85",
+        "selected_code": "0302.85.11.00",
+        "is_group": false,
+        "node_id": 501,
+        "confidence": 0.95,
+        "cumulative_confidence": 0.8145062499999999,
+        "options": [
+          {
+            "index": 1,
+            "node_id": 501,
+            "code": "0302.85.11.00",
+            "description": "Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less",
+            "general": "3%",
+            "special": "Free (A*,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",
+            "other": "25%",
+            "indent": 3,
+            "superior": false,
+            "is_group": false
+          },
+          {
+            "index": 2,
+            "node_id": 502,
+            "code": "0302.85.50.00",
+            "description": "Other",
+            "general": "Free",
+            "special": "",
+            "other": "2.2¢/kg",
+            "indent": 3,
+            "superior": false,
+            "is_group": false
+          }
+        ],
+        "reasoning": "The product description explicitly states that the seabream is scaled and packaged in immediate containers weighing 6.8 kg or less, which directly corresponds to the characteristics defined in option 0302.85.11.00."
+      }
+    ],
+    "reasoning": [
+      "heading: Selected 0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304: (conf: 0.950, cumulative: 0.950)",
+      "subheading: Selected [GROUP] - Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99: (conf: 0.950, cumulative: 0.902)",
+      "tariff: Selected 0302.85 - Seabream (<i>Sparidae</i>): (conf: 0.950, cumulative: 0.857)",
+      "tariff: Selected 0302.85.11.00 - Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less (conf: 0.950, cumulative: 0.815)"
+    ]
+  },
+  "state": {
+    "product": "Seabream Fresh",
+    "original_query": "Seabream Fresh",
+    "current_query": "Fresh seabream that is scaled and packaged in immediate containers weighing 6.8 kg or less",
+    "questions_asked": 1,
+    "selection": {},
+    "current_node": null,
+    "classification_path": [],
+    "steps": [],
+    "conversation": [
+      {
+        "question": "Is the seabream scaled and in immediate containers weighing 6.8 kg or less?",
+        "answer": "Yes"
+      }
+    ],
+    "pending_question": null,
+    "pending_stage": null,
+    "max_questions": 5,
+    "visited_nodes": [],
+    "history": [
+      {
+        "question": "Is the seabream scaled and in immediate containers weighing 6.8 kg or less?",
+        "answer": "Yes"
+      }
+    ],
+    "product_attributes": {
+      "species": "seabream",
+      "processing_state": "fresh",
+      "scaling_status": "scaled",
+      "packaging_weight": "6.8 kg or less"
+    },
+    "recent_questions": [
+      "Is the seabream scaled and in immediate containers weighing 6.8 kg or less?"
+    ],
+    "global_retry_count": 1,
+    "classification_diagnosis": null,
+    "use_multi_hypothesis": true,
+    "hypothesis_count": 3,
+    "paths": [],
+    "beam": [
+      {
+        "path_id": "path_1_clone_1751298491.167351_clone_1751298505.907657_clone_1751298520.7628772_clone_1751298558.8309898",
+        "chapter": "03",
+        "log_score": -0.20517317233967605,
+        "cumulative_confidence": 0.8145062499999999,
+        "is_active": false,
+        "is_complete": true,
+        "classification_path": [
+          {
+            "type": "chapter",
+            "code": "03",
+            "description": "Fish and crustaceans, molluscs and other aquatic invertebrates",
+            "confidence": 1
+          },
+          {
+            "type": "heading",
+            "code": "0302",
+            "description": "Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304:",
+            "is_group": false,
+            "node_id": 396,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.95
+          },
+          {
+            "type": "subheading",
+            "code": "[GROUP]",
+            "description": "Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "is_group": true,
+            "node_id": 491,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.9025
+          },
+          {
+            "type": "tariff",
+            "code": "0302.85",
+            "description": "Seabream (<i>Sparidae</i>):",
+            "is_group": false,
+            "node_id": 500,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.8573749999999999
+          },
+          {
+            "type": "tariff",
+            "code": "0302.85.11.00",
+            "description": "Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less",
+            "is_group": false,
+            "node_id": 501,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.8145062499999999
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "stage": "heading",
+            "current_code": "[GROUP]",
+            "selected_code": "0302",
+            "is_group": false,
+            "node_id": 396,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.95,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 377,
+                "code": "0301",
+                "description": "Live fish:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 2,
+                "node_id": 396,
+                "code": "0302",
+                "description": "Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 3,
+                "node_id": 537,
+                "code": "0303",
+                "description": "Fish, frozen, excluding fish fillets and other fish meat of heading 0304:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 4,
+                "node_id": 648,
+                "code": "0304",
+                "description": "Fish fillets and other fish meat (whether or not minced), fresh, chilled or frozen:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 5,
+                "node_id": 880,
+                "code": "0305",
+                "description": "Fish, dried, salted or in brine; smoked fish, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 6,
+                "node_id": 962,
+                "code": "0306",
+                "description": "Crustaceans, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine; smoked crustaceans, whether in shell or not, whether or not cooked before or during the smoking process; crustaceans, in shell, cooked by steaming or by boiling in water, whether or not chilled, frozen, dried, salted or in brine:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 7,
+                "node_id": 1055,
+                "code": "0307",
+                "description": "Molluscs, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine; smoked molluscs, whether in shell or not, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 8,
+                "node_id": 1140,
+                "code": "0308",
+                "description": "Aquatic invertebrates other than crustaceans and molluscs, live, fresh, chilled, frozen, dried, salted or in brine; smoked aquatic invertebrates other than crustaceans and molluscs, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 9,
+                "node_id": 1153,
+                "code": "0309",
+                "description": "Flours, meals and pellets of fish, crustaceans, molluscs and other aquatic invertebrates, fit for human consumption:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to fresh or chilled fish rather than frozen or processed fillets. Option 2 (0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304) is the best match."
+          },
+          {
+            "step": 2,
+            "stage": "subheading",
+            "current_code": "0302",
+            "selected_code": "[GROUP]",
+            "is_group": true,
+            "node_id": 491,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.9025,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 397,
+                "code": "[GROUP]",
+                "description": "Salmonidae, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 2,
+                "node_id": 418,
+                "code": "[GROUP]",
+                "description": "Flat fish (<i>Pleuronectidae, Bothidae, Cynoglossidae, Soleidae, Scophthalmidae</i> and <i>Citharidae</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 3,
+                "node_id": 429,
+                "code": "[GROUP]",
+                "description": "Tunas (of the genus <i>Thunnus</i>), skipjack tuna (stripe-bellied bonito)(<i>Katsuwonus pelamis</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 4,
+                "node_id": 437,
+                "code": "[GROUP]",
+                "description": "Herrings (<i>Clupea harengus</i>, <i>Clupea pallasii</i>), anchovies (<i>Engraulis spp</i>.), sardines (<i>Sardina pilchardus</i>, <i>Sardinops spp</i>.), sardinella (<i>Sardinella spp</i>.), brisling or sprats (<i>Sprattus sprattus</i>), mackerel (<i>Scomber scombrus</i>, <i>Scomber australasicus</i>, <i>Scomber japonicus</i>), Indian mackerels (<i>Rastrelliger spp</i>.), seerfishes (<i>Scomberomorus spp</i>.), jack and horse mackerel (<i>Trachurus spp</i>.), jacks, crevalles (<i>Caranx spp</i>.), cobia (<i>Rachycentron canadum</i>), silver pomfrets (<i>Pampus spp</i>.), Pacific saury (<i>Cololabis saira</i>), scads (<i>Decapterus spp</i>.), capelin (<i>Mallotus villosus</i>), swordfish (<i>Xiphias gladius</i>), Kawakawa (<i>Euthynnus affinis</i>), bonitos (<i>Sarda spp</i>.), marlins, sailfishes, spearfish (<i>Istiophoridae</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 5,
+                "node_id": 452,
+                "code": "[GROUP]",
+                "description": "Fish of the families <i>Bregmacerotidae, Euclichthyidae Gadidae, Macrouridae, Melanonidae, Merlucciidae, Moridae</i> and <i>Muraenolepididae</i>, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 6,
+                "node_id": 472,
+                "code": "[GROUP]",
+                "description": "Tilapias (<i>Oreochromis spp</i>.), catfish (<i>Pangasius spp</i>., <i>Silurus spp</i>., <i>Clarias spp</i>., <i>Ictalurus spp</i>.), carp (<i>Cyprinus spp</i>., <i>Carassius spp</i>., <i>Ctenopharyngodon idellus</i>, <i>Hypophthalmichthys spp</i>., <i>Cirrhinus</i> <i>spp</i>., <i>Mylopharyngodon piceus</i>, <i>Catla catla</i>, <i>Labeo spp</i>., <i>Osteochilus hasselti</i>, <i>Leptobarbus hoeveni</i>, <i>Megalobrama spp</i>.), eels (<i>Anguilla spp</i>.), Nile perch (<i>Lates niloticus</i>) and snakeheads (<i>Channa spp</i>.), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 7,
+                "node_id": 491,
+                "code": "[GROUP]",
+                "description": "Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 8,
+                "node_id": 529,
+                "code": "[GROUP]",
+                "description": "Livers, roes, milt, fish fins, heads, tails, maws and other edible fish offal:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to the 'Seabream (Sparidae)' category under [GROUP] Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99. This explicit match makes option 7 the most likely classification."
+          },
+          {
+            "step": 3,
+            "stage": "tariff",
+            "current_code": "[GROUP]",
+            "selected_code": "0302.85",
+            "is_group": false,
+            "node_id": 500,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.8573749999999999,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 492,
+                "code": "0302.81.00",
+                "description": "Dogfish and other sharks",
+                "general": "Free",
+                "special": "",
+                "other": "2.2¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 2,
+                "node_id": 495,
+                "code": "0302.82.00.00",
+                "description": "Rays and skates (<i>Rajidae</i>)",
+                "general": "Free",
+                "special": "",
+                "other": "2.2¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 3,
+                "node_id": 496,
+                "code": "0302.83.00.00",
+                "description": "Toothfish (<i>Dissostichus spp.</i>)",
+                "general": "Free",
+                "special": "",
+                "other": "2.2¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 4,
+                "node_id": 497,
+                "code": "0302.84",
+                "description": "Seabass (<i>Dicentrarchus spp.</i>):",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 5,
+                "node_id": 500,
+                "code": "0302.85",
+                "description": "Seabream (<i>Sparidae</i>):",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 6,
+                "node_id": 503,
+                "code": "0302.89",
+                "description": "Other :",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to the Seabream (Sparidae) category. Although additional details regarding processing (e.g., scaled vs. not scaled) are not provided, the explicit identification as seabream makes option 5 the most likely match."
+          },
+          {
+            "step": 4,
+            "stage": "tariff",
+            "current_code": "0302.85",
+            "selected_code": "0302.85.11.00",
+            "is_group": false,
+            "node_id": 501,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.8145062499999999,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 501,
+                "code": "0302.85.11.00",
+                "description": "Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less",
+                "general": "3%",
+                "special": "Free (A*,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",
+                "other": "25%",
+                "indent": 3,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 2,
+                "node_id": 502,
+                "code": "0302.85.50.00",
+                "description": "Other",
+                "general": "Free",
+                "special": "",
+                "other": "2.2¢/kg",
+                "indent": 3,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product description explicitly states that the seabream is scaled and packaged in immediate containers weighing 6.8 kg or less, which directly corresponds to the characteristics defined in option 0302.85.11.00."
+          }
+        ],
+        "visited_nodes": [
+          396,
+          491,
+          500,
+          501
+        ],
+        "selection": {
+          "chapter": "03",
+          "heading": 396,
+          "subheading": 491,
+          "tariff": 501
+        },
+        "reasoning_log": [
+          "heading: Selected 0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304: (conf: 0.950, cumulative: 0.950)",
+          "subheading: Selected [GROUP] - Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99: (conf: 0.950, cumulative: 0.902)",
+          "tariff: Selected 0302.85 - Seabream (<i>Sparidae</i>): (conf: 0.950, cumulative: 0.857)",
+          "tariff: Selected 0302.85.11.00 - Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less (conf: 0.950, cumulative: 0.815)"
+        ],
+        "failure_reason": null,
+        "full_path": "03 - Fish and crustaceans, molluscs and other aquatic invertebrates > 0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304: > [GROUP] Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99: > 0302.85 - Seabream (<i>Sparidae</i>): > 0302.85.11.00 - Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less",
+        "final_code": "0302.85.11.00",
+        "current_node": {
+          "node_id": 501,
+          "htsno": "0302.85.11.00",
+          "description": "Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less",
+          "indent": 3
+        }
+      },
+      {
+        "path_id": "path_1_clone_1751298491.167351_clone_1751298505.907657_clone_1751298520.7628772_clone_1751298558.8310325",
+        "chapter": "03",
+        "log_score": -2.4564649619988024,
+        "cumulative_confidence": 0.0857375,
+        "is_active": false,
+        "is_complete": true,
+        "classification_path": [
+          {
+            "type": "chapter",
+            "code": "03",
+            "description": "Fish and crustaceans, molluscs and other aquatic invertebrates",
+            "confidence": 1
+          },
+          {
+            "type": "heading",
+            "code": "0302",
+            "description": "Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304:",
+            "is_group": false,
+            "node_id": 396,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.95
+          },
+          {
+            "type": "subheading",
+            "code": "[GROUP]",
+            "description": "Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+            "is_group": true,
+            "node_id": 491,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.9025
+          },
+          {
+            "type": "tariff",
+            "code": "0302.85",
+            "description": "Seabream (<i>Sparidae</i>):",
+            "is_group": false,
+            "node_id": 500,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.8573749999999999
+          },
+          {
+            "type": "tariff",
+            "code": "0302.85.50.00",
+            "description": "Other",
+            "is_group": false,
+            "node_id": 502,
+            "confidence": 0.1,
+            "cumulative_confidence": 0.0857375
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "stage": "heading",
+            "current_code": "[GROUP]",
+            "selected_code": "0302",
+            "is_group": false,
+            "node_id": 396,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.95,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 377,
+                "code": "0301",
+                "description": "Live fish:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 2,
+                "node_id": 396,
+                "code": "0302",
+                "description": "Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 3,
+                "node_id": 537,
+                "code": "0303",
+                "description": "Fish, frozen, excluding fish fillets and other fish meat of heading 0304:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 4,
+                "node_id": 648,
+                "code": "0304",
+                "description": "Fish fillets and other fish meat (whether or not minced), fresh, chilled or frozen:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 5,
+                "node_id": 880,
+                "code": "0305",
+                "description": "Fish, dried, salted or in brine; smoked fish, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 6,
+                "node_id": 962,
+                "code": "0306",
+                "description": "Crustaceans, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine; smoked crustaceans, whether in shell or not, whether or not cooked before or during the smoking process; crustaceans, in shell, cooked by steaming or by boiling in water, whether or not chilled, frozen, dried, salted or in brine:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 7,
+                "node_id": 1055,
+                "code": "0307",
+                "description": "Molluscs, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine; smoked molluscs, whether in shell or not, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 8,
+                "node_id": 1140,
+                "code": "0308",
+                "description": "Aquatic invertebrates other than crustaceans and molluscs, live, fresh, chilled, frozen, dried, salted or in brine; smoked aquatic invertebrates other than crustaceans and molluscs, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 9,
+                "node_id": 1153,
+                "code": "0309",
+                "description": "Flours, meals and pellets of fish, crustaceans, molluscs and other aquatic invertebrates, fit for human consumption:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to fresh or chilled fish rather than frozen or processed fillets. Option 2 (0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304) is the best match."
+          },
+          {
+            "step": 2,
+            "stage": "subheading",
+            "current_code": "0302",
+            "selected_code": "[GROUP]",
+            "is_group": true,
+            "node_id": 491,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.9025,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 397,
+                "code": "[GROUP]",
+                "description": "Salmonidae, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 2,
+                "node_id": 418,
+                "code": "[GROUP]",
+                "description": "Flat fish (<i>Pleuronectidae, Bothidae, Cynoglossidae, Soleidae, Scophthalmidae</i> and <i>Citharidae</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 3,
+                "node_id": 429,
+                "code": "[GROUP]",
+                "description": "Tunas (of the genus <i>Thunnus</i>), skipjack tuna (stripe-bellied bonito)(<i>Katsuwonus pelamis</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 4,
+                "node_id": 437,
+                "code": "[GROUP]",
+                "description": "Herrings (<i>Clupea harengus</i>, <i>Clupea pallasii</i>), anchovies (<i>Engraulis spp</i>.), sardines (<i>Sardina pilchardus</i>, <i>Sardinops spp</i>.), sardinella (<i>Sardinella spp</i>.), brisling or sprats (<i>Sprattus sprattus</i>), mackerel (<i>Scomber scombrus</i>, <i>Scomber australasicus</i>, <i>Scomber japonicus</i>), Indian mackerels (<i>Rastrelliger spp</i>.), seerfishes (<i>Scomberomorus spp</i>.), jack and horse mackerel (<i>Trachurus spp</i>.), jacks, crevalles (<i>Caranx spp</i>.), cobia (<i>Rachycentron canadum</i>), silver pomfrets (<i>Pampus spp</i>.), Pacific saury (<i>Cololabis saira</i>), scads (<i>Decapterus spp</i>.), capelin (<i>Mallotus villosus</i>), swordfish (<i>Xiphias gladius</i>), Kawakawa (<i>Euthynnus affinis</i>), bonitos (<i>Sarda spp</i>.), marlins, sailfishes, spearfish (<i>Istiophoridae</i>), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 5,
+                "node_id": 452,
+                "code": "[GROUP]",
+                "description": "Fish of the families <i>Bregmacerotidae, Euclichthyidae Gadidae, Macrouridae, Melanonidae, Merlucciidae, Moridae</i> and <i>Muraenolepididae</i>, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 6,
+                "node_id": 472,
+                "code": "[GROUP]",
+                "description": "Tilapias (<i>Oreochromis spp</i>.), catfish (<i>Pangasius spp</i>., <i>Silurus spp</i>., <i>Clarias spp</i>., <i>Ictalurus spp</i>.), carp (<i>Cyprinus spp</i>., <i>Carassius spp</i>., <i>Ctenopharyngodon idellus</i>, <i>Hypophthalmichthys spp</i>., <i>Cirrhinus</i> <i>spp</i>., <i>Mylopharyngodon piceus</i>, <i>Catla catla</i>, <i>Labeo spp</i>., <i>Osteochilus hasselti</i>, <i>Leptobarbus hoeveni</i>, <i>Megalobrama spp</i>.), eels (<i>Anguilla spp</i>.), Nile perch (<i>Lates niloticus</i>) and snakeheads (<i>Channa spp</i>.), excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 7,
+                "node_id": 491,
+                "code": "[GROUP]",
+                "description": "Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 8,
+                "node_id": 529,
+                "code": "[GROUP]",
+                "description": "Livers, roes, milt, fish fins, heads, tails, maws and other edible fish offal:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to the 'Seabream (Sparidae)' category under [GROUP] Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99. This explicit match makes option 7 the most likely classification."
+          },
+          {
+            "step": 3,
+            "stage": "tariff",
+            "current_code": "[GROUP]",
+            "selected_code": "0302.85",
+            "is_group": false,
+            "node_id": 500,
+            "confidence": 0.95,
+            "cumulative_confidence": 0.8573749999999999,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 492,
+                "code": "0302.81.00",
+                "description": "Dogfish and other sharks",
+                "general": "Free",
+                "special": "",
+                "other": "2.2¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 2,
+                "node_id": 495,
+                "code": "0302.82.00.00",
+                "description": "Rays and skates (<i>Rajidae</i>)",
+                "general": "Free",
+                "special": "",
+                "other": "2.2¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 3,
+                "node_id": 496,
+                "code": "0302.83.00.00",
+                "description": "Toothfish (<i>Dissostichus spp.</i>)",
+                "general": "Free",
+                "special": "",
+                "other": "2.2¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 4,
+                "node_id": 497,
+                "code": "0302.84",
+                "description": "Seabass (<i>Dicentrarchus spp.</i>):",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 5,
+                "node_id": 500,
+                "code": "0302.85",
+                "description": "Seabream (<i>Sparidae</i>):",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 6,
+                "node_id": 503,
+                "code": "0302.89",
+                "description": "Other :",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', which directly corresponds to the Seabream (Sparidae) category. Although additional details regarding processing (e.g., scaled vs. not scaled) are not provided, the explicit identification as seabream makes option 5 the most likely match."
+          },
+          {
+            "step": 4,
+            "stage": "tariff",
+            "current_code": "0302.85",
+            "selected_code": "0302.85.50.00",
+            "is_group": false,
+            "node_id": 502,
+            "confidence": 0.1,
+            "cumulative_confidence": 0.0857375,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 501,
+                "code": "0302.85.11.00",
+                "description": "Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less",
+                "general": "3%",
+                "special": "Free (A*,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)",
+                "other": "25%",
+                "indent": 3,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 2,
+                "node_id": 502,
+                "code": "0302.85.50.00",
+                "description": "Other",
+                "general": "Free",
+                "special": "",
+                "other": "2.2¢/kg",
+                "indent": 3,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product description specifically mentions that the seabream is scaled and packaged in immediate containers weighing 6.8 kg or less, which is explicitly covered by option 1. Option 2 (Other) typically applies to seabream that is not scaled or is packaged in containers exceeding this weight limit, so there is minimal overlap with the provided details."
+          }
+        ],
+        "visited_nodes": [
+          396,
+          491,
+          500,
+          502
+        ],
+        "selection": {
+          "chapter": "03",
+          "heading": 396,
+          "subheading": 491,
+          "tariff": 502
+        },
+        "reasoning_log": [
+          "heading: Selected 0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304: (conf: 0.950, cumulative: 0.950)",
+          "subheading: Selected [GROUP] - Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99: (conf: 0.950, cumulative: 0.902)",
+          "tariff: Selected 0302.85 - Seabream (<i>Sparidae</i>): (conf: 0.950, cumulative: 0.857)",
+          "tariff: Selected 0302.85.50.00 - Other (conf: 0.100, cumulative: 0.086)"
+        ],
+        "failure_reason": null,
+        "full_path": "03 - Fish and crustaceans, molluscs and other aquatic invertebrates > 0302 - Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304: > [GROUP] Other fish, excluding edible fish offal of subheadings 0302.91 to 0302.99: > 0302.85 - Seabream (<i>Sparidae</i>): > 0302.85.50.00 - Other",
+        "final_code": "0302.85.50.00",
+        "current_node": {
+          "node_id": 502,
+          "htsno": "0302.85.50.00",
+          "description": "Other",
+          "indent": 3
+        }
+      },
+      {
+        "path_id": "path_1_clone_1751298491.1694076_clone_1751298505.907871_clone_1751298520.7629547_clone_1751298558.831047",
+        "chapter": "03",
+        "log_score": -2.911391110443769,
+        "cumulative_confidence": 0.05440000000000001,
+        "is_active": false,
+        "is_complete": true,
+        "classification_path": [
+          {
+            "type": "chapter",
+            "code": "03",
+            "description": "Fish and crustaceans, molluscs and other aquatic invertebrates",
+            "confidence": 1
+          },
+          {
+            "type": "heading",
+            "code": "0304",
+            "description": "Fish fillets and other fish meat (whether or not minced), fresh, chilled or frozen:",
+            "is_group": false,
+            "node_id": 648,
+            "confidence": 0.1,
+            "cumulative_confidence": 0.1
+          },
+          {
+            "type": "subheading",
+            "code": "[GROUP]",
+            "description": "Other, fresh or chilled:",
+            "is_group": true,
+            "node_id": 692,
+            "confidence": 0.8,
+            "cumulative_confidence": 0.08000000000000002
+          },
+          {
+            "type": "tariff",
+            "code": "0304.59.00",
+            "description": "Other",
+            "is_group": false,
+            "node_id": 717,
+            "confidence": 0.8,
+            "cumulative_confidence": 0.06400000000000002
+          },
+          {
+            "type": "tariff",
+            "code": "0304.59.00.91",
+            "description": "Other",
+            "is_group": false,
+            "node_id": 736,
+            "confidence": 0.85,
+            "cumulative_confidence": 0.05440000000000001
+          }
+        ],
+        "steps": [
+          {
+            "step": 1,
+            "stage": "heading",
+            "current_code": "[GROUP]",
+            "selected_code": "0304",
+            "is_group": false,
+            "node_id": 648,
+            "confidence": 0.1,
+            "cumulative_confidence": 0.1,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 377,
+                "code": "0301",
+                "description": "Live fish:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 2,
+                "node_id": 396,
+                "code": "0302",
+                "description": "Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 3,
+                "node_id": 537,
+                "code": "0303",
+                "description": "Fish, frozen, excluding fish fillets and other fish meat of heading 0304:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 4,
+                "node_id": 648,
+                "code": "0304",
+                "description": "Fish fillets and other fish meat (whether or not minced), fresh, chilled or frozen:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 5,
+                "node_id": 880,
+                "code": "0305",
+                "description": "Fish, dried, salted or in brine; smoked fish, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 6,
+                "node_id": 962,
+                "code": "0306",
+                "description": "Crustaceans, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine; smoked crustaceans, whether in shell or not, whether or not cooked before or during the smoking process; crustaceans, in shell, cooked by steaming or by boiling in water, whether or not chilled, frozen, dried, salted or in brine:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 7,
+                "node_id": 1055,
+                "code": "0307",
+                "description": "Molluscs, whether in shell or not, live, fresh, chilled, frozen, dried, salted or in brine; smoked molluscs, whether in shell or not, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 8,
+                "node_id": 1140,
+                "code": "0308",
+                "description": "Aquatic invertebrates other than crustaceans and molluscs, live, fresh, chilled, frozen, dried, salted or in brine; smoked aquatic invertebrates other than crustaceans and molluscs, whether or not cooked before or during the smoking process:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 9,
+                "node_id": 1153,
+                "code": "0309",
+                "description": "Flours, meals and pellets of fish, crustaceans, molluscs and other aquatic invertebrates, fit for human consumption:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 0,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', indicating it is a whole fish rather than a fillet or processed fish meat. Option 4 (0304 - Fish fillets and other fish meat (whether or not minced), fresh, chilled or frozen) does not match the description."
+          },
+          {
+            "step": 2,
+            "stage": "subheading",
+            "current_code": "0304",
+            "selected_code": "[GROUP]",
+            "is_group": true,
+            "node_id": 692,
+            "confidence": 0.8,
+            "cumulative_confidence": 0.08000000000000002,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 649,
+                "code": "[GROUP]",
+                "description": "Fresh or chilled fillets of tilapias (<i>Oreochromis spp</i>.), catfish (<i>Pangasius spp</i>., <i>Silurus spp</i>., <i>Clarias spp</i>., <i>Ictalurus spp</i>.), carp (<i>Cyprinus spp</i>., <i>Carassius spp</i>., <i>Ctenopharyngodon idellus</i>, <i>Hypophthalmichthys spp</i>., <i>Cirrhinus spp</i>., <i>Mylopharyngodon piceus</i>, <i>Catla catla</i>, <i>Labeo spp</i>., <i>Osteochilus hasselti</i>, <i>Leptobarbus hoeveni</i>, <i>Megalobrama spp</i>.), eels (<i>Anguilla spp</i>.), Nile perch (<i>Lates niloticus</i>) and snakeheads (<i>Channa spp</i>.):",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 2,
+                "node_id": 657,
+                "code": "[GROUP]",
+                "description": "Fresh or chilled fillets of other fish:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 3,
+                "node_id": 692,
+                "code": "[GROUP]",
+                "description": "Other, fresh or chilled:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 4,
+                "node_id": 737,
+                "code": "[GROUP]",
+                "description": "Frozen fillets of tilapias (<i>Oreochromis spp</i>.), catfish (<i>Pangasius</i> <i>spp</i>., <i>Silurus spp</i>., <i>Clarias spp</i>., <i>Ictalurus spp</i>.), carp (<i>Cyprinus</i> <i>spp</i>., <i>Carassius spp</i>., <i>Ctenopharyngodon idellus</i>, <i>Hypophthalmichthys spp</i>., <i>Cirrhinus spp</i>.,  <i>Mylopharyngodon</i> <i>piceus</i>, <i>Catla catla</i>, <i>Labeo spp</i>., <i>Osteochilus hasselti</i>, <i>Leptobarbushoeveni</i>, <i>Megalobrama spp</i>.), eels (<i>Anguilla spp</i>.), Nile perch (<i>Lates niloticus</i>) and snakeheads (<i>Channa spp</i>.):",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 5,
+                "node_id": 746,
+                "code": "[GROUP]",
+                "description": "Frozen fillets of the families <i>Bregmacerotidae, Euclichthyidae, Gadidae, Macrouridae, Melanonidae, Merlucciidae, Moridae</i> and <i>Muraenolepididae</i>:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 6,
+                "node_id": 768,
+                "code": "[GROUP]",
+                "description": "Frozen fillets of other fish:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 7,
+                "node_id": 826,
+                "code": "[GROUP]",
+                "description": "Other, frozen:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 1,
+                "superior": true,
+                "is_group": true
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', indicating that it is fresh and not processed into fillets. Option 3 covers 'Other, fresh or chilled' fish, which could include whole fish like seabream. Although the description does not explicitly confirm that it is whole, the absence of fillet processing makes this option a reasonable match."
+          },
+          {
+            "step": 3,
+            "stage": "tariff",
+            "current_code": "[GROUP]",
+            "selected_code": "0304.59.00",
+            "is_group": false,
+            "node_id": 717,
+            "confidence": 0.8,
+            "cumulative_confidence": 0.06400000000000002,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 693,
+                "code": "0304.51.01",
+                "description": "Tilapias (<i>Oreochromis spp</i>.), catfish (<i>Pangasius spp</i>., <i>Silurus spp</i>., <i>Clarias</i> <i>spp</i>., <i>Ictalurus spp</i>.), carp (<i>Cyprinus spp</i>., <i>Carassius spp</i>., <i>Ctenopharyngodon idellus</i>, <i>Hypophthalmichthys spp</i>., <i>Cirrhinus spp</i>., <i>Mylopharyngodon piceus</i>, <i>Catla catla</i>, <i>Labeo spp</i>., <i>Osteochilus hasselti</i>, <i>Leptobarbus hoeveni</i>, <i>Megalobrama spp</i>.), eels (<i>Anguilla spp</i>.), Nile perch (<i>Lates niloticus</i>) and snakeheads (<i>Channa spp</i>.)",
+                "general": "Free",
+                "special": "",
+                "other": "5.5¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 2,
+                "node_id": 699,
+                "code": "0304.52.00",
+                "description": "Salmonidae",
+                "general": "Free",
+                "special": "",
+                "other": "5.5¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 3,
+                "node_id": 705,
+                "code": "0304.53.00",
+                "description": "Fish of the families <i>Bregmacerotidae, Euclichthyidae, Gadidae, Macrouridae, Melanonidae, Merlucciidae, Moridae</i> and <i>Muraenolepididae</i>",
+                "general": "Free",
+                "special": "",
+                "other": "5.5¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 4,
+                "node_id": 713,
+                "code": "0304.54.00.00",
+                "description": "Swordfish (<i>Xiphias gladius</i>)",
+                "general": "Free",
+                "special": "",
+                "other": "5.5¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 5,
+                "node_id": 714,
+                "code": "0304.55.00.00",
+                "description": "Toothfish (<i>Dissostichus spp.</i>)",
+                "general": "Free",
+                "special": "",
+                "other": "5.5¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 6,
+                "node_id": 715,
+                "code": "0304.56.00.00",
+                "description": "Dogfish and other sharks",
+                "general": "Free",
+                "special": "",
+                "other": "5.5¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 7,
+                "node_id": 716,
+                "code": "0304.57.00.00",
+                "description": "Rays and skates (<i>Rajidae)</i>",
+                "general": "Free",
+                "special": "",
+                "other": "5.5¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 8,
+                "node_id": 717,
+                "code": "0304.59.00",
+                "description": "Other",
+                "general": "Free",
+                "special": "",
+                "other": "5.5¢/kg",
+                "indent": 2,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product is described as 'Seabream Fresh', which does not explicitly match any of the detailed categories like tilapia, salmonidae, or cod. However, seabream is a marine fish that does not fall under the freshwater categories listed in option 1, 2, 3, 4, 5, 6, or 7. Option 8 (0304.59.00 - Other) is the most logical default classification for fresh marine fish that are not specifically identified in the detailed subcategories."
+          },
+          {
+            "step": 4,
+            "stage": "tariff",
+            "current_code": "0304.59.00",
+            "selected_code": "0304.59.00.91",
+            "is_group": false,
+            "node_id": 736,
+            "confidence": 0.85,
+            "cumulative_confidence": 0.05440000000000001,
+            "options": [
+              {
+                "index": 1,
+                "node_id": 718,
+                "code": "[GROUP]",
+                "description": "Fresh-water fish:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 3,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 2,
+                "node_id": 728,
+                "code": "[GROUP]",
+                "description": "Flat Fish:",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 3,
+                "superior": true,
+                "is_group": true
+              },
+              {
+                "index": 3,
+                "node_id": 734,
+                "code": "0304.59.00.65",
+                "description": "Atlantic ocean perch",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 3,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 4,
+                "node_id": 735,
+                "code": "0304.59.00.70",
+                "description": "Cusk",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 3,
+                "superior": false,
+                "is_group": false
+              },
+              {
+                "index": 5,
+                "node_id": 736,
+                "code": "0304.59.00.91",
+                "description": "Other",
+                "general": "",
+                "special": "",
+                "other": "",
+                "indent": 3,
+                "superior": false,
+                "is_group": false
+              }
+            ],
+            "reasoning": "The product is described as fresh seabream, which is a saltwater fish. None of the explicit subgroups (freshwater or flat fish) apply, so it most likely falls under the 'Other' category (0304.59.00.91)."
+          }
+        ],
+        "visited_nodes": [
+          648,
+          692,
+          717,
+          736
+        ],
+        "selection": {
+          "chapter": "03",
+          "heading": 648,
+          "subheading": 692,
+          "tariff": 736
+        },
+        "reasoning_log": [
+          "heading: Selected 0304 - Fish fillets and other fish meat (whether or not minced), fresh, chilled or frozen: (conf: 0.100, cumulative: 0.100)",
+          "subheading: Selected [GROUP] - Other, fresh or chilled: (conf: 0.800, cumulative: 0.080)",
+          "tariff: Selected 0304.59.00 - Other (conf: 0.800, cumulative: 0.064)",
+          "tariff: Selected 0304.59.00.91 - Other (conf: 0.850, cumulative: 0.054)"
+        ],
+        "failure_reason": null,
+        "full_path": "03 - Fish and crustaceans, molluscs and other aquatic invertebrates > 0304 - Fish fillets and other fish meat (whether or not minced), fresh, chilled or frozen: > [GROUP] Other, fresh or chilled: > 0304.59.00 - Other > 0304.59.00.91 - Other",
+        "final_code": "0304.59.00.91",
+        "current_node": {
+          "node_id": 736,
+          "htsno": "0304.59.00.91",
+          "description": "Other",
+          "indent": 3
+        }
+      }
+    ],
+    "paths_considered": [
+      {
+        "chapter": "03",
+        "reasoning": ""
+      }
+    ],
+    "active_question_path": null,
+    "used_multi_hypothesis": true,
+    "iteration_count": 6
+  },
+  "explanation": "Okay, let's break down how the \"Fresh seabream that is scaled and packaged in immediate containers weighing 6.8 kg or less\" was classified under 0302.85.11.00.\n\n1. <b>Category Selection (03 – Fish and crustaceans, molluscs and other aquatic invertebrates):</b>\n   - The product is described as \"fresh seabream,\" indicating it is a fish. This immediately places it within the broader category 03, which covers fish and aquatic invertebrates.\n\n2. <b>Processing State Determination (0302 – Fish, fresh or chilled, excluding fish fillets and other fish meat of heading 0304):</b>\n   - The product is explicitly described as \"fresh,\" meaning it is in its natural state without significant processing such as freezing, smoking, or canning. This aligns with the description in heading 0302, which covers fresh or chilled fish excluding fillets and processed fish meat.\n\n3. <b>Species Identification (0302.85 – Seabream (<i>Sparidae</i>)):</b>\n   - The product is identified as \"seabream,\" which is a specific type of fish belonging to the Sparidae family. This identification leads to subheading 0302.85, which specifically covers seabream.\n\n4. <b>Detailed Processing and Packaging Considerations (0302.85.11.00 – Scaled (whether or not heads, viscera and/or fins have been removed, but not otherwise processed), in immediate containers weighing with their contents <il>6.8 kg</il> or less):</b>\n   - The product is described as \"scaled,\" indicating that the scales have been removed but it has not undergone further processing like filleting or cooking. Additionally, it is packaged in immediate containers weighing 6.8 kg or less. This detailed description directly corresponds to the criteria set forth in 0302.85.11.00.\n\n5. <b>Confirmation (Q1: Is the seabream scaled and in immediate containers weighing 6.8 kg or less? A1: Yes):</b>\n   - The explicit confirmation that the seabream is scaled and packaged in containers weighing 6.8 kg or less further supports the classification under 0302.85.11.00.\n\nIn summary, the product is classified as 0302.85.11.00 because it is fresh seabream that has been scaled and is packaged in immediate containers weighing 6.8 kg or less, directly matching the description provided in that classification category."
+}

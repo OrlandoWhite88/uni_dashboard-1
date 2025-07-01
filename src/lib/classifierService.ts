@@ -549,20 +549,26 @@ export function useClassifier() {
           // Ensure all stages are shown even for string results
           runStageSequence({}, finalCode);
         } else if (result && typeof result === "object") {
-          if (result.final_code) {
+          // Check for new API response format with classification object
+          if (result.classification && result.classification.code) {
+            finalCode = result.classification.code;
+          } else if (result.final_code) {
             finalCode = result.final_code;
           }
           
+          // Check for path in classification object or at root level
+          const fullPath = result.classification?.path || result.full_path;
+          
           // If we have a full path, parse it to get chapter/heading/subheading
-          if (result.full_path) {
-            extractedInfo = parsePathInfo(result.full_path);
+          if (fullPath) {
+            extractedInfo = parsePathInfo(fullPath);
             
             // Add path to loading state
             setState(current => 
               current.status === "loading" 
                 ? { 
                     ...current, 
-                    path: result.full_path,
+                    path: fullPath,
                     // Force stage update to ensure it's always included
                     stage: current.stage 
                   } 
@@ -643,19 +649,25 @@ export function useClassifier() {
         if (typeof result === "string") {
           finalCode = result;
         } else if (result && typeof result === "object") {
-          if (result.final_code) {
+          // Check for new API response format with classification object
+          if (result.classification && result.classification.code) {
+            finalCode = result.classification.code;
+          } else if (result.final_code) {
             finalCode = result.final_code;
           }
           
-          if (result.full_path) {
-            extractedInfo = parsePathInfo(result.full_path);
+          // Check for path in classification object or at root level
+          const fullPath = result.classification?.path || result.full_path;
+          
+          if (fullPath) {
+            extractedInfo = parsePathInfo(fullPath);
             
             // Add path to the loading state and force stage update
             setState(current => 
               current.status === "loading" 
                 ? { 
                     ...current, 
-                    path: result.full_path,
+                    path: fullPath,
                     // Force stage update to ensure it's always included
                     stage: current.stage 
                   }
@@ -775,15 +787,23 @@ export function useClassifier() {
             // This is a final classification response
             addDebug(`Processing final classification response`);
             
-            const finalCode = typeof result.final_code === "string"
-              ? result.final_code
-              : String(result.final_code || "Unknown");
+            // Check for new API response format with classification object
+            let finalCode = "Unknown";
+            if (result.classification && result.classification.code) {
+              finalCode = String(result.classification.code);
+            } else if (result.final_code) {
+              finalCode = typeof result.final_code === "string"
+                ? result.final_code
+                : String(result.final_code);
+            }
               
             const description = typeof result.enriched_query === "string"
               ? result.enriched_query
               : productDescription || "Product";
               
-            const path = typeof result.full_path === "string" ? result.full_path : undefined;
+            // Check for path in classification object or at root level
+            const path = result.classification?.path || result.full_path;
+            const pathString = typeof path === "string" ? path : undefined;
             
             // Log usage only when we get a final result
             try {
@@ -798,23 +818,63 @@ export function useClassifier() {
             
             // Calculate confidence score based on available information
             const hasDescription = !!result.enriched_query;
-            const hasPath = !!result.full_path;
+            const hasPath = !!pathString;
             
-            // Start with base confidence of 94%
+            // Use log_score for most accurate confidence calculation
             let confidence = 94;
-            
-            // Add confidence if we have enriched description
-            if (hasDescription) {
-              confidence += 2;
+            if (result.classification && typeof result.classification.log_score === "number") {
+              // Log score is typically negative, closer to 0 means higher confidence
+              // Map log scores to high confidence ranges (85-99%)
+              const logScore = result.classification.log_score;
+              
+              if (logScore >= -0.1) {
+                // Extremely high confidence
+                confidence = 99;
+              } else if (logScore >= -0.3) {
+                // Very high confidence  
+                confidence = 97;
+              } else if (logScore >= -0.5) {
+                // High confidence (like your seabream example)
+                confidence = 95;
+              } else if (logScore >= -0.8) {
+                // Good confidence
+                confidence = 92;
+              } else if (logScore >= -1.2) {
+                // Moderate confidence
+                confidence = 88;
+              } else {
+                // Lower confidence but still reasonable
+                confidence = 85;
+              }
+              
+              addDebug(`Log score: ${logScore} mapped to confidence: ${confidence}%`);
+            } else if (result.classification && typeof result.classification.confidence === "number") {
+              // Fallback to confidence field, but boost it significantly
+              const rawConfidence = result.classification.confidence;
+              if (rawConfidence >= 0.5) {
+                // Boost confidence scores that are 50%+ to high ranges
+                confidence = Math.min(99, Math.round(85 + (rawConfidence - 0.5) * 28)); // Maps 0.5-1.0 to 85-99%
+              } else {
+                confidence = Math.max(75, Math.round(rawConfidence * 150)); // Boost lower scores
+              }
+              addDebug(`Raw confidence: ${rawConfidence} boosted to: ${confidence}%`);
+            } else {
+              // Start with base confidence of 94%
+              confidence = 94;
+              
+              // Add confidence if we have enriched description
+              if (hasDescription) {
+                confidence += 2;
+              }
+              
+              // Add confidence if we have full path
+              if (hasPath) {
+                confidence += 3;
+              }
+              
+              // Cap at 99%
+              confidence = Math.min(confidence, 99);
             }
-            
-            // Add confidence if we have full path
-            if (hasPath) {
-              confidence += 3;
-            }
-            
-            // Cap at 99% - high confidence but never 100%
-            confidence = Math.min(confidence, 99);
 
             // Save classification to database if user is logged in
             if (userId && (productDescription || description)) {
@@ -825,7 +885,7 @@ export function useClassifier() {
                   product_description: productDescription || description,
                   hs_code: finalCode,
                   confidence: confidence,
-                  full_path: path,
+                  full_path: pathString,
                   tariff_data: null,
                   notes: null
                 });
@@ -840,7 +900,7 @@ export function useClassifier() {
               status: "result",
               code: finalCode,
               description: description,
-              path: path,
+              path: pathString,
               confidence: confidence,
             });
             return;
