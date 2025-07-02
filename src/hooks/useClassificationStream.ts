@@ -18,6 +18,19 @@ export interface BeamPath {
   is_complete: boolean;
 }
 
+export interface ClassificationDecision {
+  code: string;
+  description: string;
+  confidence: number;
+  level: number;
+  timestamp: string;
+  competitors?: {
+    code: string;
+    description: string;
+    confidence: number;
+  }[];
+}
+
 export interface StreamingState {
   isStreaming: boolean;
   events: StreamEvent[];
@@ -30,6 +43,8 @@ export interface StreamingState {
   currentQuestion: any | null;
   isWaitingForAnswer: boolean;
   classificationState: any | null; // Store the full classification state for answer submission
+  classificationDecisions: ClassificationDecision[]; // Track firm classification decisions
+  enrichedDescription: string | null; // Store the latest enriched product description
 }
 
 export const useClassificationStream = () => {
@@ -44,7 +59,9 @@ export const useClassificationStream = () => {
     elapsedTime: 0,
     currentQuestion: null,
     isWaitingForAnswer: false,
-    classificationState: null
+    classificationState: null,
+    classificationDecisions: [],
+    enrichedDescription: null
   });
 
   const startTimeRef = useRef<number>(0);
@@ -84,6 +101,7 @@ export const useClassificationStream = () => {
       let newBeam = prev.currentBeam;
       let newProgress = prev.progress;
       let finalResult = prev.finalResult;
+      let newDecisions = [...prev.classificationDecisions];
 
       // Update stage based on event type
       switch (event.type) {
@@ -101,6 +119,15 @@ export const useClassificationStream = () => {
           if (event.data.chapters && event.data.chapters.length > 0) {
             const topChapter = event.data.chapters[0];
             newStage = `Selected Chapter ${topChapter.chapter}: ${topChapter.description}`;
+            
+            // Add chapter selection as a firm decision (no competitors for chapter level)
+            newDecisions.push({
+              code: topChapter.chapter,
+              description: topChapter.description,
+              confidence: topChapter.confidence || 0,
+              level: 0,
+              timestamp: event.timestamp
+            });
           } else {
             newStage = 'Chapter selection complete';
           }
@@ -128,6 +155,33 @@ export const useClassificationStream = () => {
         case 'candidate_scoring_complete':
           if (event.data.best_confidence) {
             newStage = `Best match found with ${Math.round(event.data.best_confidence * 100)}% confidence`;
+            
+            // Check if this represents a firm decision (high confidence threshold)
+            if (event.data.best_confidence > 0.8 && event.data.selected_code && event.data.current_node) {
+              // Extract level from the code length (rough approximation)
+              const codeLength = event.data.selected_code.length;
+              let level = 0;
+              if (codeLength >= 4) level = 1; // Heading level
+              if (codeLength >= 6) level = 2; // Subheading level
+              if (codeLength >= 8) level = 3; // Further subdivision
+              
+              // Only add if it's a new decision (not already tracked)
+              const alreadyExists = newDecisions.some(d => d.code === event.data.selected_code);
+              if (!alreadyExists) {
+                newDecisions.push({
+                  code: event.data.selected_code,
+                  description: event.data.selected_description || `Classification ${event.data.selected_code}`,
+                  confidence: event.data.best_confidence,
+                  level,
+                  timestamp: event.timestamp,
+                  competitors: event.data.alternatives?.slice(0, 3).map((alt: any) => ({
+                    code: alt.code || alt.hs_code,
+                    description: alt.description,
+                    confidence: alt.confidence || 0
+                  })) || []
+                });
+              }
+            }
           }
           break;
         
@@ -136,6 +190,7 @@ export const useClassificationStream = () => {
           let beamData = event.data.Beam || event.data.beam || [];
           
           // Convert capitalized field names to lowercase for consistency
+          const previousBeam = newBeam;
           newBeam = beamData.map((item: any) => ({
             position: item.Position || item.position,
             path_id: item['Path Id'] || item.path_id,
@@ -146,6 +201,96 @@ export const useClassificationStream = () => {
             is_active: item['Is Active'] || item.is_active,
             is_complete: item['Is Complete'] || item.is_complete
           }));
+          
+          // Track decisions from the top path only
+          if (newBeam.length > 0) {
+            const topPath = newBeam[0];
+            const segments = topPath.current_path.split(' > ');
+            const topPathCodes = [];
+            
+            // Extract HS codes from the top path, ensuring proper hierarchy
+            for (const segment of segments) {
+              // Skip [GROUP] segments
+              if (segment.includes('[GROUP]')) {
+                continue;
+              }
+              
+              // Extract the HS code from the beginning of the segment (including all decimal formats)
+              const codeMatch = segment.match(/^(\d{2,}(?:\.\d{1,})*)/);
+              
+              if (codeMatch) {
+                const code = codeMatch[1];
+                
+                // Only add if this code represents a new level in the hierarchy
+                // Check if we already have this exact code
+                const alreadyExists = topPathCodes.some(existing => existing.code === code);
+                
+                if (!alreadyExists) {
+                  topPathCodes.push({
+                    code: code,
+                    segment: segment
+                  });
+                }
+              }
+            }
+            
+            // For each code in the top path, check if we need to add or update decisions
+            topPathCodes.forEach((pathCode, level) => {
+              const existingDecision = newDecisions.find(d => d.level === level);
+              
+              if (!existingDecision) {
+                // Add new decision for this level
+                // Extract description - everything after the code and separator
+                let description = '';
+                const patterns = [
+                  new RegExp(`^${pathCode.code}\\s*-\\s*(.+)`),
+                  new RegExp(`^${pathCode.code}\\.\\s*(.+)`),
+                  new RegExp(`^${pathCode.code}\\s+(.+)`)
+                ];
+                
+                for (const pattern of patterns) {
+                  const match = pathCode.segment.match(pattern);
+                  if (match) {
+                    description = match[1].replace(/<\/?[^>]+(>|$)/g, "").trim();
+                    break;
+                  }
+                }
+                
+                newDecisions.push({
+                  code: pathCode.code,
+                  description: description || `Classification ${pathCode.code}`,
+                  confidence: topPath.cumulative_confidence,
+                  level,
+                  timestamp: event.timestamp
+                });
+              } else if (existingDecision.code !== pathCode.code) {
+                // Update existing decision if the top path changed
+                let description = '';
+                const patterns = [
+                  new RegExp(`^${pathCode.code}\\s*-\\s*(.+)`),
+                  new RegExp(`^${pathCode.code}\\.\\s*(.+)`),
+                  new RegExp(`^${pathCode.code}\\s+(.+)`)
+                ];
+                
+                for (const pattern of patterns) {
+                  const match = pathCode.segment.match(pattern);
+                  if (match) {
+                    description = match[1].replace(/<\/?[^>]+(>|$)/g, "").trim();
+                    break;
+                  }
+                }
+                
+                // Update the existing decision
+                existingDecision.code = pathCode.code;
+                existingDecision.description = description || `Classification ${pathCode.code}`;
+                existingDecision.confidence = topPath.cumulative_confidence;
+                existingDecision.timestamp = event.timestamp;
+              }
+            });
+            
+            // Remove any decisions beyond the current path depth to avoid duplicates
+            newDecisions = newDecisions.filter(d => d.level < topPathCodes.length);
+          }
           
           if (newBeam.length > 0) {
             const topPath = newBeam[0];
@@ -160,6 +305,26 @@ export const useClassificationStream = () => {
         case 'question_generated':
           newStage = 'Clarification needed';
           newProgress = 90;
+          
+          // Extract enriched description from the classification state
+          let enrichedFromState = prev.enrichedDescription;
+          const state = event.data.state || event.data.classification_state;
+          if (state) {
+            // Look for enriched description in various state fields
+            if (state.enriched_query) {
+              enrichedFromState = state.enriched_query;
+            } else if (state.enriched_description) {
+              enrichedFromState = state.enriched_description;
+            } else if (state.product_description) {
+              enrichedFromState = state.product_description;
+            } else if (state.current_query) {
+              enrichedFromState = state.current_query;
+            }
+          }
+          
+          console.log('[Question Generated] State:', state);
+          console.log('[Question Generated] Enriched description from state:', enrichedFromState);
+          
           // Store the question and classification state, then pause streaming
           return {
             ...prev,
@@ -170,7 +335,8 @@ export const useClassificationStream = () => {
             finalResult,
             currentQuestion: event.data,
             isWaitingForAnswer: true,
-            classificationState: event.data.state || event.data.classification_state || null
+            classificationState: state,
+            enrichedDescription: enrichedFromState
           };
         
         case 'continuation_start':
@@ -215,7 +381,8 @@ export const useClassificationStream = () => {
         currentStage: newStage,
         currentBeam: newBeam,
         progress: newProgress,
-        finalResult
+        finalResult,
+        classificationDecisions: newDecisions
       };
     });
   }, []);
@@ -232,7 +399,12 @@ export const useClassificationStream = () => {
         error: null,
         progress: 0,
         elapsedTime: 0,
-        currentStage: 'Connecting...'
+        currentStage: 'Connecting...',
+        classificationDecisions: [],
+        currentQuestion: null,
+        isWaitingForAnswer: false,
+        classificationState: null,
+        enrichedDescription: null
       }));
 
       startTimer();
@@ -455,7 +627,9 @@ export const useClassificationStream = () => {
       elapsedTime: 0,
       currentQuestion: null,
       isWaitingForAnswer: false,
-      classificationState: null
+      classificationState: null,
+      classificationDecisions: [],
+      enrichedDescription: null
     });
   }, [stopStreaming]);
 

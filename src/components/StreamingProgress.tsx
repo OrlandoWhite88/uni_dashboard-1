@@ -3,6 +3,7 @@ import { Loader2, Clock, Zap, MessageCircle } from 'lucide-react';
 import BeamSearchDisplay from './BeamSearchDisplay';
 import EventTimeline from './EventTimeline';
 import QuestionFlow from './QuestionFlow';
+import ClassificationDecisionPath from './ClassificationDecisionPath';
 import { StreamingState } from '@/hooks/useClassificationStream';
 
 interface StreamingProgressProps {
@@ -24,7 +25,8 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
     currentBeam, 
     events,
     isWaitingForAnswer,
-    currentQuestion
+    currentQuestion,
+    classificationDecisions
   } = streamingState;
 
   if (!isStreaming) {
@@ -39,44 +41,6 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
     const remainingSeconds = seconds % 60;
     return `${minutes}m ${remainingSeconds}s`;
   };
-
-  // Show question view when waiting for answer
-  if (isWaitingForAnswer && currentQuestion) {
-    return (
-      <div className="glass-card p-6 rounded-xl animate-scale-in">
-        {/* Question header */}
-        <div className="flex items-center justify-center mb-4">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <MessageCircle className="h-8 w-8 text-primary" />
-              <div className="absolute -top-1 -right-1 h-3 w-3 bg-orange-500 rounded-full animate-pulse" />
-            </div>
-            <div>
-              <h3 className="text-base font-medium">Clarification Needed</h3>
-              <p className="text-xs text-muted-foreground">
-                {Math.round(progress)}% complete • {formatElapsedTime(elapsedTime)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Question Flow */}
-        <QuestionFlow
-          question={{
-            id: currentQuestion.question?.question_id || "streaming_question",
-            text: currentQuestion.question?.question_text || "Please provide more information about your product",
-            options: currentQuestion.question?.options || [],
-            question_type: currentQuestion.question?.question_type || "multiple_choice",
-          }}
-          onAnswer={(questionId, answer) => {
-            console.log("[StreamingProgress] Answering question:", { questionId, answer });
-            onAnswerQuestion?.(answer);
-          }}
-          isLoading={false}
-        />
-      </div>
-    );
-  }
 
   // Show normal progress view
   return (
@@ -121,11 +85,48 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
         </div>
       </div>
 
-      {/* Beam search display */}
-      <BeamSearchDisplay 
-        beam={currentBeam} 
-        isVisible={currentBeam.length > 0} 
+      {/* Classification Decision Path */}
+      <ClassificationDecisionPath 
+        decisions={classificationDecisions} 
+        isVisible={classificationDecisions.length > 0} 
       />
+
+      {/* Question Flow - shown instead of beam search when needed */}
+      {isWaitingForAnswer && currentQuestion ? (
+        <div className="mt-4 animate-scale-in">
+          <div className="glass-card p-4 rounded-lg ring-1 ring-primary/20 bg-primary/5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="relative">
+                <MessageCircle className="h-5 w-5 text-primary" />
+                <div className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full animate-pulse" />
+              </div>
+              <h4 className="text-sm font-medium text-foreground">
+                Clarification Needed
+              </h4>
+            </div>
+            
+            <QuestionFlow
+              question={{
+                id: currentQuestion.question?.question_id || "streaming_question",
+                text: currentQuestion.question?.question_text || "Please provide more information about your product",
+                options: currentQuestion.question?.options || [],
+                question_type: currentQuestion.question?.question_type || "multiple_choice",
+              }}
+              onAnswer={(questionId, answer) => {
+                console.log("[StreamingProgress] Answering question:", { questionId, answer });
+                onAnswerQuestion?.(answer);
+              }}
+              isLoading={false}
+            />
+          </div>
+        </div>
+      ) : (
+        /* Beam search display - only shown when not waiting for answer */
+        <BeamSearchDisplay 
+          beam={currentBeam} 
+          isVisible={currentBeam.length > 0} 
+        />
+      )}
 
       {/* Technical details */}
       {showTechnicalDetails && (
@@ -138,7 +139,7 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
       {/* Status message */}
       <div className="mt-4 text-center">
         <p className="text-xs text-muted-foreground">
-          Real-time classification in progress...
+          {isWaitingForAnswer ? 'Waiting for your response...' : 'Real-time classification in progress...'}
         </p>
       </div>
     </div>

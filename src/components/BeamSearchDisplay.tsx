@@ -52,8 +52,10 @@ const BeamSearchDisplay: React.FC<BeamSearchDisplayProps> = ({ beam, isVisible }
                   )}
                 </div>
                 
-                <p className="text-xs text-muted-foreground leading-relaxed truncate">
-                  {path.current_path}
+                <p className="text-xs text-muted-foreground leading-relaxed text-right overflow-hidden" title={path.current_path}>
+                  <span className="inline-block" style={{ direction: 'rtl', textAlign: 'left', unicodeBidi: 'plaintext' }}>
+                    {path.current_path.replace(/<\/?[^>]+(>|$)/g, "")}
+                  </span>
                 </p>
               </div>
               

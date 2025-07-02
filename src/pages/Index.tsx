@@ -86,115 +86,14 @@ const Index = () => {
   // Get usage limits hook
   const { checkCanMakeRequest, reloadUsageData } = useUsageLimits();
 
-  // Reference to track classification state
-  const classificationActiveRef = useRef<boolean>(false);
-  const timerIdRef = useRef<NodeJS.Timeout | null>(null);
-  const elapsedMsRef = useRef<number>(0);
-  const lastTickTimeRef = useRef<number>(0);
-
-  // Progress bar controller that pauses on questions
-  const startProgressBar = useCallback(() => {
-    // Clear any existing timer
-    if (timerIdRef.current) {
-      clearInterval(timerIdRef.current);
-      timerIdRef.current = null;
-    }
-    
-    // Reset progress
-    setProgressPercent(0);
-    elapsedMsRef.current = 0;
-    
-    // Mark classification as active
-    classificationActiveRef.current = true;
-    lastTickTimeRef.current = Date.now();
-    
-    // Start the progress timer
-    updateProgressTimer();
-  }, []);
-  
-  // Function to update/create the timer
-  const updateProgressTimer = useCallback(() => {
-    // Clear any existing timer
-    if (timerIdRef.current) {
-      clearInterval(timerIdRef.current);
-      timerIdRef.current = null;
-    }
-    
-    // Only run the timer if we're in the loading state
-    if (state.status !== "loading") {
-      return;
-    }
-    
-    const totalDuration = 10000; // 10 seconds in ms
-    const updateInterval = 50; // update every 50ms for smoother animation
-    
-    // Start interval to update progress bar
-    timerIdRef.current = setInterval(() => {
-      const now = Date.now();
-      const tickDelta = now - lastTickTimeRef.current;
-      lastTickTimeRef.current = now;
-      
-      // Add the time since last tick
-      elapsedMsRef.current += tickDelta;
-      
-      // Calculate progress as percentage
-      const progress = Math.min((elapsedMsRef.current / totalDuration) * 100, 99.5);
-      setProgressPercent(progress);
-      
-      // If we're at the end of our time, cap at 99.5% until complete
-      if (elapsedMsRef.current >= totalDuration) {
-        // Stop timer but maintain 99.5% progress until result
-        if (timerIdRef.current) {
-          clearInterval(timerIdRef.current);
-          timerIdRef.current = null;
-        }
-      }
-    }, updateInterval);
-  }, [state.status]);
-  
-  // Handle progress bar based on state changes
+  // Cleanup any timers on unmount
   useEffect(() => {
-    if (state.status === "loading" && classificationActiveRef.current) {
-      // Update the last tick time to now when we enter loading state
-      lastTickTimeRef.current = Date.now();
-      // Resume the timer
-      updateProgressTimer();
-    } else if (state.status === "question" && classificationActiveRef.current) {
-      // When entering question state, we pause the timer but preserve the progress value
-      // The progress bar itself is hidden in the UI, but we keep the value for when we return
-      if (timerIdRef.current) {
-        clearInterval(timerIdRef.current);
-        timerIdRef.current = null;
-      }
-    } else if (state.status === "result" && classificationActiveRef.current) {
-      // Classification is complete, set progress to 100%
-      setProgressPercent(100);
-      classificationActiveRef.current = false;
-
-      // Clean up any running timer
-      if (timerIdRef.current) {
-        clearInterval(timerIdRef.current);
-        timerIdRef.current = null;
-      }
-    } else if (state.status === "idle") {
-      // Reset everything when returning to idle
-      setProgressPercent(0);
-      elapsedMsRef.current = 0;
-      classificationActiveRef.current = false;
-
-      if (timerIdRef.current) {
-        clearInterval(timerIdRef.current);
-        timerIdRef.current = null;
-      }
-    }
-
-    // Clean up on unmount
     return () => {
-      if (timerIdRef.current) {
-        clearInterval(timerIdRef.current);
+      if (progressTimerRef.current) {
+        clearTimeout(progressTimerRef.current);
       }
     };
-  }, [state.status, updateProgressTimer]);
+  }, []);
 
   // Handle reset
   const handleReset = () => {
@@ -227,14 +126,7 @@ const Index = () => {
       });
     } else {
       // Use traditional classification
-      // Start the independent progress bar (runs for exactly 10 seconds)
-      startProgressBar();
-      
-      // If allowed, proceed with classification
       classify(description);
-      
-      // For traditional mode, reload usage data after classification
-      // This will be handled in the result useEffect for traditional mode
     }
   };
 
@@ -279,20 +171,8 @@ const Index = () => {
       trackQuestionAnswer(state.question, answer);
     }
 
-    // When a question is answered, we'll immediately update the last tick time
-    // so the progress bar continues smoothly from where it left off
-    lastTickTimeRef.current = Date.now();
-
     // Continue with the answer, which will transition back to loading state
     continueWithAnswer(answer);
-
-    // After a brief delay, resume the progress timer
-    // This ensures the state has time to update before we start the timer again
-    setTimeout(() => {
-      if (state.status === "loading" && classificationActiveRef.current) {
-        updateProgressTimer();
-      }
-    }, 50);
   };
 
   // Copy debug info to clipboard
@@ -391,67 +271,6 @@ const Index = () => {
           {(state.status === "idle" && !streamingState.isStreaming && !streamingState.finalResult) && (
             <>
               <ProductInput onSubmit={handleClassify} isLoading={false} />
-              
-              {/* Classification Settings */}
-              <div className="mt-4 glass-card p-4 rounded-xl bg-secondary/10">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4 text-primary" />
-                    <h3 className="font-medium">Classification Settings</h3>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium mb-1">
-                      Real-time Streaming {useStreaming ? '(Enabled)' : '(Disabled)'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {useStreaming 
-                        ? 'See live classification progress with beam search visualization'
-                        : 'Use traditional classification with simulated progress'
-                      }
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <CustomButton
-                      variant={useStreaming ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setUseStreaming(true)}
-                      className="text-xs"
-                    >
-                      Streaming
-                    </CustomButton>
-                    <CustomButton
-                      variant={!useStreaming ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setUseStreaming(false)}
-                      className="text-xs"
-                    >
-                      Traditional
-                    </CustomButton>
-                  </div>
-                </div>
-                
-                {useStreaming && (
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        Show technical details
-                      </span>
-                      <CustomButton
-                        variant={showTechnicalDetails ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
-                        className="text-xs"
-                      >
-                        {showTechnicalDetails ? 'Hide' : 'Show'}
-                      </CustomButton>
-                    </div>
-                  </div>
-                )}
-              </div>
               
               {/* Batch Processing Option */}
               <div className="mt-4 glass-card p-4 rounded-xl bg-secondary/10">

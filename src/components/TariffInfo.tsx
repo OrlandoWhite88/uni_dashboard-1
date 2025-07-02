@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 interface TariffInfoProps {
   hsCode: string;
   className?: string;
+  preloadedData?: TariffData | null;
+  isLoading?: boolean;
+  preloadError?: string | null;
 }
 
 // Updated interface based on actual API response
@@ -431,10 +434,16 @@ interface FootnoteReference {
   error: string | null;
 }
 
-const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
-  const [tariffData, setTariffData] = useState<TariffData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const TariffInfo: React.FC<TariffInfoProps> = ({ 
+  hsCode, 
+  className, 
+  preloadedData, 
+  isLoading: preloadIsLoading = false, 
+  preloadError 
+}) => {
+  const [tariffData, setTariffData] = useState<TariffData | null>(preloadedData || null);
+  const [loading, setLoading] = useState(!preloadedData && !preloadIsLoading);
+  const [error, setError] = useState<string | null>(preloadError || null);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [explanationError, setExplanationError] = useState<string | null>(null);
@@ -616,45 +625,68 @@ const TariffInfo: React.FC<TariffInfoProps> = ({ hsCode, className }) => {
     ];
   }, [tariffData, hsCode, navigate]);
 
+  // Update state when preloaded data changes
   useEffect(() => {
-    const fetchTariffInfo = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Validate HS code format before making the API call
-        if (!hsCode || hsCode.trim() === "") {
-          setError("Please provide a valid HS code");
-          return;
-        }
-        
-        const data = await getTariffInfo(hsCode);
-        console.log("Received tariff data:", data);
-        
-        // Check if the data is valid
-        if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
-          setError(`No tariff information found for HS code: ${hsCode}`);
-          return;
-        }
-        
-        // Check if the required fields are present
-        if (!data.hts8) {
-          setError(`Invalid tariff data received for HS code: ${hsCode}`);
-          console.error("Invalid tariff data:", data);
-          return;
-        }
-        
-        setTariffData(data);
-      } catch (err: any) {
-        setError(`Error fetching tariff information: ${err.message}`);
-        console.error("Tariff fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (preloadedData) {
+      console.log("Using pre-loaded tariff data:", preloadedData);
+      setTariffData(preloadedData);
+      setLoading(false);
+      setError(null);
+    } else if (preloadError) {
+      console.log("Using pre-load error:", preloadError);
+      setError(preloadError);
+      setLoading(false);
+      setTariffData(null);
+    } else if (preloadIsLoading) {
+      console.log("Pre-loading in progress...");
+      setLoading(true);
+      setError(null);
+    }
+  }, [preloadedData, preloadError, preloadIsLoading]);
 
-    fetchTariffInfo();
-  }, [hsCode]);
+  useEffect(() => {
+    // Only fetch if we don't have preloaded data and aren't currently preloading
+    if (!preloadedData && !preloadIsLoading && !preloadError) {
+      const fetchTariffInfo = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          // Validate HS code format before making the API call
+          if (!hsCode || hsCode.trim() === "") {
+            setError("Please provide a valid HS code");
+            return;
+          }
+          
+          console.log("Fetching tariff data (fallback):", hsCode);
+          const data = await getTariffInfo(hsCode);
+          console.log("Received tariff data:", data);
+          
+          // Check if the data is valid
+          if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+            setError(`No tariff information found for HS code: ${hsCode}`);
+            return;
+          }
+          
+          // Check if the required fields are present
+          if (!data.hts8) {
+            setError(`Invalid tariff data received for HS code: ${hsCode}`);
+            console.error("Invalid tariff data:", data);
+            return;
+          }
+          
+          setTariffData(data);
+        } catch (err: any) {
+          setError(`Error fetching tariff information: ${err.message}`);
+          console.error("Tariff fetch error:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchTariffInfo();
+    }
+  }, [hsCode, preloadedData, preloadIsLoading, preloadError]);
 
   // Function to fetch AI explanation of tariff
   const fetchTariffExplanation = async () => {

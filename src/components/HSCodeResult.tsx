@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import CustomButton from "./ui/CustomButton";
-import { CheckCircle, Copy, DownloadCloud, RefreshCw, HelpCircle, X, AlertTriangle, Loader2 } from "lucide-react";
+import { CheckCircle, Copy, Calculator, RefreshCw, HelpCircle, X, AlertTriangle, Loader2, DownloadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import TariffInfo from "./TariffInfo";
 import HSCodeSubtree from "./HSCodeSubtree";
-import { explainTariff } from "@/lib/classifierService";
+import { explainTariff, getTariffInfo } from "@/lib/classifierService";
+import { useNavigate } from "react-router-dom";
 
 interface HSCodeResultProps {
   hsCode: string;
@@ -17,11 +18,17 @@ interface HSCodeResultProps {
 }
 
 const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProduct, onReset }: HSCodeResultProps) => {
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [explanation, setExplanation] = useState<string>("");
   const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [explanationError, setExplanationError] = useState<string>("");
+  
+  // State for pre-loading tariff data
+  const [preloadedTariffData, setPreloadedTariffData] = useState<any>(null);
+  const [tariffLoading, setTariffLoading] = useState(true);
+  const [tariffError, setTariffError] = useState<string | null>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(hsCode);
@@ -44,6 +51,35 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 100);
+  };
+
+  // Pre-load tariff data when component mounts
+  useEffect(() => {
+    const fetchTariffData = async () => {
+      try {
+        setTariffLoading(true);
+        setTariffError(null);
+        console.log("Pre-loading tariff data for HS code:", hsCode);
+        
+        const data = await getTariffInfo(hsCode);
+        setPreloadedTariffData(data);
+        console.log("Tariff data pre-loaded successfully:", data);
+      } catch (error) {
+        console.error("Error pre-loading tariff data:", error);
+        setTariffError(error instanceof Error ? error.message : "Failed to load tariff data");
+      } finally {
+        setTariffLoading(false);
+      }
+    };
+
+    if (hsCode) {
+      fetchTariffData();
+    }
+  }, [hsCode]);
+
+  const handleCalculateTariffs = () => {
+    // Navigate to tariff calculator with pre-populated HS code
+    navigate(`/tariff-calculator?hsCode=${hsCode}`);
   };
 
   const handleExplain = async () => {
@@ -131,12 +167,12 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
                 </CustomButton>
                 
                 <CustomButton 
-                  onClick={handleDownload} 
+                  onClick={handleCalculateTariffs} 
                   variant="outline"
                   className="flex-1 min-w-[120px]"
                 >
-                  <DownloadCloud size={16} className="mr-2" />
-                  Download
+                  <Calculator size={16} className="mr-2" />
+                  Calculate Tariffs
                 </CustomButton>
                 
                 <CustomButton 
@@ -208,13 +244,17 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
             </TabsContent>
             
             <TabsContent value="tariff" className="space-y-4 mt-0">
-              {/* Tariff Info Component */}
-              <TariffInfo hsCode={hsCode} />
+              {/* Tariff Info Component with pre-loaded data */}
+              <TariffInfo 
+                hsCode={hsCode} 
+                preloadedData={preloadedTariffData}
+                isLoading={tariffLoading}
+                preloadError={tariffError}
+              />
               
               <div className="text-center mt-4">
                 <p className="text-xs text-muted-foreground">
-                  Tariff data is provided by official customs sources but may not reflect the most recent updates.
-                  Always consult with a customs broker for the most current information.
+                  Tariff data is updated daily for maximum accuracy from official customs sources.
                 </p>
               </div>
             </TabsContent>
