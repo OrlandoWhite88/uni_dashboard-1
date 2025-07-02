@@ -181,57 +181,43 @@ const ClassificationHistory = () => {
         {/* HTS/Tariff Status Widget */}
         <div className="glass-card p-4 rounded-xl mb-6 bg-blue-50/50 border-blue-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Database className="h-5 w-5 text-blue-600" />
-              <div>
-                <h3 className="font-medium text-blue-900">HTS & Tariff Data Status</h3>
-                <p className="text-sm text-blue-700">
-                  Current HTS Revision: 2024 • Last Updated: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-            </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-green-700">Data Current</span>
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-blue-600" />
+                <div>
+                  <div className="font-medium text-sm text-blue-800">HTS Revision: 2024</div>
+                  <div className="text-xs text-blue-600">Current tariff schedule</div>
+                </div>
               </div>
-              <CustomButton
-                variant="outline"
-                size="sm"
-                onClick={loadClassifications}
-                className="flex items-center text-blue-700 border-blue-300 hover:bg-blue-100"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Check Updates
-              </CustomButton>
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-green-600" />
+                <div>
+                  <div className="font-medium text-sm text-green-800">Last Updated: {new Date().toLocaleDateString()}</div>
+                  <div className="text-xs text-green-600">Tariff data synchronized</div>
+                </div>
+              </div>
+              {classifications.some(c => c.needs_review) && (
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600" />
+                  <div>
+                    <div className="font-medium text-sm text-yellow-800">
+                      {classifications.filter(c => c.needs_review).length} Need Review
+                    </div>
+                    <div className="text-xs text-yellow-600">Classifications may be outdated</div>
+                  </div>
+                </div>
+              )}
             </div>
+            <CustomButton
+              variant="outline"
+              size="sm"
+              onClick={loadClassifications}
+              className="flex items-center text-xs"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
+            </CustomButton>
           </div>
-          
-          {/* Status indicators for classifications */}
-          {classifications.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-blue-200">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-green-700">
-                    {classifications.filter(c => c.status === 'current' && !c.needs_review).length} Current
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-yellow-700">
-                    {classifications.filter(c => c.needs_review).length} Need Review
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-red-700">
-                    {classifications.filter(c => c.status === 'changed').length} Changed
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Search and Filters */}
@@ -434,7 +420,7 @@ const ClassificationHistory = () => {
 
           {/* Right Sidebar */}
           {sidebarOpen && selectedClassification && (
-            <div className="fixed inset-y-0 right-0 w-full sm:w-1/2 lg:w-1/3 xl:w-96 bg-background border-l border-border shadow-lg z-50 overflow-y-auto">
+            <div className="fixed inset-y-0 right-0 w-full sm:w-1/2 lg:w-1/3 xl:w-1/3 bg-background border-l border-border shadow-lg z-50 overflow-y-auto">
               <div className="p-6">
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-between mb-6">
