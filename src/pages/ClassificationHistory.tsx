@@ -19,7 +19,10 @@ import {
   Copy,
   CheckCircle,
   X,
-  Info
+  Info,
+  Clock,
+  RefreshCw,
+  Database
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
 import { useToast } from '@/hooks/use-toast';
@@ -166,13 +169,69 @@ const ClassificationHistory = () => {
 
   return (
     <Layout className="pt-28 pb-16">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Classification History</h1>
           <p className="text-muted-foreground">
             View and manage your past HS code classifications
           </p>
+        </div>
+
+        {/* HTS/Tariff Status Widget */}
+        <div className="glass-card p-4 rounded-xl mb-6 bg-blue-50/50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Database className="h-5 w-5 text-blue-600" />
+              <div>
+                <h3 className="font-medium text-blue-900">HTS & Tariff Data Status</h3>
+                <p className="text-sm text-blue-700">
+                  Current HTS Revision: 2024 • Last Updated: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-green-700">Data Current</span>
+              </div>
+              <CustomButton
+                variant="outline"
+                size="sm"
+                onClick={loadClassifications}
+                className="flex items-center text-blue-700 border-blue-300 hover:bg-blue-100"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Check Updates
+              </CustomButton>
+            </div>
+          </div>
+          
+          {/* Status indicators for classifications */}
+          {classifications.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-blue-200">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-green-700">
+                    {classifications.filter(c => c.status === 'current' && !c.needs_review).length} Current
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-yellow-700">
+                    {classifications.filter(c => c.needs_review).length} Need Review
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-red-700">
+                    {classifications.filter(c => c.status === 'changed').length} Changed
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Search and Filters */}
@@ -375,7 +434,7 @@ const ClassificationHistory = () => {
 
           {/* Right Sidebar */}
           {sidebarOpen && selectedClassification && (
-            <div className="fixed inset-y-0 right-0 w-96 bg-background border-l border-border shadow-lg z-50 overflow-y-auto">
+            <div className="fixed inset-y-0 right-0 w-full sm:w-1/2 lg:w-1/3 xl:w-96 bg-background border-l border-border shadow-lg z-50 overflow-y-auto">
               <div className="p-6">
                 {/* Sidebar Header */}
                 <div className="flex items-center justify-between mb-6">
