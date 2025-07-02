@@ -265,6 +265,12 @@ export interface ClassificationRecord {
   tariff_data?: any;
   notes?: string;
   is_favorite?: boolean;
+  tariff_version?: string;
+  last_tariff_check?: string;
+  needs_review?: boolean;
+  tariff_change_detected?: string;
+  previous_tariff_data?: any;
+  status?: 'current' | 'outdated' | 'needs_review' | 'changed';
 }
 
 export async function saveClassification(classification: ClassificationRecord) {
