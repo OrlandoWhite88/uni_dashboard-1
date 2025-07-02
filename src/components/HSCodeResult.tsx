@@ -12,12 +12,16 @@ interface HSCodeResultProps {
   description: string;
   confidence: number;
   fullPath?: string; // Added fullPath prop
+  originalProduct?: string; // Original product description from user input
   onReset: () => void;
 }
 
-const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HSCodeResultProps) => {
+const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProduct, onReset }: HSCodeResultProps) => {
   const [copied, setCopied] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [explanation, setExplanation] = useState<string>("");
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
+  const [explanationError, setExplanationError] = useState<string>("");
 
   const handleCopy = () => {
     navigator.clipboard.writeText(hsCode);
@@ -26,7 +30,7 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
   };
 
   const handleDownload = () => {
-    const content = `HS Code: ${hsCode}\nDescription: ${description}\nConfidence: ${confidence}%${fullPath ? `\nClassification Path: ${fullPath}` : ''}`;
+    const content = `HS Code: ${hsCode}\nDescription: ${description}\nConfidence: ${confidence}%${fullPath ? `\nClassification Path: ${fullPath}` : ''}${originalProduct ? `\nOriginal Product: ${originalProduct}` : ''}`;
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     
@@ -40,6 +44,34 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 100);
+  };
+
+  const handleExplain = async () => {
+    if (showExplanation && explanation) {
+      // If already showing explanation, just toggle off
+      setShowExplanation(false);
+      return;
+    }
+
+    if (!explanation) {
+      // Need to fetch explanation
+      setLoadingExplanation(true);
+      setExplanationError("");
+      
+      try {
+        const llmExplanation = await explainTariff(hsCode, true, 'high');
+        setExplanation(llmExplanation);
+        setShowExplanation(true);
+      } catch (error) {
+        console.error("Error fetching explanation:", error);
+        setExplanationError(error instanceof Error ? error.message : "Failed to generate explanation");
+      } finally {
+        setLoadingExplanation(false);
+      }
+    } else {
+      // Already have explanation, just show it
+      setShowExplanation(true);
+    }
   };
 
   return (
@@ -64,7 +96,7 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
           
           <div className="text-center mb-6">
             <div className="text-sm font-medium text-muted-foreground mb-1">Classification Description</div>
-            <p className="max-w-lg">{description}</p>
+            <p className="max-w-lg">{description !== "Product" ? description : (originalProduct || "Product")}</p>
           </div>
           
           <div className="bg-secondary rounded-lg px-4 py-2 mb-8">
@@ -108,12 +140,17 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
                 </CustomButton>
                 
                 <CustomButton 
-                  onClick={() => setShowExplanation(!showExplanation)} 
+                  onClick={handleExplain} 
                   variant={showExplanation ? "default" : "outline"}
                   className="flex-1 min-w-[120px]"
+                  disabled={loadingExplanation}
                 >
-                  <HelpCircle size={16} className="mr-2" />
-                  Explain
+                  {loadingExplanation ? (
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                  ) : (
+                    <HelpCircle size={16} className="mr-2" />
+                  )}
+                  {loadingExplanation ? "Generating..." : "Explain"}
                 </CustomButton>
               </div>
               
@@ -129,35 +166,43 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, onReset }: HS
                       <X size={14} />
                     </button>
                   </div>
-                  <div className="text-sm space-y-3">
-                    <p>
-                      <strong>What is HS Code {hsCode}?</strong> The Harmonized System (HS) is an international nomenclature for the classification of products. It allows participating countries to classify traded goods on a common basis for customs purposes.
-                    </p>
-                    
-                    {/* Always show a classification path notice if not available */}
-                    {fullPath ? (
-                      <div className="p-2 bg-primary/5 rounded-md">
-                        <strong>Classification Path:</strong> {fullPath}
+                  
+                  {explanationError ? (
+                    <div className="text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+                      <div className="flex items-start">
+                        <AlertTriangle className="h-4 w-4 text-red-500 mr-2 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-red-700">Failed to generate explanation</p>
+                          <p className="text-red-600 mt-1">{explanationError}</p>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="p-2 bg-amber-500/10 rounded-md">
-                        <strong>Classification Path:</strong> Path information not available for this classification. 
-                        The system has determined this classification based on your product description.
-                      </div>
-                    )}
-                    
-                    <p>
-                      <strong>Classification Details:</strong> This code is part of Chapter {hsCode.substring(0, 2)} which covers {getChapterDescription(hsCode.substring(0, 2))}. 
-                    </p>
-                    
-                    <p>
-                      The specific subheading {hsCode} applies to your product: <span className="text-primary font-medium">{description}</span>
-                    </p>
-                    
-                    <p>
-                      <strong>Import Requirements:</strong> Products under this classification may be subject to specific import duties, taxes, and regulatory requirements which vary by country. We recommend checking with your local customs authority for detailed information.
-                    </p>
-                  </div>
+                    </div>
+                  ) : explanation ? (
+                    <div className="text-sm space-y-3">
+                      <div className="whitespace-pre-wrap">{explanation}</div>
+                      
+                      {/* Show original product and classification path if available */}
+                      {(originalProduct || fullPath) && (
+                        <div className="mt-4 pt-3 border-t border-border/50 space-y-2">
+                          {originalProduct && (
+                            <div className="p-2 bg-primary/5 rounded-md">
+                              <strong>Your Product:</strong> {originalProduct}
+                            </div>
+                          )}
+                          {fullPath && (
+                            <div className="p-2 bg-primary/5 rounded-md">
+                              <strong>Classification Path:</strong> {fullPath}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      <span className="text-sm text-muted-foreground">Generating explanation...</span>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>

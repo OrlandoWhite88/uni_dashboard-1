@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Layout from "@/components/Layout";
 import { useClassifier } from "@/lib/classifierService";
+import { useClassificationStream } from "@/hooks/useClassificationStream";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
 import { useNavigate } from "react-router-dom";
 import { trackClassificationStart, trackQuestionAnswer, trackClassificationResult } from "@/lib/analyticsService";
@@ -17,10 +18,12 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  Settings,
 } from "lucide-react";
 import ProductInput from "@/components/ProductInput";
 import QuestionFlow from "@/components/QuestionFlow";
 import HSCodeResult from "@/components/HSCodeResult";
+import StreamingProgress from "@/components/StreamingProgress";
 import CustomButton from "@/components/ui/CustomButton";
 
 // Simple wrapper component to ensure any errors are contained
@@ -70,7 +73,11 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }> {
 const Index = () => {
   const { state, classify, continueWithAnswer, reset, debugInfo } =
     useClassifier();
+  const streamingState = useClassificationStream();
   const [progressPercent, setProgressPercent] = useState(0);
+  const [originalProductDescription, setOriginalProductDescription] = useState<string>("");
+  const [useStreaming, setUseStreaming] = useState(true);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const progressTimerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const elapsedTimeRef = useRef<number>(0);
@@ -189,9 +196,18 @@ const Index = () => {
     };
   }, [state.status, updateProgressTimer]);
 
+  // Handle reset
+  const handleReset = () => {
+    setOriginalProductDescription("");
+    reset();
+  };
+
   // Handle product submission
   const handleClassify = async (description: string) => {
     console.log("[Index] Starting classification for:", description);
+    
+    // Store the original product description
+    setOriginalProductDescription(description);
     
     // Check if the user can make a request based on their usage limits
     const canMakeRequest = await checkCanMakeRequest();
@@ -202,15 +218,57 @@ const Index = () => {
     // Track the classification start event
     trackClassificationStart(description);
     
-    // Start the independent progress bar (runs for exactly 10 seconds)
-    startProgressBar();
-    
-    // If allowed, proceed with classification
-    classify(description);
-    
-    // After classification, reload usage data to reflect the new request count
-    setTimeout(() => reloadUsageData(), 1000);
+    if (useStreaming) {
+      // Use streaming classification
+      streamingState.startStreaming(description, {
+        interactive: true,
+        maxQuestions: 3,
+        hypothesisCount: 3
+      });
+    } else {
+      // Use traditional classification
+      // Start the independent progress bar (runs for exactly 10 seconds)
+      startProgressBar();
+      
+      // If allowed, proceed with classification
+      classify(description);
+      
+      // For traditional mode, reload usage data after classification
+      // This will be handled in the result useEffect for traditional mode
+    }
   };
+
+  // Handle streaming reset
+  const handleStreamingReset = () => {
+    setOriginalProductDescription("");
+    streamingState.reset();
+  };
+
+  // Handle streaming result
+  useEffect(() => {
+    if (streamingState.finalResult && useStreaming) {
+      // Track the final classification result
+      if (streamingState.finalResult.final_code) {
+        trackClassificationResult(streamingState.finalResult.final_code);
+      }
+      
+      // Reload usage data after successful classification
+      reloadUsageData();
+    }
+  }, [streamingState.finalResult, useStreaming, reloadUsageData]);
+
+  // Handle traditional mode result
+  useEffect(() => {
+    if (state.status === "result" && !useStreaming) {
+      // Track the final classification result
+      if ('code' in state && state.code) {
+        trackClassificationResult(state.code);
+      }
+      
+      // Reload usage data after successful classification
+      reloadUsageData();
+    }
+  }, [state.status, state, useStreaming, reloadUsageData]);
 
   // Handle answer submission
   const handleAnswer = (questionId: string, answer: string) => {
@@ -330,12 +388,73 @@ const Index = () => {
           </div>
 
           {/* Product Input */}
-          {state.status === "idle" && (
+          {(state.status === "idle" && !streamingState.isStreaming && !streamingState.finalResult) && (
             <>
               <ProductInput onSubmit={handleClassify} isLoading={false} />
               
+              {/* Classification Settings */}
+              <div className="mt-4 glass-card p-4 rounded-xl bg-secondary/10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-primary" />
+                    <h3 className="font-medium">Classification Settings</h3>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium mb-1">
+                      Real-time Streaming {useStreaming ? '(Enabled)' : '(Disabled)'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {useStreaming 
+                        ? 'See live classification progress with beam search visualization'
+                        : 'Use traditional classification with simulated progress'
+                      }
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <CustomButton
+                      variant={useStreaming ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setUseStreaming(true)}
+                      className="text-xs"
+                    >
+                      Streaming
+                    </CustomButton>
+                    <CustomButton
+                      variant={!useStreaming ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setUseStreaming(false)}
+                      className="text-xs"
+                    >
+                      Traditional
+                    </CustomButton>
+                  </div>
+                </div>
+                
+                {useStreaming && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        Show technical details
+                      </span>
+                      <CustomButton
+                        variant={showTechnicalDetails ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                        className="text-xs"
+                      >
+                        {showTechnicalDetails ? 'Hide' : 'Show'}
+                      </CustomButton>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               {/* Batch Processing Option */}
-              <div className="mt-6 glass-card p-4 rounded-xl bg-secondary/10">
+              <div className="mt-4 glass-card p-4 rounded-xl bg-secondary/10">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium mb-1">Need to classify multiple products?</h3>
@@ -356,8 +475,17 @@ const Index = () => {
             </>
           )}
 
-          {/* Loading State with Enhanced Classification Stage */}
-          {state.status === "loading" && (
+          {/* Streaming Progress */}
+          {streamingState.isStreaming && useStreaming && (
+            <StreamingProgress 
+              streamingState={streamingState}
+              showTechnicalDetails={showTechnicalDetails}
+              onAnswerQuestion={streamingState.answerQuestion}
+            />
+          )}
+
+          {/* Loading State with Enhanced Classification Stage (Traditional Mode) */}
+          {state.status === "loading" && !useStreaming && (
             <div className="glass-card p-8 rounded-xl flex flex-col items-center justify-center h-60">
               <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
               <p className="text-base font-medium mb-1">
@@ -382,8 +510,9 @@ const Index = () => {
             </div>
           )}
 
-          {/* Question Flow */}
-          {state.status === "question" && (
+
+          {/* Traditional Question Flow */}
+          {state.status === "question" && !useStreaming && (
             <>
               {/* Debug info to show what's being passed to QuestionFlow */}
               {console.log("[Index] Passing question to QuestionFlow:", {
@@ -421,14 +550,27 @@ const Index = () => {
             </>
           )}
 
-          {/* Result View */}
-          {state.status === "result" && (
+          {/* Streaming Result View */}
+          {streamingState.finalResult && useStreaming && (
+            <HSCodeResult
+              hsCode={streamingState.finalResult.final_code || "Unknown"}
+              description={streamingState.finalResult.enriched_query || originalProductDescription || "Product"}
+              confidence={95} // High confidence for streaming results
+              fullPath={streamingState.finalResult.full_path}
+              originalProduct={originalProductDescription}
+              onReset={handleStreamingReset}
+            />
+          )}
+
+          {/* Traditional Result View */}
+          {state.status === "result" && !useStreaming && (
             <HSCodeResult
               hsCode={state.code}
               description={state.description || "Product"}
               confidence={state.confidence}
               fullPath={state.path}
-              onReset={reset}
+              originalProduct={originalProductDescription}
+              onReset={handleReset}
             />
           )}
 
