@@ -24,7 +24,6 @@ import ProductInput from "@/components/ProductInput";
 import QuestionFlow from "@/components/QuestionFlow";
 import HSCodeResult from "@/components/HSCodeResult";
 import StreamingProgress from "@/components/StreamingProgress";
-import ClassificationDashboard from "@/components/ClassificationDashboard";
 import CustomButton from "@/components/ui/CustomButton";
 
 // Simple wrapper component to ensure any errors are contained
@@ -267,9 +266,6 @@ const Index = () => {
               Accurate HS Classification Engine
             </div>
           </div>
-
-          {/* Classification Dashboard - Show for authenticated users */}
-          <ClassificationDashboard />
 
           {/* Product Input */}
           {(state.status === "idle" && !streamingState.isStreaming && !streamingState.finalResult) && (

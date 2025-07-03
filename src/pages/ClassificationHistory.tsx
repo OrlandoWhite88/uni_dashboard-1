@@ -178,6 +178,48 @@ const ClassificationHistory = () => {
           </p>
         </div>
 
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <div className="flex items-center gap-3 mb-3">
+              <Package className="h-6 w-6 text-primary" />
+              <h3 className="font-semibold text-primary">Total Classifications</h3>
+            </div>
+            <div className="text-3xl font-bold text-primary mb-1">
+              {classifications.length}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              All time classifications
+            </p>
+          </div>
+
+          <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+            <div className="flex items-center gap-3 mb-3">
+              <AlertCircle className="h-6 w-6 text-amber-600" />
+              <h3 className="font-semibold text-amber-700">Needs Review</h3>
+            </div>
+            <div className="text-3xl font-bold text-amber-600 mb-1">
+              {classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Older than 6 months
+            </p>
+          </div>
+
+          <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+            <div className="flex items-center gap-3 mb-3">
+              <Clock className="h-6 w-6 text-emerald-600" />
+              <h3 className="font-semibold text-emerald-700">Last Updated</h3>
+            </div>
+            <div className="text-lg font-bold text-emerald-600 mb-1">
+              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              HTS Revision: 2024
+            </p>
+          </div>
+        </div>
+
         {/* HTS/Tariff Status Widget */}
         <div className="glass-card p-4 rounded-xl mb-6 bg-blue-50/50 border-blue-200">
           <div className="flex items-center justify-between">
@@ -290,11 +332,11 @@ const ClassificationHistory = () => {
                 <table className="w-full">
                   <thead className="bg-muted/30 border-b border-border">
                     <tr>
-                      <th className="text-left p-4 font-medium text-sm">Created</th>
-                      <th className="text-left p-4 font-medium text-sm">Product</th>
-                      <th className="text-left p-4 font-medium text-sm">Classification</th>
-                      <th className="text-left p-4 font-medium text-sm">Confidence</th>
-                      <th className="text-left p-4 font-medium text-sm">Actions</th>
+                      <th className="text-left px-6 py-4 font-medium text-sm">Created</th>
+                      <th className="text-left px-6 py-4 font-medium text-sm">Product</th>
+                      <th className="text-left px-6 py-4 font-medium text-sm">Classification</th>
+                      <th className="text-left px-6 py-4 font-medium text-sm">Confidence</th>
+                      <th className="text-left px-6 py-4 font-medium text-sm">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -309,25 +351,25 @@ const ClassificationHistory = () => {
                           setSidebarOpen(true);
                         }}
                       >
-                        <td className="p-4">
+                        <td className="px-6 py-5">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             {formatDate(classification.classification_date!)}
                           </div>
                         </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <div>
-                              <div className="font-medium text-sm max-w-xs truncate">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">
                                 {classification.product_description}
                               </div>
                               {classification.notes && (
-                                <div className="text-xs text-muted-foreground mt-1 max-w-xs truncate">
+                                <div className="text-xs text-muted-foreground mt-1 truncate">
                                   {classification.notes}
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               {classification.is_favorite && (
                                 <Star className="h-4 w-4 text-yellow-500 fill-current" />
                               )}
@@ -349,9 +391,9 @@ const ClassificationHistory = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-primary">
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono font-bold text-primary text-sm">
                               {classification.hs_code}
                             </span>
                             <CustomButton
@@ -361,20 +403,21 @@ const ClassificationHistory = () => {
                                 e.stopPropagation();
                                 copyToClipboard(classification.hs_code, 'HS Code');
                               }}
+                              className="opacity-60 hover:opacity-100"
                             >
                               <Copy className="h-3 w-3" />
                             </CustomButton>
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="px-6 py-5">
                           {classification.confidence && (
-                            <div className="flex items-center gap-1 text-sm">
+                            <div className="flex items-center gap-2 text-sm">
                               <CheckCircle className="h-4 w-4 text-green-500" />
-                              {Math.round(classification.confidence)}%
+                              <span className="font-medium">{Math.round(classification.confidence)}%</span>
                             </div>
                           )}
                         </td>
-                        <td className="p-4">
+                        <td className="px-6 py-5">
                           <div className="flex items-center gap-1">
                             <CustomButton
                               variant="ghost"
