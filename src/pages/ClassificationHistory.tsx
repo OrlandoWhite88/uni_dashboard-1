@@ -80,10 +80,19 @@ const ClassificationHistory = () => {
       console.log('Checking for tariff changes...');
       const result = await checkTariffChanges(userId);
       
-      if (result.changed > 0) {
+      if (result.changed > 0 || result.discontinued > 0) {
+        let message = '';
+        if (result.changed > 0 && result.discontinued > 0) {
+          message = `${result.changed} classification${result.changed > 1 ? 's have' : ' has'} tariff changes and ${result.discontinued} HS code${result.discontinued > 1 ? 's are' : ' is'} discontinued.`;
+        } else if (result.changed > 0) {
+          message = `${result.changed} classification${result.changed > 1 ? 's have' : ' has'} tariff changes that need review.`;
+        } else {
+          message = `${result.discontinued} HS code${result.discontinued > 1 ? 's are' : ' is'} discontinued and need${result.discontinued === 1 ? 's' : ''} reclassification.`;
+        }
+        
         toast({
-          title: "Tariff Changes Detected",
-          description: `${result.changed} classification${result.changed > 1 ? 's have' : ' has'} tariff changes that need review.`,
+          title: "Changes Detected",
+          description: message,
           variant: "default",
         });
         
@@ -96,7 +105,7 @@ const ClassificationHistory = () => {
         setTariffStats(updatedStats);
       }
       
-      console.log(`Tariff check completed: ${result.checked} checked, ${result.changed} changed, ${result.errors} errors`);
+      console.log(`Tariff check completed: ${result.checked} checked, ${result.changed} changed, ${result.discontinued} discontinued, ${result.errors} errors`);
     } catch (error) {
       console.error('Error checking tariff changes:', error);
     } finally {
@@ -498,12 +507,20 @@ const ClassificationHistory = () => {
                             )}
                             {/* Status indicator dot */}
                             <div className={`w-2 h-2 rounded-full ${
-                              classification.needs_review || new Date(classification.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+                              classification.status === 'discontinued'
+                                ? 'bg-red-600'
+                                : classification.needs_review || new Date(classification.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
                                 ? 'bg-yellow-500' 
                                 : classification.status === 'changed'
                                 ? 'bg-red-500'
                                 : 'bg-green-500'
                             }`} />
+                            {/* Discontinued badge */}
+                            {classification.status === 'discontinued' && (
+                              <span className="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded">
+                                Discontinued
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>

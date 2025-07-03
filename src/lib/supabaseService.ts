@@ -270,7 +270,7 @@ export interface ClassificationRecord {
   needs_review?: boolean;
   tariff_change_detected?: string;
   previous_tariff_data?: any;
-  status?: 'current' | 'outdated' | 'needs_review' | 'changed';
+  status?: 'current' | 'outdated' | 'needs_review' | 'changed' | 'discontinued';
 }
 
 export async function saveClassification(classification: ClassificationRecord) {
@@ -452,7 +452,7 @@ export async function getClassificationsNeedingTariffCheck(userId: string, hours
   }
 }
 
-export async function checkTariffChanges(userId: string): Promise<{ checked: number; changed: number; errors: number }> {
+export async function checkTariffChanges(userId: string): Promise<{ checked: number; changed: number; discontinued: number; errors: number }> {
   console.log('Checking tariff changes for user:', userId);
   
   try {
@@ -461,11 +461,12 @@ export async function checkTariffChanges(userId: string): Promise<{ checked: num
     
     if (classificationsToCheck.length === 0) {
       console.log('No classifications need tariff checking');
-      return { checked: 0, changed: 0, errors: 0 };
+      return { checked: 0, changed: 0, discontinued: 0, errors: 0 };
     }
     
     let checkedCount = 0;
     let changedCount = 0;
+    let discontinuedCount = 0;
     let errorCount = 0;
     
     // Import getTariffInfo function
@@ -479,28 +480,44 @@ export async function checkTariffChanges(userId: string): Promise<{ checked: num
         // Fetch current tariff data
         const currentTariffData = await getTariffInfo(classification.hs_code);
         
-        // Compare with stored tariff data
-        const hasChanged = compareTariffData(classification.tariff_data, currentTariffData);
-        
-        if (hasChanged) {
-          console.log(`Tariff change detected for HS code: ${classification.hs_code}`);
+        // Check if HS code is discontinued (no tariff data returned)
+        if (!currentTariffData || Object.keys(currentTariffData).length === 0) {
+          console.log(`HS code discontinued: ${classification.hs_code}`);
           
-          // Update classification with change detection
+          // Mark as discontinued
           await updateClassification(classification.id!, {
-            previous_tariff_data: classification.tariff_data,
-            tariff_data: currentTariffData,
-            tariff_change_detected: new Date().toISOString(),
-            status: 'changed',
+            status: 'discontinued',
             needs_review: true,
-            last_tariff_check: new Date().toISOString()
+            last_tariff_check: new Date().toISOString(),
+            tariff_change_detected: new Date().toISOString()
           });
           
-          changedCount++;
+          discontinuedCount++;
         } else {
-          // Update last check time
-          await updateClassification(classification.id!, {
-            last_tariff_check: new Date().toISOString()
-          });
+          // Compare with stored tariff data for changes
+          const hasChanged = compareTariffData(classification.tariff_data, currentTariffData);
+          
+          if (hasChanged) {
+            console.log(`Tariff change detected for HS code: ${classification.hs_code}`);
+            
+            // Update classification with change detection
+            await updateClassification(classification.id!, {
+              previous_tariff_data: classification.tariff_data,
+              tariff_data: currentTariffData,
+              tariff_change_detected: new Date().toISOString(),
+              status: 'changed',
+              needs_review: true,
+              last_tariff_check: new Date().toISOString()
+            });
+            
+            changedCount++;
+          } else {
+            // Update last check time and ensure status is current
+            await updateClassification(classification.id!, {
+              last_tariff_check: new Date().toISOString(),
+              status: 'current'
+            });
+          }
         }
         
         checkedCount++;
@@ -523,12 +540,12 @@ export async function checkTariffChanges(userId: string): Promise<{ checked: num
       }
     }
     
-    console.log(`Tariff check completed: ${checkedCount} checked, ${changedCount} changed, ${errorCount} errors`);
-    return { checked: checkedCount, changed: changedCount, errors: errorCount };
+    console.log(`Tariff check completed: ${checkedCount} checked, ${changedCount} changed, ${discontinuedCount} discontinued, ${errorCount} errors`);
+    return { checked: checkedCount, changed: changedCount, discontinued: discontinuedCount, errors: errorCount };
     
   } catch (error) {
     console.error('Error in checkTariffChanges:', error);
-    return { checked: 0, changed: 0, errors: 1 };
+    return { checked: 0, changed: 0, discontinued: 0, errors: 1 };
   }
 }
 
