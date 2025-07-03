@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { getUserClassifications, ClassificationRecord } from '@/lib/supabaseService';
+import { getUserClassifications, ClassificationRecord, getTariffChangeStats, checkTariffChanges } from '@/lib/supabaseService';
 import { 
   Calendar, 
   Package, 
@@ -9,7 +9,9 @@ import {
   Clock,
   TrendingUp,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  AlertCircle,
+  DollarSign
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +21,13 @@ interface DashboardStats {
   recentClassifications: number;
   needsReview: number;
   lastUpdated: string;
+}
+
+interface TariffStats {
+  total: number;
+  changed: number;
+  needsReview: number;
+  recentChanges: number;
 }
 
 const ClassificationDashboard = () => {
@@ -32,6 +41,13 @@ const ClassificationDashboard = () => {
   });
   const [recentClassifications, setRecentClassifications] = useState<ClassificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tariffStats, setTariffStats] = useState<TariffStats>({
+    total: 0,
+    changed: 0,
+    needsReview: 0,
+    recentChanges: 0
+  });
+  const [checkingTariffs, setCheckingTariffs] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -68,10 +84,39 @@ const ClassificationDashboard = () => {
       });
       
       setRecentClassifications(classifications.slice(0, 5)); // Show top 5
+      
+      // Load tariff change stats
+      const tariffChangeStats = await getTariffChangeStats(userId);
+      setTariffStats(tariffChangeStats);
+      
+      // Check for tariff changes in background
+      checkTariffsInBackground();
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkTariffsInBackground = async () => {
+    if (!userId || checkingTariffs) return;
+    
+    setCheckingTariffs(true);
+    try {
+      console.log('Checking for tariff changes...');
+      const result = await checkTariffChanges(userId);
+      
+      if (result.changed > 0) {
+        // Update tariff stats after changes detected
+        const updatedStats = await getTariffChangeStats(userId);
+        setTariffStats(updatedStats);
+      }
+      
+      console.log(`Tariff check completed: ${result.checked} checked, ${result.changed} changed, ${result.errors} errors`);
+    } catch (error) {
+      console.error('Error checking tariff changes:', error);
+    } finally {
+      setCheckingTariffs(false);
     }
   };
 
@@ -195,6 +240,40 @@ const ClassificationDashboard = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tariff Change Notifications */}
+      {tariffStats.changed > 0 && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+            <div>
+              <div className="text-sm font-medium text-red-800">
+                {tariffStats.changed} classification{tariffStats.changed !== 1 ? 's have' : ' has'} tariff changes
+              </div>
+              <div className="text-xs text-red-700 mt-1">
+                Tariff rates have changed for these classifications. Review recommended.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tariff Checking Status */}
+      {checkingTariffs && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <RefreshCw className="h-4 w-4 text-blue-600 mt-0.5 animate-spin" />
+            <div>
+              <div className="text-sm font-medium text-blue-800">
+                Checking for tariff changes...
+              </div>
+              <div className="text-xs text-blue-700 mt-1">
+                Comparing current tariff data with stored classifications.
+              </div>
+            </div>
           </div>
         </div>
       )}

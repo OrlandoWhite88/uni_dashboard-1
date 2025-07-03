@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import Layout from '@/components/Layout';
-import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord } from '@/lib/supabaseService';
+import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord, checkTariffChanges, getTariffChangeStats } from '@/lib/supabaseService';
 import TariffInfo from '@/components/TariffInfo';
 import { 
   Search, 
@@ -34,6 +34,8 @@ const ClassificationHistory = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'current' | 'needs_review' | 'changed'>('all');
   const [selectedClassification, setSelectedClassification] = useState<ClassificationRecord | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [checkingTariffs, setCheckingTariffs] = useState(false);
+  const [tariffStats, setTariffStats] = useState({ total: 0, changed: 0, needsReview: 0, recentChanges: 0 });
 
   useEffect(() => {
     if (userId) {
@@ -48,6 +50,13 @@ const ClassificationHistory = () => {
     try {
       const data = await getUserClassifications(userId);
       setClassifications(data);
+      
+      // Load tariff stats
+      const stats = await getTariffChangeStats(userId);
+      setTariffStats(stats);
+      
+      // Check for tariff changes on page load (on-demand checking)
+      checkTariffsInBackground();
     } catch (error) {
       console.error('Error loading classifications:', error);
       toast({
@@ -58,6 +67,42 @@ const ClassificationHistory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkTariffsInBackground = async () => {
+    if (!userId || checkingTariffs) return;
+    
+    setCheckingTariffs(true);
+    try {
+      console.log('Checking for tariff changes...');
+      const result = await checkTariffChanges(userId);
+      
+      if (result.changed > 0) {
+        toast({
+          title: "Tariff Changes Detected",
+          description: `${result.changed} classification${result.changed > 1 ? 's have' : ' has'} tariff changes that need review.`,
+          variant: "default",
+        });
+        
+        // Reload classifications to show updated data
+        const updatedData = await getUserClassifications(userId);
+        setClassifications(updatedData);
+        
+        // Update stats
+        const updatedStats = await getTariffChangeStats(userId);
+        setTariffStats(updatedStats);
+      }
+      
+      console.log(`Tariff check completed: ${result.checked} checked, ${result.changed} changed, ${result.errors} errors`);
+    } catch (error) {
+      console.error('Error checking tariff changes:', error);
+    } finally {
+      setCheckingTariffs(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    await loadClassifications();
   };
 
   const handleSearch = async () => {
@@ -271,11 +316,12 @@ const ClassificationHistory = () => {
             <CustomButton
               variant="outline"
               size="sm"
-              onClick={loadClassifications}
+              onClick={handleRefresh}
+              disabled={checkingTariffs}
               className="flex items-center text-xs"
             >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Refresh
+              <RefreshCw className={`h-4 w-4 mr-1 ${checkingTariffs ? 'animate-spin' : ''}`} />
+              {checkingTariffs ? 'Checking...' : 'Refresh'}
             </CustomButton>
           </div>
         </div>

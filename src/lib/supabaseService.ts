@@ -277,6 +277,20 @@ export async function saveClassification(classification: ClassificationRecord) {
   console.log('Saving classification:', classification);
   
   try {
+    // Fetch tariff data for the HS code if not already provided
+    let tariffData = classification.tariff_data;
+    if (!tariffData && classification.hs_code) {
+      try {
+        console.log('Fetching tariff data for HS code:', classification.hs_code);
+        const { getTariffInfo } = await import('./classifierService');
+        tariffData = await getTariffInfo(classification.hs_code);
+        console.log('Tariff data fetched successfully');
+      } catch (tariffError) {
+        console.warn('Failed to fetch tariff data:', tariffError);
+        // Continue saving without tariff data
+      }
+    }
+
     const { data, error } = await supabase
       .from('product_classifications')
       .insert([{
@@ -286,9 +300,12 @@ export async function saveClassification(classification: ClassificationRecord) {
         hs_code: classification.hs_code,
         confidence: classification.confidence,
         full_path: classification.full_path,
-        tariff_data: classification.tariff_data,
+        tariff_data: tariffData,
         notes: classification.notes,
-        is_favorite: classification.is_favorite || false
+        is_favorite: classification.is_favorite || false,
+        tariff_version: '2024',
+        last_tariff_check: new Date().toISOString(),
+        status: 'current'
       }])
       .select()
       .single();
@@ -298,7 +315,7 @@ export async function saveClassification(classification: ClassificationRecord) {
       return null;
     }
     
-    console.log('Classification saved successfully:', data);
+    console.log('Classification saved successfully with tariff data:', data);
     return data;
   } catch (error) {
     console.error('Unexpected error saving classification:', error);
@@ -402,5 +419,223 @@ export async function searchClassifications(userId: string, searchTerm: string, 
   } catch (error) {
     console.error('Unexpected error searching classifications:', error);
     return [];
+  }
+}
+
+// Tariff change detection functions
+export async function getClassificationsNeedingTariffCheck(userId: string, hoursThreshold: number = 12) {
+  console.log('Getting classifications needing tariff check:', { userId, hoursThreshold });
+  
+  try {
+    // Calculate the threshold timestamp (12 hours ago)
+    const thresholdTime = new Date();
+    thresholdTime.setHours(thresholdTime.getHours() - hoursThreshold);
+    
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .select('*')
+      .eq('user_id', userId)
+      .or(`last_tariff_check.is.null,last_tariff_check.lt.${thresholdTime.toISOString()}`)
+      .order('classification_date', { ascending: false })
+      .limit(20); // Limit to 20 classifications per check to avoid timeouts
+      
+    if (error) {
+      console.error('Error getting classifications needing tariff check:', error);
+      return [];
+    }
+    
+    console.log('Classifications needing tariff check:', data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('Unexpected error getting classifications needing tariff check:', error);
+    return [];
+  }
+}
+
+export async function checkTariffChanges(userId: string): Promise<{ checked: number; changed: number; errors: number }> {
+  console.log('Checking tariff changes for user:', userId);
+  
+  try {
+    // Get classifications that need checking (last checked > 12 hours ago)
+    const classificationsToCheck = await getClassificationsNeedingTariffCheck(userId, 12);
+    
+    if (classificationsToCheck.length === 0) {
+      console.log('No classifications need tariff checking');
+      return { checked: 0, changed: 0, errors: 0 };
+    }
+    
+    let checkedCount = 0;
+    let changedCount = 0;
+    let errorCount = 0;
+    
+    // Import getTariffInfo function
+    const { getTariffInfo } = await import('./classifierService');
+    
+    // Check each classification for tariff changes
+    for (const classification of classificationsToCheck) {
+      try {
+        console.log(`Checking tariff for HS code: ${classification.hs_code}`);
+        
+        // Fetch current tariff data
+        const currentTariffData = await getTariffInfo(classification.hs_code);
+        
+        // Compare with stored tariff data
+        const hasChanged = compareTariffData(classification.tariff_data, currentTariffData);
+        
+        if (hasChanged) {
+          console.log(`Tariff change detected for HS code: ${classification.hs_code}`);
+          
+          // Update classification with change detection
+          await updateClassification(classification.id!, {
+            previous_tariff_data: classification.tariff_data,
+            tariff_data: currentTariffData,
+            tariff_change_detected: new Date().toISOString(),
+            status: 'changed',
+            needs_review: true,
+            last_tariff_check: new Date().toISOString()
+          });
+          
+          changedCount++;
+        } else {
+          // Update last check time
+          await updateClassification(classification.id!, {
+            last_tariff_check: new Date().toISOString()
+          });
+        }
+        
+        checkedCount++;
+        
+        // Add small delay to avoid overwhelming the API
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (error) {
+        console.error(`Error checking tariff for ${classification.hs_code}:`, error);
+        errorCount++;
+        
+        // Still update the last check time even if there was an error
+        try {
+          await updateClassification(classification.id!, {
+            last_tariff_check: new Date().toISOString()
+          });
+        } catch (updateError) {
+          console.error('Error updating last check time:', updateError);
+        }
+      }
+    }
+    
+    console.log(`Tariff check completed: ${checkedCount} checked, ${changedCount} changed, ${errorCount} errors`);
+    return { checked: checkedCount, changed: changedCount, errors: errorCount };
+    
+  } catch (error) {
+    console.error('Error in checkTariffChanges:', error);
+    return { checked: 0, changed: 0, errors: 1 };
+  }
+}
+
+function compareTariffData(oldData: any, newData: any): boolean {
+  // If either is null/undefined, consider it changed if they're different
+  if (!oldData || !newData) {
+    return oldData !== newData;
+  }
+  
+  // Compare key tariff fields that matter for change detection
+  const keyFields = [
+    'mfn_text_rate',
+    'mfn_ad_val_rate',
+    'mfn_specific_rate',
+    'mfn_other_rate',
+    'col2_text_rate',
+    'col2_ad_val_rate',
+    'col2_specific_rate',
+    'col2_other_rate',
+    'begin_effect_date',
+    'end_effective_date'
+  ];
+  
+  for (const field of keyFields) {
+    if (oldData[field] !== newData[field]) {
+      console.log(`Tariff change detected in field ${field}: ${oldData[field]} -> ${newData[field]}`);
+      return true;
+    }
+  }
+  
+  // Check trade program indicators for changes
+  const tradePrograms = [
+    'gsp_indicator',
+    'cbi_indicator',
+    'agoa_indicator',
+    'nafta_canada_ind',
+    'nafta_mexico_ind',
+    'usmca_indicator',
+    'israel_fta_indicator',
+    'jordan_indicator',
+    'singapore_indicator',
+    'chile_indicator',
+    'australia_indicator',
+    'bahrain_indicator',
+    'dr_cafta_indicator',
+    'oman_indicator',
+    'peru_indicator',
+    'korea_indicator',
+    'columbia_indicator',
+    'panama_indicator',
+    'morocco_indicator'
+  ];
+  
+  for (const program of tradePrograms) {
+    if (oldData[program] !== newData[program]) {
+      console.log(`Trade program change detected in ${program}: ${oldData[program]} -> ${newData[program]}`);
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+export async function getTariffChangeStats(userId: string) {
+  console.log('Getting tariff change stats for user:', userId);
+  
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .select('status, tariff_change_detected, needs_review')
+      .eq('user_id', userId);
+      
+    if (error) {
+      console.error('Error getting tariff change stats:', error);
+      return {
+        total: 0,
+        changed: 0,
+        needsReview: 0,
+        recentChanges: 0
+      };
+    }
+    
+    const total = data.length;
+    const changed = data.filter(c => c.status === 'changed').length;
+    const needsReview = data.filter(c => c.needs_review).length;
+    
+    // Count recent changes (within last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentChanges = data.filter(c => 
+      c.tariff_change_detected && 
+      new Date(c.tariff_change_detected) > sevenDaysAgo
+    ).length;
+    
+    return {
+      total,
+      changed,
+      needsReview,
+      recentChanges
+    };
+  } catch (error) {
+    console.error('Error getting tariff change stats:', error);
+    return {
+      total: 0,
+      changed: 0,
+      needsReview: 0,
+      recentChanges: 0
+    };
   }
 }
