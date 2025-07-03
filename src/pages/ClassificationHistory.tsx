@@ -234,11 +234,22 @@ const ClassificationHistory = () => {
     <Layout className="pt-28 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Classification History</h1>
-          <p className="text-gray-600">
-            View and manage your past HS code classifications
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Classification History</h1>
+            <p className="text-gray-600">
+              View and manage your past HS code classifications
+            </p>
+          </div>
+          <CustomButton
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={checkingTariffs}
+            className="flex items-center"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${checkingTariffs ? 'animate-spin' : ''}`} />
+            {checkingTariffs ? 'Checking Tariffs...' : 'Refresh'}
+          </CustomButton>
         </div>
 
         {/* Stats Section */}
@@ -303,48 +314,6 @@ const ClassificationHistory = () => {
           </div>
         </div>
 
-        {/* HTS/Tariff Status Widget */}
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-blue-600" />
-                <div>
-                  <div className="font-medium text-sm text-blue-800">HTS Revision: 2024</div>
-                  <div className="text-xs text-blue-600">Current tariff schedule</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-green-600" />
-                <div>
-                  <div className="font-medium text-sm text-green-800">Last Updated: {new Date().toLocaleDateString()}</div>
-                  <div className="text-xs text-green-600">Tariff data synchronized</div>
-                </div>
-              </div>
-              {classifications.some(c => c.needs_review) && (
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-600" />
-                  <div>
-                    <div className="font-medium text-sm text-yellow-800">
-                      {classifications.filter(c => c.needs_review).length} Need Review
-                    </div>
-                    <div className="text-xs text-yellow-600">Classifications may be outdated</div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <CustomButton
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={checkingTariffs}
-              className="flex items-center text-xs"
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${checkingTariffs ? 'animate-spin' : ''}`} />
-              {checkingTariffs ? 'Checking...' : 'Refresh'}
-            </CustomButton>
-          </div>
-        </div>
 
         {/* Search and Filters */}
         <div className="bg-white border border-gray-200 p-6 rounded-lg mb-6">

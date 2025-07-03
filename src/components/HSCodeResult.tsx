@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import TariffInfo from "./TariffInfo";
 import HSCodeSubtree from "./HSCodeSubtree";
 import { explainTariff, getTariffInfo } from "@/lib/classifierService";
+import { saveClassification } from "@/lib/supabaseService";
+import { useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 
 interface HSCodeResultProps {
@@ -19,6 +21,7 @@ interface HSCodeResultProps {
 
 const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProduct, onReset }: HSCodeResultProps) => {
   const navigate = useNavigate();
+  const { userId } = useAuth();
   const [copied, setCopied] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [explanation, setExplanation] = useState<string>("");
@@ -29,6 +32,9 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
   const [preloadedTariffData, setPreloadedTariffData] = useState<any>(null);
   const [tariffLoading, setTariffLoading] = useState(true);
   const [tariffError, setTariffError] = useState<string | null>(null);
+  
+  // State for saving classification
+  const [classificationSaved, setClassificationSaved] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(hsCode);
@@ -76,6 +82,48 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
       fetchTariffData();
     }
   }, [hsCode]);
+
+  // Save classification to database when component mounts
+  useEffect(() => {
+    const saveClassificationToDb = async () => {
+      if (!userId || !hsCode || classificationSaved) {
+        return; // Don't save if user not logged in, no HS code, or already saved
+      }
+
+      try {
+        console.log("Saving classification to database:", {
+          hsCode,
+          description: originalProduct || description,
+          confidence
+        });
+
+        const classificationData = {
+          user_id: userId,
+          product_description: originalProduct || description,
+          hs_code: hsCode,
+          confidence: confidence,
+          full_path: fullPath,
+          tariff_data: preloadedTariffData // Use the preloaded tariff data
+        };
+
+        const result = await saveClassification(classificationData);
+        
+        if (result) {
+          console.log("Classification saved successfully:", result);
+          setClassificationSaved(true);
+        } else {
+          console.error("Failed to save classification");
+        }
+      } catch (error) {
+        console.error("Error saving classification:", error);
+      }
+    };
+
+    // Only save after tariff data is loaded (or failed to load)
+    if (!tariffLoading) {
+      saveClassificationToDb();
+    }
+  }, [userId, hsCode, originalProduct, description, confidence, fullPath, preloadedTariffData, tariffLoading, classificationSaved]);
 
   const handleCalculateTariffs = () => {
     // Navigate to tariff calculator with pre-populated HS code
