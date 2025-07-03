@@ -675,36 +675,89 @@ const ClassificationHistory = () => {
                           const newData = selectedClassification.tariff_data;
                           const changedFields = [];
                           
+                          // All possible tariff fields to check (matching backend logic)
                           const fieldsToCheck = [
+                            { key: 'mfn_text_rate', label: 'MFN Text Rate' },
                             { key: 'mfn_ad_val_rate', label: 'MFN Ad Valorem Rate' },
                             { key: 'mfn_specific_rate', label: 'MFN Specific Rate' },
+                            { key: 'mfn_other_rate', label: 'MFN Other Rate' },
+                            { key: 'col2_text_rate', label: 'Column 2 Text Rate' },
                             { key: 'col2_ad_val_rate', label: 'Column 2 Ad Valorem Rate' },
                             { key: 'col2_specific_rate', label: 'Column 2 Specific Rate' },
-                            { key: 'begin_effect_date', label: 'Effective Date' },
-                            { key: 'end_effective_date', label: 'End Date' }
+                            { key: 'col2_other_rate', label: 'Column 2 Other Rate' },
+                            { key: 'begin_effect_date', label: 'Begin Effective Date' },
+                            { key: 'end_effective_date', label: 'End Effective Date' }
                           ];
                           
-                          fieldsToCheck.forEach(field => {
-                            if (oldData?.[field.key] !== newData?.[field.key]) {
+                          // Trade program indicators
+                          const tradeProgramFields = [
+                            { key: 'gsp_indicator', label: 'GSP Indicator' },
+                            { key: 'cbi_indicator', label: 'CBI Indicator' },
+                            { key: 'agoa_indicator', label: 'AGOA Indicator' },
+                            { key: 'nafta_canada_ind', label: 'NAFTA Canada Indicator' },
+                            { key: 'nafta_mexico_ind', label: 'NAFTA Mexico Indicator' },
+                            { key: 'usmca_indicator', label: 'USMCA Indicator' },
+                            { key: 'israel_fta_indicator', label: 'Israel FTA Indicator' },
+                            { key: 'jordan_indicator', label: 'Jordan Indicator' },
+                            { key: 'singapore_indicator', label: 'Singapore Indicator' },
+                            { key: 'chile_indicator', label: 'Chile Indicator' },
+                            { key: 'australia_indicator', label: 'Australia Indicator' },
+                            { key: 'bahrain_indicator', label: 'Bahrain Indicator' },
+                            { key: 'dr_cafta_indicator', label: 'DR-CAFTA Indicator' },
+                            { key: 'oman_indicator', label: 'Oman Indicator' },
+                            { key: 'peru_indicator', label: 'Peru Indicator' },
+                            { key: 'korea_indicator', label: 'Korea Indicator' },
+                            { key: 'columbia_indicator', label: 'Colombia Indicator' },
+                            { key: 'panama_indicator', label: 'Panama Indicator' },
+                            { key: 'morocco_indicator', label: 'Morocco Indicator' }
+                          ];
+                          
+                          // Check all fields
+                          [...fieldsToCheck, ...tradeProgramFields].forEach(field => {
+                            const oldValue = oldData?.[field.key];
+                            const newValue = newData?.[field.key];
+                            
+                            // Convert to strings for comparison to handle null/undefined/empty cases
+                            const oldStr = oldValue === null || oldValue === undefined ? '' : String(oldValue);
+                            const newStr = newValue === null || newValue === undefined ? '' : String(newValue);
+                            
+                            if (oldStr !== newStr) {
                               changedFields.push(
                                 <div key={field.key} className="grid grid-cols-3 gap-0 text-xs border-t border-red-100">
                                   <div className="p-2 border-r border-red-100 font-medium">{field.label}</div>
                                   <div className="p-2 border-r border-red-100 text-red-600">
-                                    {oldData?.[field.key] || 'N/A'}
+                                    {oldStr || 'N/A'}
                                   </div>
                                   <div className="p-2 text-green-600 font-medium">
-                                    {newData?.[field.key] || 'N/A'}
+                                    {newStr || 'N/A'}
                                   </div>
                                 </div>
                               );
                             }
                           });
                           
-                          return changedFields.length > 0 ? changedFields : (
-                            <div className="p-3 text-xs text-gray-500 text-center">
-                              No specific field changes detected, but tariff data has been updated.
-                            </div>
-                          );
+                          // If no specific changes found, show a debug view
+                          if (changedFields.length === 0) {
+                            console.log('Debug - Old tariff data:', oldData);
+                            console.log('Debug - New tariff data:', newData);
+                            
+                            return (
+                              <div className="p-3 text-xs">
+                                <div className="text-gray-500 text-center mb-3">
+                                  No specific field changes detected in standard fields.
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  <div className="mb-2"><strong>Debug Info:</strong></div>
+                                  <div className="bg-gray-50 p-2 rounded text-xs font-mono max-h-32 overflow-y-auto">
+                                    <div className="mb-1"><strong>Previous:</strong> {JSON.stringify(oldData, null, 2)}</div>
+                                    <div><strong>Current:</strong> {JSON.stringify(newData, null, 2)}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          
+                          return changedFields;
                         })()}
                       </div>
                       
