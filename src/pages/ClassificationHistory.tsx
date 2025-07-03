@@ -256,16 +256,36 @@ const ClassificationHistory = () => {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 p-4 rounded-lg">
+          <div className={`bg-gradient-to-br p-4 rounded-lg ${
+            classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
+              ? 'from-red-50 to-red-100 border border-red-200'
+              : 'from-gray-50 to-gray-100 border border-gray-200'
+          }`}>
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="h-5 w-5 text-purple-600" />
-              <h3 className="font-medium text-purple-800">Needs Review</h3>
+              <AlertCircle className={`h-5 w-5 ${
+                classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
+                  ? 'text-red-600'
+                  : 'text-gray-600'
+              }`} />
+              <h3 className={`font-medium ${
+                classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
+                  ? 'text-red-800'
+                  : 'text-gray-800'
+              }`}>Needs Review</h3>
             </div>
-            <div className="text-2xl font-bold text-purple-900">
+            <div className={`text-2xl font-bold ${
+              classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
+                ? 'text-red-900'
+                : 'text-gray-900'
+            }`}>
               {classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length}
             </div>
-            <p className="text-sm text-purple-600">
-              Older than 6 months
+            <p className={`text-sm ${
+              classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
+                ? 'text-red-600'
+                : 'text-gray-600'
+            }`}>
+              Tariff changes or HS code changes
             </p>
           </div>
 

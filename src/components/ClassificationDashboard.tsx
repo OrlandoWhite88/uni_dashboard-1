@@ -174,13 +174,25 @@ const ClassificationDashboard = () => {
           <div className="text-2xl font-bold text-green-600">{stats.recentClassifications}</div>
         </div>
 
-        <div className="bg-yellow-500/10 p-4 rounded-lg">
+        <div className={`p-4 rounded-lg ${
+          stats.needsReview > 0
+            ? 'bg-red-500/10'
+            : 'bg-gray-500/10'
+        }`}>
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-            <span className="text-sm font-medium">Needs Review</span>
+            <AlertTriangle className={`h-5 w-5 ${
+              stats.needsReview > 0 ? 'text-red-600' : 'text-gray-600'
+            }`} />
+            <span className={`text-sm font-medium ${
+              stats.needsReview > 0 ? 'text-red-800' : 'text-gray-800'
+            }`}>Needs Review</span>
           </div>
-          <div className="text-2xl font-bold text-yellow-600">{stats.needsReview}</div>
-          <div className="text-xs text-muted-foreground mt-1">Older than 6 months</div>
+          <div className={`text-2xl font-bold ${
+            stats.needsReview > 0 ? 'text-red-600' : 'text-gray-600'
+          }`}>{stats.needsReview}</div>
+          <div className={`text-xs mt-1 ${
+            stats.needsReview > 0 ? 'text-red-600' : 'text-gray-600'
+          }`}>Tariff changes or HS code changes</div>
         </div>
 
         <div className="bg-blue-500/10 p-4 rounded-lg">
@@ -288,7 +300,7 @@ const ClassificationDashboard = () => {
                 {stats.needsReview} classification{stats.needsReview !== 1 ? 's' : ''} may need review
               </div>
               <div className="text-xs text-yellow-700 mt-1">
-                These classifications are older than 6 months and tariff rates may have changed.
+                These classifications may have tariff changes or HS code changes.
               </div>
             </div>
           </div>
