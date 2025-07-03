@@ -18,7 +18,8 @@ import {
   Info,
   Clock,
   RefreshCw,
-  Database
+  Database,
+  Calculator
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
 import { useToast } from '@/hooks/use-toast';
@@ -210,15 +211,15 @@ const ClassificationHistory = () => {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 p-4 rounded-lg">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 p-4 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <h3 className="font-medium text-yellow-800">Needs Review</h3>
+              <AlertCircle className="h-5 w-5 text-purple-600" />
+              <h3 className="font-medium text-purple-800">Needs Review</h3>
             </div>
-            <div className="text-2xl font-bold text-yellow-900">
+            <div className="text-2xl font-bold text-purple-900">
               {classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length}
             </div>
-            <p className="text-sm text-yellow-600">
+            <p className="text-sm text-purple-600">
               Older than 6 months
             </p>
           </div>
@@ -363,16 +364,16 @@ const ClassificationHistory = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Product Description
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       HS Code
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Confidence
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Calculate Tariff
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -391,12 +392,6 @@ const ClassificationHistory = () => {
                         setSidebarOpen(true);
                       }}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          {formatDate(classification.classification_date!)}
-                        </div>
-                      </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 min-w-0">
@@ -441,7 +436,22 @@ const ClassificationHistory = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {classification.confidence ? `${Math.round(classification.confidence)}%` : '-'}
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          {formatDate(classification.classification_date!)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/tariff-calculator?hsCode=${encodeURIComponent(classification.hs_code)}`;
+                          }}
+                          className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs"
+                        >
+                          <Calculator className="h-3 w-3" />
+                          Calculate
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex items-center space-x-2">
