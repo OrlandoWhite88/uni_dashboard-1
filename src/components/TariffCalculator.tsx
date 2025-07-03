@@ -389,6 +389,30 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
 
   const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
 
+  // Helper function to check if weight is required for calculation
+  const isWeightRequiredForCalculation = (): boolean => {
+    if (!tariffData) return false;
+    
+    // Check if the tariff has weight-based specific rates
+    if (tariffData.mfn_text_rate) {
+      const rateText = tariffData.mfn_text_rate.toString().toLowerCase();
+      // Check for weight-based units (kg, kilogram, etc.)
+      if (rateText.includes('kg') || rateText.includes('kilogram')) {
+        return true;
+      }
+    }
+    
+    // Check if there's a specific rate that might be weight-based
+    if (tariffData.mfn_specific_rate && tariffData.mfn_text_rate) {
+      const rateText = tariffData.mfn_text_rate.toString().toLowerCase();
+      if (rateText.includes('kg')) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   // Load past classifications on mount
   useEffect(() => {
     if (userId) {
@@ -1194,36 +1218,35 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="grid gap-2">
-            <label htmlFor="weight" className="text-sm font-medium flex items-center">
-              Weight (kg)
-              {tariffData?.mfn_text_rate && tariffData.mfn_text_rate.toString().includes('kg') ? (
+        {/* Conditionally render weight field only when required */}
+        {isWeightRequiredForCalculation() && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid gap-2">
+              <label htmlFor="weight" className="text-sm font-medium flex items-center">
+                Weight (kg)
                 <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">
                   Required for this HS code
                 </span>
-              ) : null}
-            </label>
-            <input
-              id="weight"
-              name="weight"
-              type="number"
-              min="0"
-              step="0.01"
-              value={shipmentDetails.weight}
-              onChange={handleInputChange}
-              placeholder="Enter weight in kg"
-              className={cn(
-                "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                tariffData?.mfn_text_rate && tariffData.mfn_text_rate.toString().includes('kg')
-                  ? "border-yellow-300 bg-yellow-50" 
-                  : "border-input"
-              )}
-            />
-          </div>
+              </label>
+              <input
+                id="weight"
+                name="weight"
+                type="number"
+                min="0"
+                step="0.01"
+                value={shipmentDetails.weight}
+                onChange={handleInputChange}
+                placeholder="Enter weight in kg"
+                className="flex h-10 w-full rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Weight is required for calculating duties on this HS code
+              </p>
+            </div>
 
-          <div></div>
-        </div>
+            <div></div>
+          </div>
+        )}
 
 
         {error && (
@@ -1245,6 +1268,8 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
                 setError("Please select a country of origin");
               } else if (!shipmentDetails.destinationCountry) {
                 setError("Please select a destination country");
+              } else if (isWeightRequiredForCalculation() && !shipmentDetails.weight) {
+                setError("Please enter weight - it's required for this HS code");
               } else {
                 setError(null);
                 setStep(3);
