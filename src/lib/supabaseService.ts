@@ -592,6 +592,36 @@ function compareTariffData(oldData: any, newData: any): boolean {
   return false;
 }
 
+export async function acceptTariffChanges(classificationId: string) {
+  console.log('Accepting tariff changes for classification:', classificationId);
+  
+  try {
+    const { data, error } = await supabase
+      .from('product_classifications')
+      .update({
+        status: 'current',
+        needs_review: false,
+        previous_tariff_data: null, // Clear the previous data since changes are accepted
+        tariff_change_detected: null, // Clear the change detection timestamp
+        last_tariff_check: new Date().toISOString()
+      })
+      .eq('id', classificationId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error accepting tariff changes:', error);
+      return null;
+    }
+    
+    console.log('Tariff changes accepted successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Unexpected error accepting tariff changes:', error);
+    return null;
+  }
+}
+
 export async function getTariffChangeStats(userId: string) {
   console.log('Getting tariff change stats for user:', userId);
   

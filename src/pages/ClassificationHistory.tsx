@@ -1,7 +1,7 @@
  import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import Layout from '@/components/Layout';
-import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord, checkTariffChanges, getTariffChangeStats } from '@/lib/supabaseService';
+import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord, checkTariffChanges, getTariffChangeStats, acceptTariffChanges } from '@/lib/supabaseService';
 import TariffInfo from '@/components/TariffInfo';
 import { 
   Search, 
@@ -19,7 +19,9 @@ import {
   Clock,
   RefreshCw,
   Database,
-  Calculator
+  Calculator,
+  CheckCircle,
+  ArrowRight
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +38,7 @@ const ClassificationHistory = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checkingTariffs, setCheckingTariffs] = useState(false);
   const [tariffStats, setTariffStats] = useState({ total: 0, changed: 0, needsReview: 0, recentChanges: 0 });
+  const [acceptingChanges, setAcceptingChanges] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -169,6 +172,56 @@ const ClassificationHistory = () => {
         description: "Failed to update favorite status",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleAcceptTariffChanges = async (classificationId: string) => {
+    setAcceptingChanges(true);
+    try {
+      const result = await acceptTariffChanges(classificationId);
+      if (result) {
+        // Update the classification in the local state
+        setClassifications(prev => 
+          prev.map(c => c.id === classificationId ? {
+            ...c,
+            status: 'current',
+            needs_review: false,
+            previous_tariff_data: null,
+            tariff_change_detected: null
+          } : c)
+        );
+        
+        // Update the selected classification if it's the one we just accepted
+        if (selectedClassification?.id === classificationId) {
+          setSelectedClassification(prev => prev ? {
+            ...prev,
+            status: 'current',
+            needs_review: false,
+            previous_tariff_data: null,
+            tariff_change_detected: null
+          } : null);
+        }
+        
+        toast({
+          title: "Changes Accepted",
+          description: "Tariff changes have been accepted and the classification is now current.",
+        });
+        
+        // Reload stats
+        const updatedStats = await getTariffChangeStats(userId!);
+        setTariffStats(updatedStats);
+      } else {
+        throw new Error('Failed to accept changes');
+      }
+    } catch (error) {
+      console.error('Error accepting tariff changes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept tariff changes",
+        variant: "destructive",
+      });
+    } finally {
+      setAcceptingChanges(false);
     }
   };
 
@@ -592,6 +645,87 @@ const ClassificationHistory = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Tariff Change Comparison - Show if status is 'changed' */}
+                {selectedClassification.status === 'changed' && selectedClassification.previous_tariff_data && (
+                  <div className="mb-6">
+                    <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                        <h4 className="font-medium text-red-800">Tariff Changes Detected</h4>
+                      </div>
+                      
+                      <p className="text-sm text-red-700 mb-4">
+                        Changes were detected on {selectedClassification.tariff_change_detected ? 
+                          formatDate(selectedClassification.tariff_change_detected) : 'recently'}. 
+                        Review the changes below and accept them to update your classification.
+                      </p>
+                      
+                      {/* Comparison Table */}
+                      <div className="bg-white rounded-md border border-red-200 overflow-hidden mb-4">
+                        <div className="grid grid-cols-3 gap-0 text-xs font-medium bg-red-100 text-red-800">
+                          <div className="p-2 border-r border-red-200">Field</div>
+                          <div className="p-2 border-r border-red-200">Previous</div>
+                          <div className="p-2">Current</div>
+                        </div>
+                        
+                        {/* Compare key tariff fields */}
+                        {(() => {
+                          const oldData = selectedClassification.previous_tariff_data;
+                          const newData = selectedClassification.tariff_data;
+                          const changedFields = [];
+                          
+                          const fieldsToCheck = [
+                            { key: 'mfn_ad_val_rate', label: 'MFN Ad Valorem Rate' },
+                            { key: 'mfn_specific_rate', label: 'MFN Specific Rate' },
+                            { key: 'col2_ad_val_rate', label: 'Column 2 Ad Valorem Rate' },
+                            { key: 'col2_specific_rate', label: 'Column 2 Specific Rate' },
+                            { key: 'begin_effect_date', label: 'Effective Date' },
+                            { key: 'end_effective_date', label: 'End Date' }
+                          ];
+                          
+                          fieldsToCheck.forEach(field => {
+                            if (oldData?.[field.key] !== newData?.[field.key]) {
+                              changedFields.push(
+                                <div key={field.key} className="grid grid-cols-3 gap-0 text-xs border-t border-red-100">
+                                  <div className="p-2 border-r border-red-100 font-medium">{field.label}</div>
+                                  <div className="p-2 border-r border-red-100 text-red-600">
+                                    {oldData?.[field.key] || 'N/A'}
+                                  </div>
+                                  <div className="p-2 text-green-600 font-medium">
+                                    {newData?.[field.key] || 'N/A'}
+                                  </div>
+                                </div>
+                              );
+                            }
+                          });
+                          
+                          return changedFields.length > 0 ? changedFields : (
+                            <div className="p-3 text-xs text-gray-500 text-center">
+                              No specific field changes detected, but tariff data has been updated.
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      
+                      {/* Accept Changes Button */}
+                      <div className="flex justify-end">
+                        <CustomButton
+                          onClick={() => handleAcceptTariffChanges(selectedClassification.id!)}
+                          disabled={acceptingChanges}
+                          className="flex items-center bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          {acceptingChanges ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                          )}
+                          {acceptingChanges ? 'Accepting...' : 'Accept Changes'}
+                        </CustomButton>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Tariff Information */}
                 <div>
