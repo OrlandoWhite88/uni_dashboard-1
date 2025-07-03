@@ -34,6 +34,7 @@ const ClassificationHistory = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'current' | 'needs_review' | 'changed'>('all');
   const [selectedClassification, setSelectedClassification] = useState<ClassificationRecord | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -139,9 +140,28 @@ const ClassificationHistory = () => {
     });
   };
 
-  const filteredClassifications = classifications.filter(c => 
-    !showFavoritesOnly || c.is_favorite
-  );
+  const filteredClassifications = classifications.filter(c => {
+    // Filter by favorites
+    if (showFavoritesOnly && !c.is_favorite) return false;
+    
+    // Filter by status
+    if (statusFilter !== 'all') {
+      const needsReview = c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+      
+      switch (statusFilter) {
+        case 'current':
+          return !needsReview && c.status !== 'changed';
+        case 'needs_review':
+          return needsReview;
+        case 'changed':
+          return c.status === 'changed';
+        default:
+          return true;
+      }
+    }
+    
+    return true;
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -179,42 +199,42 @@ const ClassificationHistory = () => {
         </div>
 
         {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <div className="flex items-center gap-3 mb-3">
-              <Package className="h-6 w-6 text-primary" />
-              <h3 className="font-semibold text-primary">Total Classifications</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="glass-card p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <div className="flex items-center gap-2 mb-1">
+              <Package className="h-4 w-4 text-primary" />
+              <h3 className="font-medium text-primary text-xs">Total Classifications</h3>
             </div>
-            <div className="text-3xl font-bold text-primary mb-1">
+            <div className="text-xl font-bold text-primary">
               {classifications.length}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               All time classifications
             </p>
           </div>
 
-          <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
-            <div className="flex items-center gap-3 mb-3">
-              <AlertCircle className="h-6 w-6 text-amber-600" />
-              <h3 className="font-semibold text-amber-700">Needs Review</h3>
+          <div className="glass-card p-3 rounded-lg bg-gradient-to-br from-muted/20 to-muted/10 border-muted/30">
+            <div className="flex items-center gap-2 mb-1">
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-medium text-foreground text-xs">Needs Review</h3>
             </div>
-            <div className="text-3xl font-bold text-amber-600 mb-1">
+            <div className="text-xl font-bold text-foreground">
               {classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Older than 6 months
             </p>
           </div>
 
-          <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-            <div className="flex items-center gap-3 mb-3">
-              <Clock className="h-6 w-6 text-emerald-600" />
-              <h3 className="font-semibold text-emerald-700">Last Updated</h3>
+          <div className="glass-card p-3 rounded-lg bg-gradient-to-br from-secondary/20 to-secondary/10 border-secondary/30">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-4 w-4 text-secondary-foreground" />
+              <h3 className="font-medium text-secondary-foreground text-xs">Last Updated</h3>
             </div>
-            <div className="text-lg font-bold text-emerald-600 mb-1">
+            <div className="text-lg font-bold text-secondary-foreground">
               {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               HTS Revision: 2024
             </p>
           </div>
@@ -293,6 +313,20 @@ const ClassificationHistory = () => {
               <Star className="h-4 w-4" />
               <span className="text-sm">Favorites only</span>
             </label>
+
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="text-sm border border-border rounded px-2 py-1 bg-background"
+              >
+                <option value="all">All Status</option>
+                <option value="current">Current</option>
+                <option value="needs_review">Needs Review</option>
+                <option value="changed">Changed</option>
+              </select>
+            </div>
             
             <div className="text-sm text-muted-foreground">
               {filteredClassifications.length} classification{filteredClassifications.length !== 1 ? 's' : ''}
@@ -332,11 +366,11 @@ const ClassificationHistory = () => {
                 <table className="w-full">
                   <thead className="bg-muted/30 border-b border-border">
                     <tr>
-                      <th className="text-left px-6 py-4 font-medium text-sm">Created</th>
-                      <th className="text-left px-6 py-4 font-medium text-sm">Product</th>
-                      <th className="text-left px-6 py-4 font-medium text-sm">Classification</th>
-                      <th className="text-left px-6 py-4 font-medium text-sm">Confidence</th>
-                      <th className="text-left px-6 py-4 font-medium text-sm">Actions</th>
+                      <th className="text-left px-4 py-2 font-medium text-sm">Created</th>
+                      <th className="text-left px-4 py-2 font-medium text-sm">Product</th>
+                      <th className="text-left px-4 py-2 font-medium text-sm">Classification</th>
+                      <th className="text-left px-4 py-2 font-medium text-sm">Confidence</th>
+                      <th className="text-left px-4 py-2 font-medium text-sm">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -351,48 +385,41 @@ const ClassificationHistory = () => {
                           setSidebarOpen(true);
                         }}
                       >
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-2">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             {formatDate(classification.classification_date!)}
                           </div>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-3">
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="font-medium text-sm truncate">
                                 {classification.product_description}
                               </div>
                               {classification.notes && (
-                                <div className="text-xs text-muted-foreground mt-1 truncate">
+                                <div className="text-xs text-muted-foreground truncate">
                                   {classification.notes}
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-1 flex-shrink-0">
                               {classification.is_favorite && (
-                                <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                                <Star className="h-3 w-3 text-yellow-500 fill-current" />
                               )}
-                              {classification.needs_review && (
-                                <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                                  Review
-                                </div>
-                              )}
-                              {classification.status === 'changed' && (
-                                <div className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                                  Changed
-                                </div>
-                              )}
-                              {classification.status === 'current' && !classification.needs_review && (
-                                <div className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                                  Current
-                                </div>
-                              )}
+                              {/* Status indicator dot */}
+                              <div className={`w-2 h-2 rounded-full ${
+                                classification.needs_review || new Date(classification.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+                                  ? 'bg-yellow-500' 
+                                  : classification.status === 'changed'
+                                  ? 'bg-red-500'
+                                  : 'bg-green-500'
+                              }`} />
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-3">
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-2">
                             <span className="font-mono font-bold text-primary text-sm">
                               {classification.hs_code}
                             </span>
@@ -409,15 +436,15 @@ const ClassificationHistory = () => {
                             </CustomButton>
                           </div>
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-2">
                           {classification.confidence && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            <div className="flex items-center gap-1 text-sm">
+                              <CheckCircle className="h-3 w-3 text-green-500" />
                               <span className="font-medium">{Math.round(classification.confidence)}%</span>
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-2">
                           <div className="flex items-center gap-1">
                             <CustomButton
                               variant="ghost"
