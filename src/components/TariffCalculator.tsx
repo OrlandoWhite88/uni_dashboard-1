@@ -1113,7 +1113,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="grid gap-2">
             <label htmlFor="invoiceValue" className="text-sm font-medium">
               Invoice Value (USD) <span className="text-red-500">*</span>
@@ -1147,7 +1147,9 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="grid gap-2">
             <label htmlFor="insuranceCost" className="text-sm font-medium">
               Insurance Cost (USD)
@@ -1164,9 +1166,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="grid gap-2">
             <label htmlFor="quantity" className="text-sm font-medium flex items-center">
               Quantity
@@ -1192,7 +1192,9 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
               )}
             />
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="grid gap-2">
             <label htmlFor="weight" className="text-sm font-medium flex items-center">
               Weight (kg)
@@ -1219,7 +1221,10 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
               )}
             />
           </div>
+
+          <div></div>
         </div>
+
 
         {error && (
           <div className="bg-destructive/10 text-destructive p-3 rounded-md flex items-start gap-2">
