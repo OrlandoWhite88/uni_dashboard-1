@@ -125,7 +125,7 @@ const ClassificationDecisionPath: React.FC<ClassificationDecisionPathProps> = ({
               </div>
             )}
 
-            {/* Connector line to next decision (if not last) */}
+            {/* Connector line to next decision (if not last) ok*/}
             {index < decisions.length - 1 && (
               <div className="flex justify-center my-2">
                 <div className="w-px h-4 bg-gradient-to-b from-primary/50 to-transparent" />
