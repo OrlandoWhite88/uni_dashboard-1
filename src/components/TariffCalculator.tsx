@@ -656,55 +656,69 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     },
   ] as const;
 
-  // Country mapping for trade programs - more comprehensive
-  const getCountryEligibilityForProgram = (programKey: string, originCountry: string): boolean => {
+  // API-driven eligibility checking using tariff data
+  const getCountryEligibilityForProgram = (programKey: string, originCountry: string, tariffData: any): boolean => {
     const country = originCountry.toUpperCase();
     
+    // Special handling for GSP - use API exclusion data
+    if (programKey === 'gsp_indicator') {
+      // Check if GSP indicator exists and is valid
+      const gspIndicator = tariffData.gsp_indicator;
+      if (!gspIndicator || gspIndicator.toLowerCase() === 'nan' || gspIndicator.toLowerCase() === 'null' || gspIndicator.trim() === '') {
+        return false;
+      }
+      
+      // Check if country is in the excluded list (ignoring ECTH for now as requested)
+      const excluded = tariffData.gsp_ctry_excluded || '';
+      if (excluded && excluded.includes(country)) {
+        return false;
+      }
+      
+      // Check col1_special_text for GSP indicators
+      const specialText = tariffData.col1_special_text || '';
+      if (specialText.includes('A*') || specialText.includes('A+') || specialText.includes('(A)')) {
+        return true;
+      }
+      
+      // If GSP indicator exists and country is not excluded, it's eligible
+      return true;
+    }
+    
+    // For other trade programs, check if the indicator matches the country code
+    const indicator = tariffData[programKey as keyof typeof tariffData] as string;
+    if (!indicator || indicator.toLowerCase() === 'nan' || indicator.toLowerCase() === 'null' || indicator.trim() === '') {
+      return false;
+    }
+    
+    // Direct country code match
+    if (indicator.toUpperCase() === country) {
+      return true;
+    }
+    
+    // Check col1_special_text for the country code
+    const specialText = tariffData.col1_special_text || '';
+    if (specialText.includes(`(${country})`) || 
+        specialText.includes(`,${country},`) || 
+        specialText.includes(`,${country})`) ||
+        specialText.includes(`(${country},`)) {
+      return true;
+    }
+    
+    // Special cases for multi-country programs
     switch (programKey) {
-      case 'gsp_indicator':
-        // GSP eligible countries (major ones) - Afghanistan is NOT eligible
-        return ['IN', 'BR', 'TH', 'TR', 'ID', 'PH', 'MY', 'VN', 'BD', 'PK', 'LK', 'EG', 'MA', 'TN', 'DZ', 'NG', 'GH', 'KE', 'TZ', 'UG', 'ZM', 'ZW', 'BW', 'MU', 'MG', 'SN', 'CI', 'CM', 'BF', 'ML', 'NE', 'TD', 'CF', 'CG', 'GA', 'GQ', 'ST', 'CV', 'GM', 'GN', 'GW', 'LR', 'SL', 'TG', 'BJ', 'BI', 'RW', 'DJ', 'ER', 'ET', 'SO', 'SD', 'SS', 'KM', 'MV', 'FJ', 'PG', 'SB', 'VU', 'WS', 'TO', 'TV', 'KI', 'NR', 'PW', 'FM', 'MH', 'AR', 'BO', 'PY', 'UY', 'EC', 'VE', 'GY', 'SR', 'JM', 'TT', 'BB', 'GD', 'LC', 'VC', 'KN', 'AG', 'DM', 'BS', 'BZ', 'HT'].includes(country);
-      
-      case 'agoa_indicator':
-        // AGOA eligible countries (Sub-Saharan Africa)
-        return ['ZA', 'KE', 'GH', 'NG', 'ET', 'TZ', 'UG', 'RW', 'BW', 'MU', 'MG', 'SN', 'CI', 'CM', 'BF', 'ML', 'NE', 'TD', 'CF', 'CG', 'GA', 'GQ', 'ST', 'CV', 'GM', 'GN', 'GW', 'LR', 'SL', 'TG', 'BJ', 'BI', 'DJ', 'ER', 'SO', 'SS', 'KM', 'MZ', 'ZM', 'ZW', 'MW', 'LS', 'SZ', 'NA', 'AO'].includes(country);
-      
-      case 'cbi_indicator':
-        // CBI eligible countries
-        return ['BB', 'BZ', 'CR', 'DM', 'DO', 'SV', 'GD', 'GT', 'GY', 'HT', 'HN', 'JM', 'MS', 'NI', 'PA', 'KN', 'LC', 'VC', 'TT', 'AG'].includes(country);
-      
-      case 'australia_indicator':
-        return country === 'AU';
-      case 'bahrain_indicator':
-        return country === 'BH';
-      case 'chile_indicator':
-        return country === 'CL';
-      case 'columbia_indicator':
-        return country === 'CO';
-      case 'israel_fta_indicator':
-        return country === 'IL';
-      case 'jordan_indicator':
-        return country === 'JO';
-      case 'korea_indicator':
-        return country === 'KR';
-      case 'morocco_indicator':
-        return country === 'MA';
-      case 'oman_indicator':
-        return country === 'OM';
-      case 'panama_indicator':
-        return country === 'PA';
-      case 'peru_indicator':
-        return country === 'PE';
-      case 'singapore_indicator':
-        return country === 'SG';
-      case 'nafta_canada_ind':
       case 'usmca_indicator':
-        return ['CA', 'MX'].includes(country);
-      case 'nafta_mexico_ind':
-        return country === 'MX';
+        // USMCA covers Canada and Mexico
+        return ['CA', 'MX'].includes(country) && (indicator === 'S' || indicator === 'CA' || indicator === 'MX');
       case 'dr_cafta_indicator':
-        return ['CR', 'DO', 'SV', 'GT', 'HN', 'NI'].includes(country);
-      
+        // CAFTA-DR covers multiple Central American countries
+        return ['CR', 'DO', 'SV', 'GT', 'HN', 'NI'].includes(country) && (indicator === 'P' || indicator === 'E');
+      case 'cbi_indicator':
+        // CBI covers Caribbean countries
+        return ['BB', 'BZ', 'CR', 'DM', 'DO', 'SV', 'GD', 'GT', 'GY', 'HT', 'HN', 'JM', 'MS', 'NI', 'PA', 'KN', 'LC', 'VC', 'TT', 'AG'].includes(country) && indicator === 'E';
+      case 'agoa_indicator':
+        // AGOA covers Sub-Saharan African countries
+        const agoaCountries = ['ZA', 'KE', 'GH', 'NG', 'ET', 'TZ', 'UG', 'RW', 'BW', 'MU', 'MG', 'SN', 'CI', 'CM', 'BF', 'ML', 'NE', 'TD', 'CF', 'CG', 'GA', 'GQ', 'ST', 'CV', 'GM', 'GN', 'GW', 'LR', 'SL', 'TG', 'BJ', 'BI', 'DJ', 'ER', 'SO', 'SS', 'KM', 'MZ', 'ZM', 'ZW', 'MW', 'LS', 'SZ', 'NA', 'AO'];
+        return agoaCountries.includes(country) && indicator === 'D';
       default:
         return false;
     }
@@ -763,7 +777,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       // First check if the indicator shows eligibility
       if (isEligible(indicator)) {
         // Then check if the origin country is actually eligible for this program
-        const isCountryEligible = getCountryEligibilityForProgram(program.key, origin);
+        const isCountryEligible = getCountryEligibilityForProgram(program.key, origin, tariffData);
         
         console.log(`Checking ${program.label} for ${origin}:`, {
           indicator,
