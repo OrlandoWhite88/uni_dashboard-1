@@ -62,6 +62,10 @@ export interface ClassificationResponse {
     heading: string;
     subheading: string;
     tariff: string;
+    code?: string;
+    path?: string;
+    log_score?: number;
+    confidence?: number;
   };
   final_code?: string;
   full_path?: string;
@@ -89,11 +93,14 @@ const logDebug = (message: string, data?: any) => {
  */
 export async function classifyProduct(
   productDescription: string,
-  maxQuestions: number = 5
+  maxQuestions: number = 5,
+  model: 'vertex' | 'groq' = 'vertex'
 ): Promise<ClassificationResponse | string> {
-  logDebug(`Starting classification for: "${productDescription}"`);
+  logDebug(`Starting classification for: "${productDescription}" using ${model} model`);
 
-  const url = `${API_BASE_URL}/classify`;
+  // Determine the endpoint based on the selected model
+  const endpoint = model === 'groq' ? '/classify-groq' : '/classify';
+  const url = `${API_BASE_URL}${endpoint}`;
   const payload = {
     product: productDescription,
     interactive: true,
@@ -163,13 +170,14 @@ export async function classifyProduct(
  */
 export async function continueClassification(
   state: ClassificationState | any,
-  answer: string
+  answer: string,
+  model: 'vertex' | 'groq' = 'vertex'
 ): Promise<ClassificationResponse | string> {
-  logDebug(`Continuing classification with answer: "${answer}"`);
+  logDebug(`Continuing classification with answer: "${answer}" using ${model} model`);
 
-  // IMPORTANT: Pass the complete state object from the API response
-  // Treat the state as opaque - do not modify it or try to understand its internal structure
-  const url = `${API_BASE_URL}/classify/continue`;
+  // Determine the endpoint based on the selected model
+  const endpoint = model === 'groq' ? '/classify-groq/continue' : '/classify/continue';
+  const url = `${API_BASE_URL}${endpoint}`;
   const payload = {
     state: state, // Pass the entire state object without modification
     answer: answer,
@@ -229,6 +237,58 @@ export async function continueClassification(
     }
   } catch (error) {
     logDebug(`Continue classification error: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Restart classification with a forced path
+ */
+export async function restartClassification(
+  productDescription: string,
+  forcedPath: Array<{ code: string; description: string }>,
+  model: 'vertex' | 'groq' = 'vertex'
+): Promise<ClassificationResponse | string> {
+  logDebug(`Restarting classification with forced path: ${JSON.stringify(forcedPath)}`);
+
+  // Determine the endpoint based on the selected model
+  const endpoint = model === 'groq' ? '/classify-groq/restart' : '/classify/restart';
+  const url = `${API_BASE_URL}${endpoint}`;
+  const payload = {
+    product: productDescription,
+    forced_path: forcedPath,
+    interactive: true,
+    max_questions: 3,
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      mode: "cors",
+    });
+
+    logDebug(`Response status: ${response.status}`);
+
+    if (!response.ok) {
+      throw new Error(`${response.status} - ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    logDebug(`Raw response: ${text}`);
+
+    try {
+      const result = JSON.parse(text);
+      return result;
+    } catch (e) {
+      logDebug(`Response is not JSON, treating as plain text`);
+      return text;
+    }
+  } catch (error) {
+    logDebug(`Restart classification error: ${error.message}`);
     throw error;
   }
 }
@@ -353,6 +413,41 @@ export async function explainTariff(
   }
 }
 
+/**
+ * Get structured HS code children with node_ids
+ */
+export async function getHSCodeChildren(
+  parentCode: string
+): Promise<Array<{
+  node_id: number;
+  code: string;
+  description: string;
+  is_group: boolean;
+}>> {
+  logDebug(`Fetching structured children for: ${parentCode}`);
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/hs-children/${parentCode}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      mode: "cors",
+    });
+    
+    if (!response.ok) {
+      throw new Error(`${response.status} - ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    logDebug(`Children retrieved successfully:`, data);
+    return data;
+  } catch (error) {
+    logDebug(`Error fetching children: ${error.message}`);
+    throw error;
+  }
+}
+
 export type Options = { id: string; text: string };
 
 // Define the possible states
@@ -408,7 +503,7 @@ export function useClassifier() {
   /**
    * Start the classification process
    */
-  const { userId, user } = useAuth();
+  const { userId } = useAuth();
 
   /**
    * Update the classification stage and loading state
@@ -514,7 +609,7 @@ export function useClassifier() {
   }, [updateStage]);
   
   const classify = useCallback(
-    async (product: string) => {
+    async (product: string, model: 'vertex' | 'groq' = 'vertex') => {
       try {
         // Clear previous debug info
         setDebugInfo([]);
@@ -531,7 +626,7 @@ export function useClassifier() {
         // This happens in the processApiResponse function when we get a final code
 
         // Call the API to classify the product
-        const result = await classifyProduct(product);
+        const result = await classifyProduct(product, 5, model);
         addDebug(`Received API response: ${JSON.stringify(result, null, 2)}`);
         addDebug(`Response type: ${typeof result}`);
         
@@ -755,7 +850,7 @@ export function useClassifier() {
           try {
             await saveClassification({
               user_id: userId,
-              user_email: user?.primaryEmailAddress?.emailAddress,
+              user_email: null, // User email not available in current Clerk version
               product_description: productDescription,
               hs_code: finalCode,
               confidence: confidence,
@@ -881,7 +976,7 @@ export function useClassifier() {
               try {
                 await saveClassification({
                   user_id: userId,
-                  user_email: user?.primaryEmailAddress?.emailAddress,
+                  user_email: null, // User email not available in current Clerk version
                   product_description: productDescription || description,
                   hs_code: finalCode,
                   confidence: confidence,

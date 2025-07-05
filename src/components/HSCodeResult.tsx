@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import CustomButton from "./ui/CustomButton";
-import { CheckCircle, Copy, Calculator, RefreshCw, HelpCircle, X, AlertTriangle, Loader2, DownloadCloud } from "lucide-react";
+import { CheckCircle, Copy, Calculator, RefreshCw, HelpCircle, X, AlertTriangle, Loader2, DownloadCloud, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import TariffInfo from "./TariffInfo";
 import HSCodeSubtree from "./HSCodeSubtree";
-import { explainTariff, getTariffInfo } from "@/lib/classifierService";
+import ClassificationDecisionPath, { ClassificationDecision } from "./ClassificationDecisionPath";
+import { explainTariff, getTariffInfo, getHSCodeSubtree } from "@/lib/classifierService";
 import { saveClassification } from "@/lib/supabaseService";
 import { useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
@@ -16,10 +17,14 @@ interface HSCodeResultProps {
   confidence: number;
   fullPath?: string; // Added fullPath prop
   originalProduct?: string; // Original product description from user input
+  classificationDecisions?: ClassificationDecision[]; // Added classification decisions
   onReset: () => void;
+  onRestartClassification?: (productDescription: string, forcedPath: Array<{ code: string; description: string }>) => void;
+  classificationState?: any; // Full classification state for reconstruction
+  onContinueFromState?: (reconstructedState: any) => void; // Handler for state continuation
 }
 
-const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProduct, onReset }: HSCodeResultProps) => {
+const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProduct, classificationDecisions, onReset, onRestartClassification, classificationState, onContinueFromState }: HSCodeResultProps) => {
   const navigate = useNavigate();
   const { userId } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -35,6 +40,12 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
   
   // State for saving classification
   const [classificationSaved, setClassificationSaved] = useState(false);
+  
+  // State for showing immediate children
+  const [showChildren, setShowChildren] = useState(false);
+  const [childrenData, setChildrenData] = useState<string>("");
+  const [loadingChildren, setLoadingChildren] = useState(false);
+  const [childrenError, setChildrenError] = useState<string>("");
 
   const handleCopy = () => {
     navigator.clipboard.writeText(hsCode);
@@ -130,6 +141,36 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
     navigate(`/tariff-calculator?hsCode=${hsCode}`);
   };
 
+  const handleViewChildren = async () => {
+    if (showChildren && childrenData) {
+      // If already showing children, just toggle off
+      setShowChildren(false);
+      return;
+    }
+
+    if (!childrenData) {
+      // Need to fetch children
+      setLoadingChildren(true);
+      setChildrenError("");
+      
+      try {
+        // Remove dots from HS code for API call
+        const cleanHsCode = hsCode.replace(/\./g, '');
+        const children = await getHSCodeSubtree(cleanHsCode, false, 1);
+        setChildrenData(children);
+        setShowChildren(true);
+      } catch (error) {
+        console.error("Error fetching children:", error);
+        setChildrenError(error instanceof Error ? error.message : "Failed to fetch children");
+      } finally {
+        setLoadingChildren(false);
+      }
+    } else {
+      // Already have children data, just show it
+      setShowChildren(true);
+    }
+  };
+
   const handleExplain = async () => {
     if (showExplanation && explanation) {
       // If already showing explanation, just toggle off
@@ -176,27 +217,42 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
         </div>
         
         <div className="flex flex-col items-center">
-          <div className="text-5xl font-bold tracking-tight mb-4 text-center">{hsCode}</div>
+          <div className="text-5xl font-bold tracking-tight mb-6 text-center">{hsCode}</div>
           
           <div className="text-center mb-6">
             <div className="text-sm font-medium text-muted-foreground mb-1">Classification Description</div>
             <p className="max-w-lg">{description !== "Product" ? description : (originalProduct || "Product")}</p>
           </div>
-          
-          <div className="bg-secondary rounded-lg px-4 py-2 mb-8">
-            <div className="text-sm">
-              <span className="font-medium">Confidence:</span>{" "}
-              <span className={cn(
-                confidence > 85 ? "text-green-600" : 
-                confidence > 70 ? "text-amber-600" : 
-                "text-red-600"
-              )}>
-                {confidence}%
-              </span>
-            </div>
+
+          {/* Classification Decision Path */}
+          <div className="mb-6 w-full">
+            <ClassificationDecisionPath 
+              decisions={classificationDecisions || []} 
+              isVisible={classificationDecisions && classificationDecisions.length > 0}
+              originalProduct={originalProduct}
+              onRestartClassification={onRestartClassification}
+              classificationState={classificationState}
+              onContinueFromState={onContinueFromState}
+            />
           </div>
           
-          <Tabs defaultValue="result" className="w-full mt-4">
+          {/* Confidence section - hidden but keeping code for potential future use */}
+          {false && (
+            <div className="bg-secondary rounded-lg px-4 py-2 mb-6">
+              <div className="text-sm">
+                <span className="font-medium">Confidence:</span>{" "}
+                <span className={cn(
+                  confidence > 85 ? "text-green-600" : 
+                  confidence > 70 ? "text-amber-600" : 
+                  "text-red-600"
+                )}>
+                  {confidence}%
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <Tabs defaultValue="result" className="w-full mt-6">
             <TabsList className="grid grid-cols-3 mb-6">
               <TabsTrigger value="result">Basic Info</TabsTrigger>
               <TabsTrigger value="tariff">Tariff Data</TabsTrigger>

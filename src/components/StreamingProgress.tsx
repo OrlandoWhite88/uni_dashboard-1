@@ -91,8 +91,8 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
         isVisible={classificationDecisions.length > 0} 
       />
 
-      {/* Question Flow - shown instead of beam search when needed */}
-      {isWaitingForAnswer && currentQuestion ? (
+      {/* Question Flow - shown when needed */}
+      {isWaitingForAnswer && currentQuestion && (
         <div className="mt-4 animate-scale-in">
           <div className="glass-card p-4 rounded-lg ring-1 ring-primary/20 bg-primary/5">
             <div className="flex items-center gap-2 mb-3">
@@ -120,12 +120,6 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
             />
           </div>
         </div>
-      ) : (
-        /* Beam search display - only shown when not waiting for answer */
-        <BeamSearchDisplay 
-          beam={currentBeam} 
-          isVisible={currentBeam.length > 0} 
-        />
       )}
 
       {/* Technical details */}
@@ -135,6 +129,12 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
           isVisible={events.length > 0} 
         />
       )}
+
+      {/* Beam search display - always shown at the bottom when there are paths */}
+      <BeamSearchDisplay 
+        beam={currentBeam} 
+        isVisible={currentBeam.length > 0} 
+      />
 
       {/* Status message */}
       <div className="mt-4 text-center">

@@ -45,6 +45,7 @@ export interface StreamingState {
   classificationState: any | null; // Store the full classification state for answer submission
   classificationDecisions: ClassificationDecision[]; // Track firm classification decisions
   enrichedDescription: string | null; // Store the latest enriched product description
+  currentModel: 'vertex' | 'groq'; // Track which model is being used
 }
 
 export const useClassificationStream = () => {
@@ -61,7 +62,8 @@ export const useClassificationStream = () => {
     isWaitingForAnswer: false,
     classificationState: null,
     classificationDecisions: [],
-    enrichedDescription: null
+    enrichedDescription: null,
+    currentModel: 'vertex'
   });
 
   const startTimeRef = useRef<number>(0);
@@ -324,6 +326,7 @@ export const useClassificationStream = () => {
           
           console.log('[Question Generated] State:', state);
           console.log('[Question Generated] Enriched description from state:', enrichedFromState);
+          console.log('[Question Generated] Current isStreaming:', prev.isStreaming);
           
           // Store the question and classification state, then pause streaming
           return {
@@ -336,7 +339,8 @@ export const useClassificationStream = () => {
             currentQuestion: event.data,
             isWaitingForAnswer: true,
             classificationState: state,
-            enrichedDescription: enrichedFromState
+            enrichedDescription: enrichedFromState,
+            isStreaming: prev.isStreaming // Explicitly preserve isStreaming
           };
         
         case 'continuation_start':
@@ -351,7 +355,8 @@ export const useClassificationStream = () => {
             progress: newProgress,
             finalResult,
             isWaitingForAnswer: false,
-            currentQuestion: null
+            currentQuestion: null,
+            isStreaming: prev.isStreaming // Explicitly preserve isStreaming
           };
         
         case 'answer_processing':
@@ -390,6 +395,10 @@ export const useClassificationStream = () => {
   // Start streaming classification
   const startStreaming = useCallback(async (product: string, options: any = {}) => {
     try {
+      // Determine the endpoint based on the selected model
+      const model = options.model || 'vertex'; // Default to vertex for backward compatibility
+      const endpoint = model === 'groq' ? '/classify-groq/stream' : '/classify/stream';
+
       setState(prev => ({
         ...prev,
         isStreaming: true,
@@ -404,12 +413,13 @@ export const useClassificationStream = () => {
         currentQuestion: null,
         isWaitingForAnswer: false,
         classificationState: null,
-        enrichedDescription: null
+        enrichedDescription: null,
+        currentModel: model
       }));
 
       startTimer();
 
-      const response = await fetch('https://hscode-eight.vercel.app/classify/stream', {
+      const response = await fetch(`https://hscode-eight.vercel.app${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -531,16 +541,23 @@ export const useClassificationStream = () => {
         currentStage: 'Resuming classification...'
       }));
 
+      // Determine the correct continue endpoint based on the current model
+      const continueEndpoint = state.currentModel === 'groq' ? '/classify-groq/continue/stream' : '/classify/continue/stream';
+
+      // Log the state being sent to the API
+      const requestBody = {
+        state: state.classificationState || {},
+        answer: answer
+      };
+      console.log('[Answer Question] Sending state to continue endpoint:', JSON.stringify(requestBody, null, 2));
+
       // Send the answer to the API with the correct structure
-      const response = await fetch('https://hscode-eight.vercel.app/classify/continue/stream', {
+      const response = await fetch(`https://hscode-eight.vercel.app${continueEndpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          state: state.classificationState || {},
-          answer: answer
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -611,7 +628,7 @@ export const useClassificationStream = () => {
         isStreaming: false
       }));
     }
-  }, [state.currentQuestion, state.isWaitingForAnswer, handleStreamEvent]);
+  }, [state.currentQuestion, state.isWaitingForAnswer, state.classificationState, state.currentModel, handleStreamEvent]);
 
   // Reset state
   const reset = useCallback(() => {
@@ -629,9 +646,236 @@ export const useClassificationStream = () => {
       isWaitingForAnswer: false,
       classificationState: null,
       classificationDecisions: [],
-      enrichedDescription: null
+      enrichedDescription: null,
+      currentModel: 'vertex'
     });
   }, [stopStreaming]);
+
+  // Restart streaming with a forced path
+  const restartStreaming = useCallback(async (
+    product: string, 
+    forcedPath: Array<{ code: string; description: string }>,
+    options: any = {}
+  ) => {
+    console.log('[restartStreaming] Starting restart with forced path:', forcedPath);
+    
+    // Build a modified product description that includes the forced path
+    let modifiedProduct = product;
+    if (forcedPath.length > 0) {
+      // Get the last code in the forced path (the one we want to continue from)
+      const lastPathItem = forcedPath[forcedPath.length - 1];
+      
+      // Use system override language to force the classification
+      modifiedProduct = `SYSTEM OVERRIDE: Force classification path to ${lastPathItem.code} - ${lastPathItem.description}. Product: ${product}. Begin classification from code ${lastPathItem.code} and find the most appropriate subclassification.`;
+    }
+    
+    console.log('[restartStreaming] Modified product description:', modifiedProduct);
+    
+    // First reset the state completely
+    reset();
+    
+    // Wait a moment for the reset to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Now use the regular startStreaming function with the modified product
+    console.log('[restartStreaming] Calling startStreaming with modified product');
+    return startStreaming(modifiedProduct, options);
+  }, [reset, startStreaming]);
+
+  // Continue classification from a specific point with reconstructed state
+  const continueFromState = useCallback(async (
+    reconstructedState: any,
+    options: any = {}
+  ) => {
+    console.log('[continueFromState] Starting continuation with reconstructed state:', reconstructedState);
+    
+    try {
+      // Determine the endpoint based on the selected model
+      const model = options.model || state.currentModel || 'vertex';
+      const continueEndpoint = model === 'groq' ? '/classify-groq/continue/stream' : '/classify/continue/stream';
+
+      // Set the state to show we're continuing
+      setState(prev => ({
+        ...prev,
+        isStreaming: true,
+        error: null,
+        currentStage: 'Continuing classification...',
+        currentModel: model
+      }));
+
+      startTimer();
+
+      // Send the reconstructed state to the continue endpoint
+      const response = await fetch(`https://hscode-eight.vercel.app${continueEndpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          state: reconstructedState,
+          answer: null // No answer needed, just continuing from state
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Continue failed: ${response.status} ${response.statusText}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body available');
+      }
+
+      const reader = response.body.getReader();
+      readerRef.current = reader;
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Add new chunk to buffer
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete events from buffer
+        let eventEndIndex;
+        while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+          const eventText = buffer.substring(0, eventEndIndex);
+          buffer = buffer.substring(eventEndIndex + 2);
+          
+          // Parse the complete event
+          const lines = eventText.split('\n');
+          let dataLines = [];
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              dataLines.push(line.substring(6)); // Remove 'data: ' prefix
+            }
+          }
+          
+          if (dataLines.length > 0) {
+            try {
+              // Join all data lines to form complete JSON
+              const jsonData = dataLines.join('');
+              const eventData = JSON.parse(jsonData);
+              
+              // Create stream event from the parsed SSE data
+              const streamEvent: StreamEvent = {
+                type: eventData.type || 'unknown',
+                timestamp: eventData.timestamp || new Date().toISOString(),
+                data: eventData.data || {}
+              };
+
+              handleStreamEvent(streamEvent);
+            } catch (parseError) {
+              console.warn('Failed to parse SSE event:', dataLines.join(''), parseError);
+            }
+          }
+        }
+      }
+
+      setState(prev => ({ ...prev, isStreaming: false }));
+      stopTimer();
+
+    } catch (error) {
+      console.error('Continue from state error:', error);
+      setState(prev => ({
+        ...prev,
+        isStreaming: false,
+        error: error instanceof Error ? error.message : 'Unknown continuation error'
+      }));
+      stopTimer();
+    }
+  }, [state.currentModel, handleStreamEvent, startTimer, stopTimer]);
+
+  // Reconstruct state for continuing from a specific classification point
+  const reconstructStateForContinuation = useCallback((
+    currentState: any,
+    changeLevel: number, // 0=chapter, 1=heading, 2=subheading, 3=tariff
+    newNode: { node_id?: number, code: string, description: string, is_group?: boolean }
+  ) => {
+    console.log('[reconstructStateForContinuation] Input:', { currentState, changeLevel, newNode });
+    
+    // Extract steps up to the change point
+    const stepsToKeep = currentState.steps ? currentState.steps.slice(0, changeLevel) : [];
+    
+    // Build new selection object
+    const newSelection: any = {};
+    const levelKeys = ['chapter', 'heading', 'subheading', 'tariff'];
+    
+    // Copy selections up to the change level
+    for (let i = 0; i < changeLevel; i++) {
+      const key = levelKeys[i];
+      if (currentState.selection && currentState.selection[key]) {
+        newSelection[key] = currentState.selection[key];
+      }
+    }
+    
+    // Set the new selection at the change level
+    if (changeLevel === 0) {
+      newSelection.chapter = newNode.code;
+    } else if (newNode.node_id) {
+      newSelection[levelKeys[changeLevel]] = newNode.node_id;
+    }
+    
+    // Build classification path up to the new selection
+    const classificationPathToKeep = currentState.classification_path 
+      ? currentState.classification_path.slice(0, changeLevel) 
+      : [];
+    
+    const newClassificationPath = [
+      ...classificationPathToKeep,
+      {
+        type: levelKeys[changeLevel],
+        code: newNode.code,
+        description: newNode.description,
+        is_group: newNode.is_group || false,
+        node_id: newNode.node_id,
+        confidence: 1.0, // User selected, so max confidence
+        cumulative_confidence: 1.0
+      }
+    ];
+    
+    // Determine the next stage
+    const nextStage = changeLevel < 3 ? levelKeys[changeLevel + 1] : 'complete';
+    
+    // Build visited nodes list
+    const visitedNodes = currentState.visited_nodes ? [...currentState.visited_nodes] : [];
+    if (newNode.node_id && !visitedNodes.includes(newNode.node_id)) {
+      visitedNodes.push(newNode.node_id);
+    }
+    
+    // Construct the state for continuation
+    const reconstructedState = {
+      product: currentState.product || currentState.original_query,
+      original_query: currentState.original_query || currentState.product,
+      current_query: currentState.current_query || currentState.product,
+      questions_asked: 0, // Reset questions
+      selection: newSelection,
+      current_node: newNode.node_id || null,
+      classification_path: newClassificationPath,
+      steps: stepsToKeep,
+      conversation: [], // Clear conversation
+      pending_question: null, // Clear any pending question
+      pending_stage: nextStage,
+      max_questions: currentState.max_questions || 3,
+      visited_nodes: visitedNodes,
+      history: currentState.history || [],
+      product_attributes: currentState.product_attributes || {},
+      recent_questions: [],
+      global_retry_count: 0,
+      classification_diagnosis: null,
+      use_multi_hypothesis: currentState.use_multi_hypothesis !== undefined ? currentState.use_multi_hypothesis : true,
+      hypothesis_count: currentState.hypothesis_count || 3,
+      paths: [], // Will be rebuilt by the API
+      beam: [], // Will be rebuilt by the API
+      streaming: true,
+      iteration_count: 0
+    };
+    
+    console.log('[reconstructStateForContinuation] Output:', reconstructedState);
+    return reconstructedState;
+  }, []);
 
   return {
     ...state,
@@ -639,6 +883,9 @@ export const useClassificationStream = () => {
     stopStreaming,
     stopStreamingGracefully,
     answerQuestion,
-    reset
+    reset,
+    restartStreaming,
+    continueFromState,
+    reconstructStateForContinuation
   };
 };

@@ -78,6 +78,7 @@ const Index = () => {
   const [originalProductDescription, setOriginalProductDescription] = useState<string>("");
   const [useStreaming, setUseStreaming] = useState(true);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<'vertex' | 'groq'>('groq');
   const progressTimerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const elapsedTimeRef = useRef<number>(0);
@@ -85,6 +86,7 @@ const Index = () => {
 
   // Get usage limits hook
   const { checkCanMakeRequest, reloadUsageData } = useUsageLimits();
+
 
   // Cleanup any timers on unmount
   useEffect(() => {
@@ -122,11 +124,12 @@ const Index = () => {
       streamingState.startStreaming(description, {
         interactive: true,
         maxQuestions: 3,
-        hypothesisCount: 3
+        hypothesisCount: 3,
+        model: selectedModel
       });
     } else {
       // Use traditional classification
-      classify(description);
+      classify(description, selectedModel);
     }
   };
 
@@ -135,6 +138,50 @@ const Index = () => {
     setOriginalProductDescription("");
     streamingState.reset();
   };
+
+  // Handle restart classification with forced path
+  const handleRestartClassification = useCallback(async (productDescription: string, forcedPath: Array<{ code: string; description: string }>) => {
+    console.log("[Index] Restarting classification with forced path:", forcedPath);
+    
+    // Check if the user can make a request based on their usage limits
+    const canMakeRequest = await checkCanMakeRequest();
+    if (!canMakeRequest) {
+      return; // Don't proceed if the user has reached their limit
+    }
+    
+    // Keep the original product description
+    setOriginalProductDescription(productDescription);
+    
+    // Track the classification start event for the restart
+    trackClassificationStart(productDescription);
+    
+    // Start new streaming with forced path - this now handles the reset internally
+    streamingState.restartStreaming(productDescription, forcedPath, {
+      interactive: true,
+      maxQuestions: 3,
+      hypothesisCount: 3,
+      model: selectedModel
+    });
+  }, [streamingState, selectedModel, checkCanMakeRequest]);
+
+  // Handle continuation from reconstructed state
+  const handleContinueFromState = useCallback(async (reconstructedState: any) => {
+    console.log("[Index] Continuing from reconstructed state:", reconstructedState);
+    
+    // Check if the user can make a request based on their usage limits
+    const canMakeRequest = await checkCanMakeRequest();
+    if (!canMakeRequest) {
+      return; // Don't proceed if the user has reached their limit
+    }
+    
+    // Track the classification start event for the continuation
+    trackClassificationStart(reconstructedState.product || reconstructedState.original_query);
+    
+    // Continue with the reconstructed state
+    streamingState.continueFromState(reconstructedState, {
+      model: selectedModel
+    });
+  }, [streamingState, selectedModel, checkCanMakeRequest]);
 
   // Handle streaming result
   useEffect(() => {
@@ -184,8 +231,19 @@ const Index = () => {
 
   // Log the current state for debugging purposes
   React.useEffect(() => {
-    console.log("[Index] Current classifier state:", state);
-  }, [state]);
+    console.log("[Index] Current classifier state:", JSON.stringify(state, null, 2));
+    console.log("[Index] Current streaming state:", JSON.stringify({
+      isStreaming: streamingState.isStreaming,
+      finalResult: streamingState.finalResult,
+      isWaitingForAnswer: streamingState.isWaitingForAnswer,
+      currentStage: streamingState.currentStage
+    }, null, 2));
+  }, [state, streamingState.isStreaming, streamingState.finalResult, streamingState.isWaitingForAnswer, streamingState.currentStage]);
+  
+  // Monitor streaming state changes specifically
+  React.useEffect(() => {
+    console.log("[Index] isStreaming changed to:", streamingState.isStreaming);
+  }, [streamingState.isStreaming]);
   
   // Function to get display text for the current classification stage
   const getStageDisplayText = (state: any) => {
@@ -258,19 +316,17 @@ const Index = () => {
 
   return (
     <ErrorBoundary>
-      <Layout className="pt-28 pb-16">
+      <Layout className="pt-12 pb-16">
         <div className="w-full max-w-2xl mx-auto">
-          {/* Status indicator for developers */}
-          <div className="mb-4 text-center">
-            <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3 animate-slide-down">
-              Accurate HS Classification Engine
-            </div>
-          </div>
-
           {/* Product Input */}
-          {(state.status === "idle" && !streamingState.isStreaming && !streamingState.finalResult) && (
+          {(state.status === "idle" && !streamingState.isStreaming && !streamingState.finalResult && !streamingState.isWaitingForAnswer) && (
             <>
-              <ProductInput onSubmit={handleClassify} isLoading={false} />
+              <ProductInput 
+                onSubmit={handleClassify} 
+                isLoading={false}
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+              />
               
               {/* Batch Processing Option */}
               <div className="mt-4 glass-card p-4 rounded-xl bg-secondary/10">
@@ -369,15 +425,19 @@ const Index = () => {
             </>
           )}
 
-          {/* Streaming Result View */}
-          {streamingState.finalResult && useStreaming && (
+          {/* Streaming Result View - Only show if we have a final result AND we're not currently streaming */}
+          {streamingState.finalResult && useStreaming && !streamingState.isStreaming && !streamingState.isWaitingForAnswer && (
             <HSCodeResult
               hsCode={streamingState.finalResult.final_code || "Unknown"}
               description={streamingState.finalResult.enriched_query || originalProductDescription || "Product"}
               confidence={95} // High confidence for streaming results
               fullPath={streamingState.finalResult.full_path}
               originalProduct={originalProductDescription}
+              classificationDecisions={streamingState.classificationDecisions}
               onReset={handleStreamingReset}
+              onRestartClassification={handleRestartClassification}
+              classificationState={streamingState.classificationState}
+              onContinueFromState={handleContinueFromState}
             />
           )}
 
@@ -389,6 +449,7 @@ const Index = () => {
               confidence={state.confidence}
               fullPath={state.path}
               originalProduct={originalProductDescription}
+              classificationDecisions={[]} // Traditional mode doesn't have classification decisions
               onReset={handleReset}
             />
           )}
