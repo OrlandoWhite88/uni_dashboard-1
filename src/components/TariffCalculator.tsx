@@ -417,194 +417,139 @@ export const COUNTRIES = [
   { code: "ZW", name: "Zimbabwe", ntr: true, gsp: true },
 ];
 
-// Rate type code meanings
-const RATE_TYPE_CODES = {
+// Harmonized Tariff Schedule rate-type codes (HTSUS Rev-16, April-2025)
+export const RATE_TYPE_CODES = {
   0: 'Free',
-  1: 'Ad Valorem',
-  2: 'Specific',
-  3: 'Compound',
-  4: 'Other',
-  5: 'Mixed',
-  6: 'Formula',
-  7: 'Ad Valorem', // Most common
-  8: 'Specific with ad valorem minimum'
+  1: 'Specific (Q1)',
+  2: 'Specific (Q2)',
+  3: 'Compound – two specific components',
+  4: 'Mixed – specific (Q1) + ad valorem',
+  5: 'Mixed – specific (Q2) + ad valorem',
+  6: 'Formula – specific (Q1) + "other" (Q2) + ad valorem',
+  7: 'Ad Valorem',
+  8: 'Complex formula / tariff-rate quota trigger',
+  9: 'Ad Valorem (derived duty)',   // special HTS formula
+  // non-numeric codes you may encounter:
+  // 'K': 'Refer to HTS for computation',
+  // 'X': 'Refer to HTS for computation',
+  // 'T': 'Compute at 10-digit level per HTS'
 };
 
-// Complete program symbol to country/region mapping
-const PROGRAM_SYMBOL_TO_COUNTRIES = {
+// Harmonized Tariff Schedule of the United States, Rev 16 (2025)
+// HTSUS – General Note 3(c)(i) & related notes (Rev-16, 1 Jul 2025)
+export const PROGRAM_SYMBOL_TO_COUNTRIES = {
+  /* ───── GSP symbols – handled in code by name, not array ───── */
+  A   : 'GSP_all_eligible',
   'A*': 'GSP_eligible_except_excluded',
-  'A': 'GSP_all_eligible',
   'A+': 'GSP_least_developed',
-  'AU': ['AU'],
-  'BH': ['BH'],
-  'CA': ['CA'],
-  'CL': ['CL'],
-  'CO': ['CO'],
-  'D': ['ZA', 'KE', 'GH', 'NG', 'ET', 'TZ', 'UG', 'RW', 'BW', 'MU', 'MG', 'SN', 'CI', 'CM', 'BF', 'ML', 'NE', 'TD', 'CF', 'CG', 'GA', 'GQ', 'ST', 'CV', 'GM', 'GN', 'GW', 'LR', 'SL', 'TG', 'BJ', 'BI', 'DJ', 'ER', 'SO', 'SS', 'KM', 'MZ', 'ZM', 'ZW', 'MW', 'LS', 'SZ', 'NA', 'AO'], // AGOA countries
-  'E': ['AG', 'BB', 'BZ', 'CR', 'DM', 'DO', 'SV', 'GD', 'GT', 'GY', 'HT', 'HN', 'JM', 'MS', 'NI', 'PA', 'KN', 'LC', 'VC', 'TT'], // CBI countries
-  'IL': ['IL'],
-  'JO': ['JO'],
-  'KR': ['KR'],
-  'MA': ['MA'],
-  'MX': ['MX'],
-  'OM': ['OM'],
-  'P': ['CR', 'DO', 'SV', 'GT', 'HN', 'NI'], // CAFTA-DR countries
-  'PA': ['PA'],
-  'PE': ['PE'],
-  'S': ['CA', 'MX'], // USMCA countries
-  'SG': ['SG']
+
+  /* ───── Bilateral FTAs / TPAs ───── */
+  AU : ['AU'],          // Australia
+  BH : ['BH'],          // Bahrain
+  CL : ['CL'],          // Chile
+  CO : ['CO'],          // Colombia
+  IL : ['IL'],          // Israel
+  JP : ['JP'],          // Japan (2020 Trade Agr.) - HTS uses "JP"
+  JO : ['JO'],          // Jordan
+  KR : ['KR'],          // Korea (KORUS)
+  MA : ['MA'],          // Morocco
+  OM : ['OM'],          // Oman
+  PA : ['PA'],          // Panama
+  PE : ['PE'],          // Peru
+  SG : ['SG'],          // Singapore
+
+  /* ───── Plurilateral / regional agreements ───── */
+  S  : ['CA','MX'],                          // USMCA
+  'S+': ['CA','MX'],                         // USMCA (staged-rate lines)
+  P  : ['CR','DO','SV','GT','HN','NI'],      // CAFTA-DR
+  'P+': ['CR','DO','SV','GT','HN','NI'],     // CAFTA-DR (fully eliminated duty)
+  NP : ['NP'],                               // Nepal Preference Programme
+
+  /* ───── Preference programmes ───── */
+  // African Growth & Opportunity Act – eligible partners, Jul-2025
+  D : [
+    'AO','BJ','BW','CV','TD','KM','CG','CD','CI','DJ','SZ','GM','GH','GW',
+    'KE','LS','LR','MG','MW','MR','MU','MZ','NA','NG','RW','ST','SN','SL',
+    'ZA','TZ','TG','ZM'
+  ],
+
+  // CBERA (Caribbean Basin Economic Recovery Act)
+  E : ['AG','AW','BS','BB','BZ','VG','CW','DM','GD','GY','HT','JM','MS','KN','LC','VC','TT'],
+  'E*' : ['AG','AW','BS','BB','BZ','VG','CW','DM','GD','GY','HT','JM','MS','KN','LC','VC','TT'],
+
+  // CBTPA (Caribbean Basin Trade Partnership Act)
+  R : ['AG','BB','BZ','DM','GD','GY','HT','JM','KN','LC','VC'],
+
+  /* ───── Sector-specific agreements (symbol → note) ───── */
+  B : ['CA'],                    // Automotive Products Trade Act (Canada)
+  C : 'Civil_Aircraft_signatories',
+  K : 'Pharmaceutical_Agreement_signatories',
+  L : 'Intermediate_Dyes_signatories'
 };
 
-// Program definitions with complete information
-const TRADE_PROGRAMS = [
+
+// Each object is *one HTS symbol* (GN-3(c)).  No rateField is needed –
+// duty is already stored in the tariff line your API returns.
+export const TRADE_PROGRAMS = [
+  /* ─────────── GSP family ─────────── */
   {
-    key: 'gsp_indicator',
+    key: 'gsp_all',
+    symbol: 'A',
+    label: 'GSP – Beneficiary Developing Countries',
+    description: 'Preferential duty for all BDCs (GN 4(a))',
+    requirements: ['Country is a BDC', 'Product not excluded', '≥ 35 % value-added in BDC + US']
+  },
+  {
+    key: 'gsp_exclusions',
     symbol: 'A*',
-    label: 'GSP (Generalized System of Preferences)',
-    rateField: null,
-    description: 'Developing country preference program',
-    requirements: ['GSP eligible country', 'Product not excluded', '35% value-added rule'],
-    excludedField: 'gsp_ctry_excluded'
+    label: 'GSP – BDCs (line-specific exclusions)',
+    description: 'Same as “A”, but some BDCs excluded for this HS line (GN 4(d))',
+    requirements: ['Country is not on the exclusion list for this line']
   },
   {
-    key: 'agoa_indicator',
-    symbol: 'D',
-    label: 'AGOA (African Growth and Opportunity Act)',
-    rateField: null,
-    description: 'Sub-Saharan African trade preference',
-    requirements: ['AGOA eligible country', 'Product eligible under AGOA', 'Rules of origin compliance']
+    key: 'gsp_ldb',
+    symbol: 'A+',
+    label: 'GSP – Least-Developed BDCs',
+    description: 'Duty-free for LDBDCs (GN 4(b)(i))',
+    requirements: ['Country is on LDBDC list', '≥ 35 % value-added']
   },
-  {
-    key: 'cbi_indicator',
-    symbol: 'E',
-    label: 'CBI (Caribbean Basin Initiative)',
-    rateField: 'cbi_ad_val_rate',
-    description: 'Caribbean and Central American preference',
-    requirements: ['CBI eligible country', 'Product not excluded', '35% value-added rule']
-  },
-  {
-    key: 'usmca_indicator',
-    symbol: 'S',
-    label: 'USMCA (US-Mexico-Canada Agreement)',
-    rateField: 'usmca_ad_val_rate',
-    description: 'North American free trade agreement',
-    requirements: ['Originating in USMCA territory', 'Certificate of origin', 'Rules of origin compliance']
-  },
-  {
-    key: 'australia_indicator',
-    symbol: 'AU',
-    label: 'US-Australia FTA',
-    rateField: 'australia_ad_val_rate',
-    description: 'US-Australia Free Trade Agreement',
-    requirements: ['Australian origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'bahrain_indicator',
-    symbol: 'BH',
-    label: 'US-Bahrain FTA',
-    rateField: 'bahrain_ad_val_rate',
-    description: 'US-Bahrain Free Trade Agreement',
-    requirements: ['Bahraini origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'chile_indicator',
-    symbol: 'CL',
-    label: 'US-Chile FTA',
-    rateField: 'chile_ad_val_rate',
-    description: 'US-Chile Free Trade Agreement',
-    requirements: ['Chilean origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'colombia_indicator',
-    symbol: 'CO',
-    label: 'US-Colombia FTA',
-    rateField: 'colombia_ad_val_rate',
-    description: 'US-Colombia Trade Promotion Agreement',
-    requirements: ['Colombian origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'dr_cafta_indicator',
-    symbol: 'P',
-    label: 'CAFTA-DR',
-    rateField: 'dr_cafta_ad_val_rate',
-    description: 'Central America-Dominican Republic FTA',
-    requirements: ['CAFTA-DR country origin', 'Certificate of origin', 'Rules of origin compliance']
-  },
-  {
-    key: 'israel_fta_indicator',
-    symbol: 'IL',
-    label: 'US-Israel FTA',
-    rateField: null,
-    description: 'US-Israel Free Trade Agreement',
-    requirements: ['Israeli origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'jordan_indicator',
-    symbol: 'JO',
-    label: 'US-Jordan FTA',
-    rateField: 'jordan_ad_val_rate',
-    description: 'US-Jordan Free Trade Agreement',
-    requirements: ['Jordanian origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'korea_indicator',
-    symbol: 'KR',
-    label: 'US-Korea FTA',
-    rateField: 'korea_ad_val_rate',
-    description: 'US-Korea Free Trade Agreement',
-    requirements: ['Korean origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'morocco_indicator',
-    symbol: 'MA',
-    label: 'US-Morocco FTA',
-    rateField: 'morocco_ad_val_rate',
-    description: 'US-Morocco Free Trade Agreement',
-    requirements: ['Moroccan origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'oman_indicator',
-    symbol: 'OM',
-    label: 'US-Oman FTA',
-    rateField: 'oman_ad_val_rate',
-    description: 'US-Oman Free Trade Agreement',
-    requirements: ['Omani origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'panama_indicator',
-    symbol: 'PA',
-    label: 'US-Panama FTA',
-    rateField: 'panama_ad_val_rate',
-    description: 'US-Panama Trade Promotion Agreement',
-    requirements: ['Panamanian origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'peru_indicator',
-    symbol: 'PE',
-    label: 'US-Peru FTA',
-    rateField: 'peru_ad_val_rate',
-    description: 'US-Peru Trade Promotion Agreement',
-    requirements: ['Peruvian origin', 'Certificate of origin', 'Direct shipment']
-  },
-  {
-    key: 'singapore_indicator',
-    symbol: 'SG',
-    label: 'US-Singapore FTA',
-    rateField: 'singapore_ad_val_rate',
-    description: 'US-Singapore Free Trade Agreement',
-    requirements: ['Singaporean origin', 'Certificate of origin', 'Direct shipment']
-  }
-] as const;
+
+  /* ─────────── Regional preference programmes ─────────── */
+  { key: 'agoa',   symbol: 'D',  label: 'AGOA',   description: 'Sub-Saharan Africa preference', requirements: ['AGOA country', 'ROO compliance'] },
+  { key: 'cbera',  symbol: 'E',  label: 'CBERA',  description: 'Caribbean Basin Initiative',    requirements: ['CBERA beneficiary', '≥ 35 % value-added'] },
+  { key: 'cbera_line_limited', symbol: 'E*', label: 'CBERA (line-limited)', description: 'CBERA where tariff line imposes extra limits', requirements: ['Same as CBERA'] },
+  { key: 'cbtpa',  symbol: 'R',  label: 'CBTPA',  description: 'Enhanced Caribbean preference (mainly T&A)', requirements: ['CBTPA beneficiary', 'Programme-specific ROO'] },
+  { key: 'nepal',  symbol: 'NP', label: 'Nepal Preference Programme', description: 'Duty-free list for Nepal (TFTEA § 915)', requirements: ['Made in Nepal', 'Direct shipment', '≥ 35 % value-added (max 15 % US)'] },
+  { key: 'usmca',  symbol: 'S',  label: 'USMCA',  description: 'US–Mexico–Canada Agreement',    requirements: ['Originating per USMCA ROO'], rateField: 'usmca_ad_val_rate' },
+  { key: 'cafta_dr', symbol: 'P', label: 'CAFTA-DR', description: 'Dominican Republic–Central America FTA', requirements: ['Originating in CR/DO/SV/GT/HN/NI', 'CAFTA-DR ROO'], rateField: 'dr_cafta_ad_val_rate' },
+
+  /* ─────────── Bilateral FTAs / TPAs ─────────── */
+  { key: 'ausfta',   symbol: 'AU', label: 'US–Australia FTA',                requirements: ['Australian origin', 'FTA ROO'], rateField: 'australia_ad_val_rate' },
+  { key: 'bahrain',  symbol: 'BH', label: 'US–Bahrain FTA',                  requirements: ['Bahraini origin', 'FTA ROO'], rateField: 'bahrain_ad_val_rate' },
+  { key: 'chile',    symbol: 'CL', label: 'US–Chile FTA',                    requirements: ['Chilean origin', 'FTA ROO'], rateField: 'chile_ad_val_rate' },
+  { key: 'colombia', symbol: 'CO', label: 'US–Colombia TPA',                 requirements: ['Colombian origin', 'TPA ROO'], rateField: 'colombia_ad_val_rate' },
+  { key: 'israel',   symbol: 'IL', label: 'US–Israel FTA',                   requirements: ['Israeli origin', 'FTA ROO'] },
+  { key: 'japan',    symbol: 'JP', label: 'US–Japan Trade Agreement',        requirements: ['Japanese origin', 'Agreement ROO'] },
+  { key: 'jordan',   symbol: 'JO', label: 'US–Jordan FTA',                   requirements: ['Jordanian origin', 'FTA ROO'], rateField: 'jordan_ad_val_rate' },
+  { key: 'korus',    symbol: 'KR', label: 'US–Korea FTA',                    requirements: ['Korean origin', 'FTA ROO'], rateField: 'korea_ad_val_rate' },
+  { key: 'morocco',  symbol: 'MA', label: 'US–Morocco FTA',                  requirements: ['Moroccan origin', 'FTA ROO'], rateField: 'morocco_ad_val_rate' },
+  { key: 'oman',     symbol: 'OM', label: 'US–Oman FTA',                     requirements: ['Omani origin', 'FTA ROO'], rateField: 'oman_ad_val_rate' },
+  { key: 'panama',   symbol: 'PA', label: 'US–Panama TPA',                   requirements: ['Panamanian origin', 'TPA ROO'], rateField: 'panama_ad_val_rate' },
+  { key: 'peru',     symbol: 'PE', label: 'US–Peru TPA',                     requirements: ['Peruvian origin', 'TPA ROO'], rateField: 'peru_ad_val_rate' },
+  { key: 'singapore',symbol: 'SG', label: 'US–Singapore FTA',                requirements: ['Singaporean origin', 'FTA ROO'], rateField: 'singapore_ad_val_rate' },
+
+  /* ─────────── Sector-specific agreements ─────────── */
+  { key: 'auto_canada',    symbol: 'B', label: 'Automotive Products Trade Act',        requirements: ['Canadian origin', 'APTA rules'] },
+  { key: 'civil_aircraft', symbol: 'C', label: 'Civil Aircraft Agreement',             requirements: ['Covered product', 'Signatory country'] },
+  { key: 'pharmaceuticals',symbol: 'K', label: 'Pharmaceutical Agreement',             requirements: ['Covered product', 'Signatory country'] },
+  { key: 'dyes_intermediates', symbol: 'L', label: 'Uruguay Round Concessions – Dyes', requirements: ['Covered product', 'Signatory country'] }
+];
+
+
 
 // VAT rates by country
 const COUNTRY_VAT_RATES = {
-  'AT': 20, 'BE': 21, 'BG': 20, 'HR': 25, 'CY': 19, 'CZ': 21, 'DK': 25, 'EE': 20,
-  'FI': 24, 'FR': 20, 'DE': 19, 'GR': 24, 'HU': 27, 'IE': 23, 'IT': 22, 'LV': 21,
-  'LT': 21, 'LU': 17, 'MT': 18, 'NL': 21, 'PL': 23, 'PT': 23, 'RO': 19, 'SK': 20,
-  'SI': 22, 'ES': 21, 'SE': 25, 'GB': 20, 'CA': 5, 'AU': 10, 'NZ': 15, 'JP': 10,
-  'SG': 7, 'CH': 7.7, 'NO': 25, 'IS': 24, 'TR': 18, 'MX': 16, 'KR': 10, 'IN': 18,
-  'BR': 17, 'CN': 13, 'ZA': 15, 'RU': 20, 'MY': 6, 'TH': 7, 'ID': 11, 'PH': 12,
-  'VN': 10, 'EG': 14, 'MA': 20, 'KE': 16, 'NG': 7.5, 'GH': 12.5, 'UG': 18
+
 };
 
 const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" }) => {
@@ -652,11 +597,17 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
   const parseEligiblePrograms = (specialText: string): string[] => {
     if (!specialText) return [];
     
-    // Handle "Free (A*,AU,BH,CL,CO,D,E,IL,JO,KR,MA,OM,P,PA,PE,S,SG)" format
-    const match = specialText.match(/Free\s*\(([^)]+)\)/i) || specialText.match(/\(([^)]+)\)/);
-    if (!match) return [];
+    // Handle multiple parentheses groups like "0.9¢/kg (S,CA) + 7% (IL)"
+    const allMatches = specialText.matchAll(/\(([^)]+)\)/g);
+    const symbols: string[] = [];
     
-    return match[1].split(',').map(s => s.trim()).filter(s => s.length > 0);
+    for (const match of allMatches) {
+      const programSymbols = match[1].split(',').map(s => s.trim()).filter(s => s.length > 0);
+      symbols.push(...programSymbols);
+    }
+    
+    // Remove duplicates
+    return [...new Set(symbols)];
   };
 
   // Check if a country is eligible for a specific program symbol
@@ -699,7 +650,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     }
     
     // Get the appropriate rate field
-    if (program.rateField) {
+    if ('rateField' in program && program.rateField) {
       const adValRate = tariffData[program.rateField as keyof TariffData] as number;
       const specificRateField = program.rateField.replace('ad_val_rate', 'specific_rate');
       const specificRate = tariffData[specificRateField as keyof TariffData] as number;
@@ -730,7 +681,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     // Check each eligible symbol
     for (const symbol of eligibleSymbols) {
       // Find the program that matches this symbol
-      const program = TRADE_PROGRAMS.find(p => p.symbol === symbol);
+      const program = TRADE_PROGRAMS.find(p => p.symbol === symbol || (symbol === 'S+' && p.symbol === 'S') || (symbol === 'P+' && p.symbol === 'P'));
       
       if (program && isCountryEligibleForSymbol(originCountry, symbol, tariffData)) {
         const rateInfo = getProgramRate(program, tariffData);
@@ -757,28 +708,100 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       if (isNonNTRCountry(originCountry)) {
         // Use Column 2 rates
         const col2Rate = tariffData.col2_ad_val_rate || 0;
-        bestRate = {
-          rate: col2Rate,
-          type: 'Ad Valorem',
-          description: `${(col2Rate * 100).toFixed(2)}% (Column 2 - Non-NTR country)`
-        };
-      } else {
-        // Use MFN rates
-        const mfnRate = tariffData.mfn_ad_val_rate || 0;
-        const mfnSpecific = tariffData.mfn_specific_rate || 0;
+        const col2Specific = tariffData.col2_specific_rate || 0;
+        const col2RateType = tariffData.col2_rate_type_code;
         
-        if (mfnSpecific > 0 && (tariffData.quantity_1_code === 'KG' || tariffData.mfn_text_rate?.includes('kg'))) {
+        if (col2Specific > 0 && [1, 2, 4, 5].includes(Number(col2RateType))) {
           bestRate = {
-            rate: mfnSpecific,
+            rate: col2Specific,
             type: 'Specific',
-            description: `$${mfnSpecific} per kg (MFN rate)`
+            description: `$${col2Specific} per ${tariffData.quantity_1_code || 'unit'} (Column 2 - Non-NTR country)`
           };
         } else {
           bestRate = {
-            rate: mfnRate,
+            rate: col2Rate,
             type: 'Ad Valorem',
-            description: `${(mfnRate * 100).toFixed(2)}% (MFN rate)`
+            description: `${(col2Rate * 100).toFixed(2)}% (Column 2 - Non-NTR country)`
           };
+        }
+      } else {
+        // Use MFN rates with enhanced rate type handling
+        const mfnRateType = Number(tariffData.mfn_rate_type_code);
+        const mfnAdVal = tariffData.mfn_ad_val_rate || 0;
+        const mfnSpecific = tariffData.mfn_specific_rate || 0;
+        const mfnOther = tariffData.mfn_other_rate || 0;
+        
+        switch (mfnRateType) {
+          case 0: // Free
+            bestRate = {
+              rate: 0,
+              type: 'Free',
+              description: 'Duty-free (MFN rate)'
+            };
+            break;
+          case 1: // Specific (Q1)
+          case 2: // Specific (Q2)
+            bestRate = {
+              rate: mfnSpecific,
+              type: 'Specific',
+              description: `$${mfnSpecific} per ${tariffData.quantity_1_code || 'unit'} (MFN rate)`
+            };
+            break;
+          case 3: // Compound - two specific components
+            bestRate = {
+              rate: mfnSpecific,
+              type: 'Compound',
+              description: `Compound rate: $${mfnSpecific} per ${tariffData.quantity_1_code || 'unit'} + $${mfnOther} per ${tariffData.quantity_2_code || 'unit'} (MFN rate)`
+            };
+            break;
+          case 4: // Mixed - specific (Q1) + ad valorem
+          case 5: // Mixed - specific (Q2) + ad valorem
+            bestRate = {
+              rate: mfnSpecific,
+              type: 'Mixed',
+              description: `$${mfnSpecific} per ${tariffData.quantity_1_code || 'unit'} + ${(mfnAdVal * 100).toFixed(2)}% (MFN rate)`,
+              adValComponent: mfnAdVal
+            };
+            break;
+          case 6: // Formula
+            bestRate = {
+              rate: mfnSpecific,
+              type: 'Formula',
+              description: `Complex formula rate (MFN) - consult HTS`,
+              adValComponent: mfnAdVal,
+              otherComponent: mfnOther
+            };
+            break;
+          case 7: // Ad Valorem
+          case 9: // Ad Valorem (derived)
+            bestRate = {
+              rate: mfnAdVal,
+              type: 'Ad Valorem',
+              description: `${(mfnAdVal * 100).toFixed(2)}% (MFN rate)`
+            };
+            break;
+          case 8: // Complex formula / TRQ
+            bestRate = {
+              rate: mfnAdVal || mfnSpecific || 0,
+              type: 'Complex',
+              description: 'Complex formula / tariff-rate quota - consult HTS'
+            };
+            break;
+          default:
+            // Fallback to ad valorem or specific
+            if (mfnSpecific > 0) {
+              bestRate = {
+                rate: mfnSpecific,
+                type: 'Specific',
+                description: `$${mfnSpecific} per ${tariffData.quantity_1_code || 'unit'} (MFN rate)`
+              };
+            } else {
+              bestRate = {
+                rate: mfnAdVal,
+                type: 'Ad Valorem',
+                description: `${(mfnAdVal * 100).toFixed(2)}% (MFN rate)`
+              };
+            }
         }
       }
     }
@@ -805,18 +828,6 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     }
   }, [hsCode]);
 
-  // Auto-populate VAT rate when destination country changes
-  useEffect(() => {
-    if (shipmentDetails.destinationCountry) {
-      const vatRate = COUNTRY_VAT_RATES[shipmentDetails.destinationCountry as keyof typeof COUNTRY_VAT_RATES];
-      if (vatRate) {
-        setShipmentDetails(prev => ({
-          ...prev,
-          vatRate: vatRate
-        }));
-      }
-    }
-  }, [shipmentDetails.destinationCountry]);
 
   const loadPastClassifications = async () => {
     if (!userId) return;
@@ -945,6 +956,32 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       if (isWeightRequiredForCalculation() && !weight) {
         warnings.push("Weight is required for accurate calculation of specific duties");
       }
+    } else if (rateAnalysis.bestRate.type === 'Mixed') {
+      // Mixed rate: specific + ad valorem
+      const unitQuantity = isWeightRequiredForCalculation() ? weight : quantity;
+      const specificDuty = rateAnalysis.bestRate.rate * unitQuantity;
+      const adValDuty = cifValue * (rateAnalysis.bestRate.adValComponent || 0);
+      dutyAmount = specificDuty + adValDuty;
+      dutyRateDescription = rateAnalysis.bestRate.description;
+      
+      if (isWeightRequiredForCalculation() && !weight) {
+        warnings.push("Weight is required for accurate calculation of mixed duties");
+      }
+    } else if (rateAnalysis.bestRate.type === 'Compound') {
+      // Compound rate: two specific components
+      const q1Quantity = tariffData.quantity_1_code === 'KG' ? weight : quantity;
+      const q2Quantity = tariffData.quantity_2_code === 'KG' ? weight : quantity;
+      dutyAmount = (rateAnalysis.bestRate.rate * q1Quantity) + ((rateAnalysis.bestRate.otherComponent || 0) * q2Quantity);
+      dutyRateDescription = rateAnalysis.bestRate.description;
+      
+      if ((tariffData.quantity_1_code === 'KG' || tariffData.quantity_2_code === 'KG') && !weight) {
+        warnings.push("Weight is required for accurate calculation of compound duties");
+      }
+    } else if (rateAnalysis.bestRate.type === 'Formula' || rateAnalysis.bestRate.type === 'Complex') {
+      // Complex formula - use the best estimate available
+      dutyAmount = cifValue * rateAnalysis.bestRate.rate;
+      dutyRateDescription = rateAnalysis.bestRate.description;
+      warnings.push("This is a complex rate formula. Please consult the HTS for exact calculation.");
     } else {
       // Ad Valorem rate
       dutyAmount = cifValue * rateAnalysis.bestRate.rate;
