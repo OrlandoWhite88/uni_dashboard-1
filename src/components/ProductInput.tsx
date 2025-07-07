@@ -21,6 +21,17 @@ const ProductInput = ({ onSubmit, isLoading, selectedModel, onModelChange }: Pro
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Check if Enter key is pressed without Shift
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevent default new line behavior
+      if (description.trim() && !isLoading) {
+        onSubmit(description);
+      }
+    }
+    // If Shift+Enter is pressed, allow default behavior (new line)
+  };
+
   return (
     <div className="w-full animate-fade-in">
       <div className="mb-6 text-center">
@@ -40,6 +51,7 @@ const ProductInput = ({ onSubmit, isLoading, selectedModel, onModelChange }: Pro
             placeholder="Describe your product in detail... (e.g., 'Industrial water pump with 1500W motor, stainless steel housing, for agricultural irrigation systems')"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            onKeyDown={handleKeyDown}
             disabled={isLoading}
           />
           

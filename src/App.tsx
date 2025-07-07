@@ -42,10 +42,11 @@ const App = () => (
       <BrowserRouter>
         <IntercomProvider />
         <Routes>
-          {/* Root redirect to dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Root redirect to product */}
+          <Route path="/" element={<Navigate to="/product" replace />} />
           
           {/* Main routes */}
+          <Route path="/product" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/classify" element={<Classify />} />
           <Route path="/classification-complete" element={<ClassificationComplete />} />

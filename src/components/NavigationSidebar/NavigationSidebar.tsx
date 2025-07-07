@@ -13,7 +13,7 @@ const defaultSections: NavigationSection[] = [
         id: 'single-product',
         label: 'Single Product',
         icon: '/appsiphone.svg', // Using the same icon for consistency
-        path: '/dashboard',
+        path: '/product',
       },
       {
         id: 'batch-classification',
