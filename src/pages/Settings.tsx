@@ -172,7 +172,7 @@ const SettingsPage = () => {
     <Layout className="pt-28 pb-16">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 flex items-center">
-          <Link to="/" className="mr-4 p-2 rounded-full hover:bg-secondary/80 transition-colors">
+          <Link to="/dashboard" className="mr-4 p-2 rounded-full hover:bg-secondary/80 transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <h1 className="text-2xl font-semibold">Settings</h1>

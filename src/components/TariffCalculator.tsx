@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { Loader2, AlertCircle, DollarSign, Package, Truck, FileText, Calculator, Info, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomButton from "./ui/CustomButton";
+import { isNonNTRCountry, isGSPEligible } from "@/lib/countryTradeStatus";
 
 interface TariffCalculatorProps {
   initialHsCode?: string;
@@ -660,7 +661,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
   const getCountryEligibilityForProgram = (programKey: string, originCountry: string, tariffData: any): boolean => {
     const country = originCountry.toUpperCase();
     
-    // Special handling for GSP - use API exclusion data
+    // Special handling for GSP - use our country trade status data
     if (programKey === 'gsp_indicator') {
       // Check if GSP indicator exists and is valid
       const gspIndicator = tariffData.gsp_indicator;
@@ -668,7 +669,12 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
         return false;
       }
       
-      // Check if country is in the excluded list (ignoring ECTH for now as requested)
+      // Check if country is GSP eligible using our database
+      if (!isGSPEligible(country)) {
+        return false;
+      }
+      
+      // Check if country is in the API's excluded list for this specific product
       const excluded = tariffData.gsp_ctry_excluded || '';
       if (excluded && excluded.includes(country)) {
         return false;
@@ -680,7 +686,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
         return true;
       }
       
-      // If GSP indicator exists and country is not excluded, it's eligible
+      // If GSP indicator exists and country is eligible and not excluded, it's eligible
       return true;
     }
     
@@ -807,10 +813,8 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
 
     // 2. If no preferential rate found, use MFN/NTR rate
     if (bestRate === null) {
-      // Check if origin country has Column 2 status (non-NTR countries like North Korea, Cuba, etc.)
-      const isColumn2Country = ['KP', 'CU'].includes(origin); // Add more as needed
-      
-      if (isColumn2Country && tariffData.col2_ad_val_rate) {
+      // Check if origin country has Column 2 status (non-NTR countries)
+      if (isNonNTRCountry(origin) && tariffData.col2_ad_val_rate) {
         bestRate = tariffData.col2_ad_val_rate;
         bestRateSource = "Column 2 (Non-NTR)";
         rateSource = "Column 2";

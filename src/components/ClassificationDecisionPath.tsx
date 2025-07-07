@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, TrendingUp, ChevronDown, ChevronUp, Eye, Loader2, AlertTriangle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { getHSCodeSubtree, getHSCodeChildren } from '@/lib/classifierService';
+import { getHSCodeSubtree } from '@/lib/classifierService';
 import CustomButton from './ui/CustomButton';
 
 export interface ClassificationDecision {
@@ -22,18 +22,13 @@ interface ClassificationDecisionPathProps {
   isVisible: boolean;
   originalProduct?: string;
   onRestartClassification?: (productDescription: string, forcedPath: Array<{ code: string; description: string }>) => void;
-  classificationState?: any; // Full classification state for reconstruction
-  onContinueFromState?: (reconstructedState: any) => void; // New handler for state continuation
-  reconstructStateForContinuation?: (currentState: any, changeLevel: number, newNode: any) => any; // Function to reconstruct state
 }
 
 const ClassificationDecisionPath: React.FC<ClassificationDecisionPathProps> = ({ 
   decisions, 
   isVisible,
   originalProduct,
-  onRestartClassification,
-  classificationState,
-  onContinueFromState
+  onRestartClassification
 }) => {
   if (!isVisible || decisions.length === 0) {
     return null;
@@ -58,9 +53,6 @@ const ClassificationDecisionPath: React.FC<ClassificationDecisionPathProps> = ({
             previousDecisions={decisions.slice(0, index)}
             originalProduct={originalProduct}
             onRestartClassification={onRestartClassification}
-            classificationState={classificationState}
-            onContinueFromState={onContinueFromState}
-            decisionLevel={index}
           />
         ))}
       </div>
@@ -75,9 +67,6 @@ interface DecisionItemProps {
   previousDecisions: ClassificationDecision[];
   originalProduct?: string;
   onRestartClassification?: (productDescription: string, forcedPath: Array<{ code: string; description: string }>) => void;
-  classificationState?: any;
-  onContinueFromState?: (reconstructedState: any) => void;
-  decisionLevel: number;
 }
 
 // Helper function to parse the children data text into structured objects
@@ -117,29 +106,13 @@ const parseChildrenData = (data: string): Array<{ code: string; description: str
   return children;
 };
 
-const DecisionItem: React.FC<DecisionItemProps> = ({ 
-  decision, 
-  isLast, 
-  nextDecision, 
-  previousDecisions, 
-  originalProduct, 
-  onRestartClassification,
-  classificationState,
-  onContinueFromState,
-  decisionLevel
-}) => {
+const DecisionItem: React.FC<DecisionItemProps> = ({ decision, isLast, nextDecision, previousDecisions, originalProduct, onRestartClassification }) => {
   const [showCompetitors, setShowCompetitors] = useState(false);
   const hasCompetitors = decision.competitors && decision.competitors.length > 0;
   
   // State for showing immediate children
   const [showChildren, setShowChildren] = useState(false);
   const [childrenData, setChildrenData] = useState<string>("");
-  const [structuredChildren, setStructuredChildren] = useState<Array<{
-    node_id: number;
-    code: string;
-    description: string;
-    is_group: boolean;
-  }> | null>(null);
   const [loadingChildren, setLoadingChildren] = useState(false);
   const [childrenError, setChildrenError] = useState<string>("");
   const [selectedChild, setSelectedChild] = useState<string>(nextDecision?.code || "");
@@ -147,31 +120,22 @@ const DecisionItem: React.FC<DecisionItemProps> = ({
   const [confirmingRestart, setConfirmingRestart] = useState<string>("");
 
   const handleViewChildren = async () => {
-    if (showChildren && (childrenData || structuredChildren)) {
+    if (showChildren && childrenData) {
       // If already showing children, just toggle off
       setShowChildren(false);
       return;
     }
 
-    if (!childrenData && !structuredChildren) {
+    if (!childrenData) {
       // Need to fetch children
       setLoadingChildren(true);
       setChildrenError("");
       
       try {
-        // First try to get structured children with node_ids
-        try {
-          const structured = await getHSCodeChildren(decision.code);
-          setStructuredChildren(structured);
-          setShowChildren(true);
-          console.log("Got structured children with node_ids:", structured);
-        } catch (structuredError) {
-          // If structured endpoint fails, fall back to text-based approach
-          console.log("Structured endpoint not available, falling back to text-based approach");
-          const children = await getHSCodeSubtree(decision.code, false, 1);
-          setChildrenData(children);
-          setShowChildren(true);
-        }
+        // Use the code directly for API call
+        const children = await getHSCodeSubtree(decision.code, false, 1);
+        setChildrenData(children);
+        setShowChildren(true);
       } catch (error) {
         console.error("Error fetching children:", error);
         setChildrenError(error instanceof Error ? error.message : "Failed to fetch children");
@@ -232,23 +196,19 @@ const DecisionItem: React.FC<DecisionItemProps> = ({
               <AlertTriangle className="h-4 w-4 inline mr-1" />
               {childrenError}
             </div>
-          ) : (childrenData || structuredChildren) ? (
+          ) : childrenData ? (
             <div className="space-y-2">
-              {/* Use structured children if available, otherwise parse text data */}
-              {(() => {
-                const children = structuredChildren || parseChildrenData(childrenData);
-                if (children.length > 0) {
+              {parseChildrenData(childrenData).length > 0 ? (
+                <>
+                  <div className="text-sm font-medium text-muted-foreground">Immediate Children:</div>
+                  <div className="space-y-1.5">
+                    {parseChildrenData(childrenData).map((child, index) => {
+                  // For groups, create a unique identifier using parent code + description
+                  const codeForSelection = child.isGroup 
+                    ? `${decision.code}:GROUP:${child.description}` 
+                    : child.code;
+                  const isSelected = codeForSelection && selectedChild === codeForSelection;
                   return (
-                    <>
-                      <div className="text-sm font-medium text-muted-foreground">Immediate Children:</div>
-                      <div className="space-y-1.5">
-                        {children.map((child, index) => {
-                          // For groups, create a unique identifier using parent code + description
-                          const codeForSelection = child.isGroup 
-                            ? `${decision.code}:GROUP:${child.description}` 
-                            : child.code;
-                          const isSelected = codeForSelection && selectedChild === codeForSelection;
-                          return (
                     <div
                       key={`${child.code}-${index}`}
                       className={`glass-card rounded-lg ring-1 transition-all cursor-pointer relative overflow-hidden ${
@@ -261,28 +221,15 @@ const DecisionItem: React.FC<DecisionItemProps> = ({
                         const codeToUse = codeForSelection;
                         
                         if (codeToUse) {
+                          // RESTART FUNCTIONALITY DISABLED - Just update selection
+                          setSelectedChild(codeToUse);
+                          
+                          /* RESTART CODE KEPT FOR FUTURE USE:
                           if (clickedChild === codeToUse) {
                             // Second click - show confirming state then trigger restart
                             setConfirmingRestart(codeToUse);
                             setTimeout(() => {
-                              // Check if we have structured children with node_ids for proper state reconstruction
-                              if (structuredChildren && onContinueFromState && classificationState) {
-                                // Find the selected child in structured children
-                                const selectedStructuredChild = structuredChildren.find(sc => 
-                                  child.isGroup ? false : sc.code === child.code
-                                );
-                                
-                                if (selectedStructuredChild && selectedStructuredChild.node_id) {
-                                  console.log("Using state reconstruction with node_id:", selectedStructuredChild.node_id);
-                                  
-                                  // Use the reconstructStateForContinuation function if available
-                                  // This would be passed from the parent component
-                                  // For now, we'll use the forced path approach until the API supports it
-                                  console.log("State reconstruction infrastructure ready, but using forced path for now");
-                                }
-                              }
-                              
-                              // Current implementation: Build the forced path up to this point
+                              // Build the forced path up to this point
                               const forcedPath = [
                                 ...previousDecisions.map(d => ({
                                   code: d.code,
@@ -318,6 +265,7 @@ const DecisionItem: React.FC<DecisionItemProps> = ({
                             setSelectedChild(codeToUse);
                             setConfirmingRestart("");
                           }
+                          */
                         }
                       }}
                     >
@@ -351,7 +299,7 @@ const DecisionItem: React.FC<DecisionItemProps> = ({
                           </span>
                         </div>
                         
-                        {/* Restart message overlay - only show for non-selected items */}
+                        {/* Restart message overlay - DISABLED
                         {clickedChild === codeForSelection && selectedChild === codeForSelection && codeForSelection !== nextDecision?.code && (
                           <div className={`absolute inset-0 flex items-center justify-center rounded-lg animate-fade-in transition-colors ${
                             confirmingRestart === codeForSelection 
@@ -377,21 +325,18 @@ const DecisionItem: React.FC<DecisionItemProps> = ({
                             </p>
                           </div>
                         )}
+                        */}
                       </div>
                     </div>
-                          );
-                        })}
-                      </div>
-                    </>
                   );
-                } else {
-                  return (
-                    <div className="text-sm text-muted-foreground p-3 bg-secondary/30 rounded-lg text-center">
-                      No further subdivisions available for this code
-                    </div>
-                  );
-                }
-              })()}
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground p-3 bg-secondary/30 rounded-lg text-center">
+                  No further subdivisions available for this code
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-center py-4 bg-secondary/30 rounded-lg">

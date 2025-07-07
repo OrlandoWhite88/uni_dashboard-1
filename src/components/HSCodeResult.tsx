@@ -20,11 +20,9 @@ interface HSCodeResultProps {
   classificationDecisions?: ClassificationDecision[]; // Added classification decisions
   onReset: () => void;
   onRestartClassification?: (productDescription: string, forcedPath: Array<{ code: string; description: string }>) => void;
-  classificationState?: any; // Full classification state for reconstruction
-  onContinueFromState?: (reconstructedState: any) => void; // Handler for state continuation
 }
 
-const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProduct, classificationDecisions, onReset, onRestartClassification, classificationState, onContinueFromState }: HSCodeResultProps) => {
+const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProduct, classificationDecisions, onReset, onRestartClassification }: HSCodeResultProps) => {
   const navigate = useNavigate();
   const { userId } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -231,8 +229,6 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
               isVisible={classificationDecisions && classificationDecisions.length > 0}
               originalProduct={originalProduct}
               onRestartClassification={onRestartClassification}
-              classificationState={classificationState}
-              onContinueFromState={onContinueFromState}
             />
           </div>
           

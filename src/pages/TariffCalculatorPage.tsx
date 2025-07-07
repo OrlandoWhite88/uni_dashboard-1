@@ -9,7 +9,7 @@ const TariffCalculatorPage: React.FC = () => {
   const hsCode = queryParams.get("hsCode") || "";
 
   return (
-    <Layout className="py-8">
+    <Layout className="pt-20 pb-16">
       <div className="space-y-6">
         <TariffCalculator initialHsCode={hsCode} />
       </div>

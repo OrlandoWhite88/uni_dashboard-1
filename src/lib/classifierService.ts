@@ -413,41 +413,6 @@ export async function explainTariff(
   }
 }
 
-/**
- * Get structured HS code children with node_ids
- */
-export async function getHSCodeChildren(
-  parentCode: string
-): Promise<Array<{
-  node_id: number;
-  code: string;
-  description: string;
-  is_group: boolean;
-}>> {
-  logDebug(`Fetching structured children for: ${parentCode}`);
-  
-  try {
-    const response = await fetch(`${API_BASE_URL}/hs-children/${parentCode}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      mode: "cors",
-    });
-    
-    if (!response.ok) {
-      throw new Error(`${response.status} - ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    logDebug(`Children retrieved successfully:`, data);
-    return data;
-  } catch (error) {
-    logDebug(`Error fetching children: ${error.message}`);
-    throw error;
-  }
-}
-
 export type Options = { id: string; text: string };
 
 // Define the possible states

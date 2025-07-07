@@ -43,6 +43,35 @@
     --sidebar-accent-foreground: 240 6% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217 91% 60%;
+
+    /* Navigation Sidebar Variables */
+    --font-sf-pro-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    --font-family-Font-2: 'Segoe UI Symbol', 'Apple Symbols', sans-serif;
+    --font-size-14: 14px;
+    --font-size-12: 12px;
+    --font-size-141: 14.1px;
+    --font-weight-500: 500;
+    --color-azure-27: #1a1a1a;
+    --color-azure-47: #6b7280;
+    --color-azure-5: #f3f4f6;
+    --color-white-solid: #ffffff;
+    --appvesslai-Dodger-Blue: #3b82f6;
+    --br-4: 4px;
+    --br-6: 6px;
+    --padding-6: 6px;
+    --padding-8: 8px;
+    --padding-10: 10px;
+    --padding-12: 12px;
+    --padding-20: 20px;
+    --padding-2: 2px;
+    --padding-4: 4px;
+    --gap-8: 8px;
+    --gap-11: 11px;
+    --gap-20: 20px;
+    --item-spacing-xs: 8px;
+    --line-height-19-61: 19.61px;
+    --line-height-19-6: 19.6px;
+    --line-height-16: 16px;
   }
 
   .dark {
@@ -73,6 +102,13 @@
     --border: 217 33% 18%;
     --input: 217 33% 18%;
     --ring: 210 100% 60%;
+
+    /* Navigation Sidebar Variables - Dark Mode */
+    --color-azure-27: #e5e7eb;
+    --color-azure-47: #9ca3af;
+    --color-azure-5: #1f2937;
+    --color-white-solid: #111827;
+    --appvesslai-Dodger-Blue: #2563eb;
   }
 }
 

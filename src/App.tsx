@@ -3,10 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Analytics } from "@vercel/analytics/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import IntercomProvider from "./components/IntercomProvider";
-import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
+import Classify from "./pages/Classify";
+import ClassificationComplete from "./pages/ClassificationComplete";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import SSOCallback from "./pages/SSOCallback";
@@ -16,6 +18,7 @@ import BatchClassify from "./pages/BatchClassify";
 import DebugStripe from "./pages/DebugStripe";
 import TariffCalculatorPage from "./pages/TariffCalculatorPage";
 import ClassificationHistory from "./pages/ClassificationHistory";
+import NavigationDemo from "./pages/NavigationDemo";
 
 // Create Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -39,8 +42,13 @@ const App = () => (
       <BrowserRouter>
         <IntercomProvider />
         <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Index />} />
+          {/* Root redirect to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          
+          {/* Main routes */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/classify" element={<Classify />} />
+          <Route path="/classification-complete" element={<ClassificationComplete />} />
 
           {/* Settings route - accessible for all users */}
           <Route
@@ -58,6 +66,10 @@ const App = () => (
           <Route
             path="/classification-history"
             element={<ClassificationHistory />}
+          />
+          <Route
+            path="/navigation-demo"
+            element={<NavigationDemo />}
           />
           <Route
             path="/debug-stripe"
