@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import HSCodeResult from "@/components/HSCodeResult";
 import { AlertCircle, ArrowLeft } from "lucide-react";
@@ -16,7 +16,7 @@ interface ClassificationResult {
 }
 
 const ClassificationComplete = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [result, setResult] = useState<ClassificationResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,7 +39,7 @@ const ClassificationComplete = () => {
   const handleReset = () => {
     // Clear the stored result and go back to dashboard
     sessionStorage.removeItem('classificationResult');
-    navigate('/dashboard');
+    router.push('/dashboard');
   };
 
   const handleRestartClassification = async (productDescription: string, forcedPath: Array<{ code: string; description: string }>) => {
@@ -48,13 +48,7 @@ const ClassificationComplete = () => {
     sessionStorage.setItem('productToClassify', productDescription);
     
     // Navigate to classify page
-    navigate('/classify', { 
-      state: { 
-        productDescription,
-        forcedPath,
-        model: 'groq' // Default model, could be stored with the result if needed
-      } 
-    });
+    router.push('/classify');
   };
 
   if (isLoading) {
@@ -83,14 +77,14 @@ const ClassificationComplete = () => {
                 </p>
                 <div className="flex gap-3">
                   <CustomButton 
-                    onClick={() => navigate('/dashboard')} 
+                    onClick={() => router.push('/dashboard')} 
                     className="flex items-center"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
                   </CustomButton>
                   <CustomButton 
                     variant="outline"
-                    onClick={() => navigate('/classification-history')}
+                    onClick={() => router.push('/classification-history')}
                   >
                     View History
                   </CustomButton>

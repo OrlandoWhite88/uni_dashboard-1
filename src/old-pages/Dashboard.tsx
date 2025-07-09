@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import ProductInput from "@/components/ProductInput";
 import CustomButton from "@/components/ui/CustomButton";
@@ -9,7 +9,7 @@ import { trackClassificationStart } from "@/lib/analyticsService";
 
 const Dashboard = () => {
   const [selectedModel, setSelectedModel] = useState<'vertex' | 'groq'>('groq');
-  const navigate = useNavigate();
+  const router = useRouter();
   const { checkCanMakeRequest } = useUsageLimits();
 
   const handleClassify = async (description: string) => {
@@ -25,12 +25,7 @@ const Dashboard = () => {
     trackClassificationStart(description);
     
     // Navigate to the classify page with the product description and model
-    navigate('/classify', { 
-      state: { 
-        productDescription: description,
-        model: selectedModel
-      } 
-    });
+    router.push('/classify');
   };
 
   return (
@@ -53,7 +48,7 @@ const Dashboard = () => {
             </div>
             <CustomButton 
               variant="outline" 
-              onClick={() => navigate('/bulk-import')}
+              onClick={() => router.push('/bulk-import')}
               className="flex items-center whitespace-nowrap ml-4"
               type="button"
             >
