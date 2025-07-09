@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CustomButton from "./ui/CustomButton";
-import { CheckCircle, Copy, Calculator, RefreshCw, HelpCircle, X, AlertTriangle, Loader2, DownloadCloud, Eye } from "lucide-react";
+import { CheckCircle, Copy, Calculator, RefreshCw, Shield, X, AlertTriangle, Loader2, DownloadCloud, Eye, Flag, Building, DollarSign, ExternalLink, Info, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import TariffInfo from "./TariffInfo";
@@ -10,6 +10,51 @@ import { explainTariff, getTariffInfo, getHSCodeSubtree } from "@/lib/classifier
 import { saveClassification } from "@/lib/supabaseService";
 import { useAuth } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+
+// Trade Flags interfaces (from TradeComplianceFlags component)
+interface PGAFlag {
+  id: string;
+  agency: string;
+  agencyCode: string;
+  requirement: string;
+  severity: 'none' | 'standard' | 'restricted';
+  description: string;
+  documents?: string[];
+  additionalInfo?: string;
+  url?: string;
+}
+
+interface CVDFlag {
+  id: string;
+  type: 'ADD' | 'CVD';
+  rate: number;
+  country: string;
+  effectiveDate: string;
+  expiryDate?: string;
+  caseNumber: string;
+  status: 'active' | 'suspended' | 'revoked';
+  description: string;
+  productScope?: string;
+}
+
+interface PGAResponse {
+  hs_code_requested: string;
+  hs_code_searched: string;
+  flags: Record<string, boolean>;
+  flagged_pgas: string[];
+  total_flagged: number;
+  search_timestamp: string;
+}
+
+interface CVDResponse {
+  hs_code_requested: string;
+  hs_code_searched: string;
+  duty_type: string;
+  flags: Record<string, boolean>;
+  flagged_duties: string[];
+  total_flagged: number;
+  search_timestamp: string;
+}
 
 interface HSCodeResultProps {
   hsCode: string;
@@ -26,10 +71,11 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
   const navigate = useNavigate();
   const { userId } = useAuth();
   const [copied, setCopied] = useState(false);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [explanation, setExplanation] = useState<string>("");
-  const [loadingExplanation, setLoadingExplanation] = useState(false);
-  const [explanationError, setExplanationError] = useState<string>("");
+  const [showTradeFlags, setShowTradeFlags] = useState(false);
+  const [pgaData, setPgaData] = useState<PGAResponse | null>(null);
+  const [cvdData, setCvdData] = useState<CVDResponse | null>(null);
+  const [loadingTradeFlags, setLoadingTradeFlags] = useState(false);
+  const [tradeFlagsError, setTradeFlagsError] = useState<string>("");
   
   // State for pre-loading tariff data
   const [preloadedTariffData, setPreloadedTariffData] = useState<any>(null);
@@ -169,31 +215,63 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
     }
   };
 
-  const handleExplain = async () => {
-    if (showExplanation && explanation) {
-      // If already showing explanation, just toggle off
-      setShowExplanation(false);
+  // Helper function to format HS code for API
+  const formatHsCodeForApi = (code: string) => {
+    // Remove any non-numeric characters
+    const numericCode = code.replace(/[^0-9]/g, '');
+    
+    // Ensure it's at least 10 digits, pad with zeros if needed
+    const paddedCode = numericCode.padEnd(10, '0');
+    
+    // Format as XX.XX.XX.XX
+    return `${paddedCode.slice(0, 4)}.${paddedCode.slice(4, 6)}.${paddedCode.slice(6, 8)}.${paddedCode.slice(8, 10)}`;
+  };
+
+  const handleTradeFlags = async () => {
+    if (showTradeFlags && (pgaData || cvdData)) {
+      // If already showing trade flags, just toggle off
+      setShowTradeFlags(false);
       return;
     }
 
-    if (!explanation) {
-      // Need to fetch explanation
-      setLoadingExplanation(true);
-      setExplanationError("");
+    if (!pgaData && !cvdData) {
+      // Need to fetch trade flags
+      setLoadingTradeFlags(true);
+      setTradeFlagsError("");
       
       try {
-        const llmExplanation = await explainTariff(hsCode, true, 'high');
-        setExplanation(llmExplanation);
-        setShowExplanation(true);
+        // Format the HS code for API
+        const formattedCode = formatHsCodeForApi(hsCode);
+        
+        // Make parallel API calls using the correct endpoints
+        const [pgaResponse, cvdResponse, addResponse] = await Promise.all([
+          fetch(`https://data-api-rose.vercel.app/search-pga?hs_code=${formattedCode}`),
+          fetch(`https://data-api-rose.vercel.app/search-cvd?hs_code=${formattedCode}`),
+          fetch(`https://data-api-rose.vercel.app/search-add?hs_code=${formattedCode}`)
+        ]);
+
+        if (!pgaResponse.ok || !cvdResponse.ok || !addResponse.ok) {
+          throw new Error('API request failed');
+        }
+
+        const [pgaResult, cvdResult, addResult] = await Promise.all([
+          pgaResponse.json(),
+          cvdResponse.json(),
+          addResponse.json()
+        ]);
+
+        setPgaData(pgaResult);
+        setCvdData(cvdResult);
+        setShowTradeFlags(true);
       } catch (error) {
-        console.error("Error fetching explanation:", error);
-        setExplanationError(error instanceof Error ? error.message : "Failed to generate explanation");
+        console.error("Error fetching trade flags:", error);
+        setTradeFlagsError(error instanceof Error ? error.message : "Failed to fetch trade flags");
       } finally {
-        setLoadingExplanation(false);
+        setLoadingTradeFlags(false);
       }
     } else {
-      // Already have explanation, just show it
-      setShowExplanation(true);
+      // Already have trade flags data, just show it
+      setShowTradeFlags(true);
     }
   };
 
@@ -276,50 +354,116 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
                 </CustomButton>
                 
                 <CustomButton 
-                  onClick={handleExplain} 
-                  variant={showExplanation ? "default" : "outline"}
+                  onClick={handleTradeFlags} 
+                  variant={showTradeFlags ? "default" : "outline"}
                   className="flex-1 min-w-[120px]"
-                  disabled={loadingExplanation}
+                  disabled={loadingTradeFlags}
                 >
-                  {loadingExplanation ? (
+                  {loadingTradeFlags ? (
                     <Loader2 size={16} className="mr-2 animate-spin" />
                   ) : (
-                    <HelpCircle size={16} className="mr-2" />
+                    <Shield size={16} className="mr-2" />
                   )}
-                  {loadingExplanation ? "Generating..." : "Explain"}
+                  {loadingTradeFlags ? "Checking..." : "Trade Flags"}
                 </CustomButton>
               </div>
               
-              {/* Explanation Panel */}
-              {showExplanation && (
+              {/* Trade Flags Panel */}
+              {showTradeFlags && (
                 <div className="mt-6 p-4 bg-secondary/50 border border-border rounded-lg w-full animate-fade-in">
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-medium">HS Code Explanation</h3>
+                    <h3 className="font-medium flex items-center">
+                      <Shield size={16} className="mr-2" />
+                      Trade Compliance Flags
+                    </h3>
                     <button 
-                      onClick={() => setShowExplanation(false)}
+                      onClick={() => setShowTradeFlags(false)}
                       className="p-1 rounded-full hover:bg-secondary"
                     >
                       <X size={14} />
                     </button>
                   </div>
                   
-                  {explanationError ? (
+                  {tradeFlagsError ? (
                     <div className="text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-md">
                       <div className="flex items-start">
                         <AlertTriangle className="h-4 w-4 text-red-500 mr-2 shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-medium text-red-700">Failed to generate explanation</p>
-                          <p className="text-red-600 mt-1">{explanationError}</p>
+                          <p className="font-medium text-red-700">Failed to fetch trade flags</p>
+                          <p className="text-red-600 mt-1">{tradeFlagsError}</p>
                         </div>
                       </div>
                     </div>
-                  ) : explanation ? (
-                    <div className="text-sm space-y-3">
-                      <div className="whitespace-pre-wrap">{explanation}</div>
-                      
-                      {/* Show original product and classification path if available */}
+                  ) : pgaData || cvdData ? (
+                    <div className="text-sm space-y-4">
+                      {/* PGA Requirements Summary */}
+                      {pgaData && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Building size={14} className="mr-2 text-blue-600" />
+                              <span className="font-medium">PGA Requirements</span>
+                            </div>
+                            <span className={cn(
+                              "px-2 py-1 rounded-full text-xs font-medium",
+                              pgaData.total_flagged > 0 
+                                ? "bg-amber-100 text-amber-800" 
+                                : "bg-green-100 text-green-800"
+                            )}>
+                              {pgaData.total_flagged > 0 
+                                ? `${pgaData.total_flagged} Requirements` 
+                                : "No Requirements"}
+                            </span>
+                          </div>
+                          {pgaData.total_flagged > 0 && (
+                            <div className="pl-6 text-xs text-muted-foreground">
+                              Agencies: {pgaData.flagged_pgas.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* CVD/ADD Duties Summary */}
+                      {cvdData && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <DollarSign size={14} className="mr-2 text-green-600" />
+                              <span className="font-medium">ADD/CVD Duties</span>
+                            </div>
+                            <span className={cn(
+                              "px-2 py-1 rounded-full text-xs font-medium",
+                              cvdData.total_flagged > 0 
+                                ? "bg-red-100 text-red-800" 
+                                : "bg-green-100 text-green-800"
+                            )}>
+                              {cvdData.total_flagged > 0 
+                                ? `${cvdData.total_flagged} Active Duties` 
+                                : "No Duties"}
+                            </span>
+                          </div>
+                          {cvdData.total_flagged > 0 && (
+                            <div className="pl-6 text-xs text-muted-foreground">
+                              Type: {cvdData.duty_type} | Countries: {cvdData.flagged_duties.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* View Full Report Link */}
+                      <div className="pt-3 border-t border-border/50">
+                        <button
+                          onClick={() => navigate(`/trade-flags?hsCode=${hsCode.replace(/\./g, '')}`)}
+                          className="flex items-center text-primary hover:text-primary/80 text-xs font-medium"
+                        >
+                          <ExternalLink size={12} className="mr-1" />
+                          View Detailed Compliance Report
+                        </button>
+                      </div>
+
+                      {/* Product Context */}
                       {(originalProduct || fullPath) && (
-                        <div className="mt-4 pt-3 border-t border-border/50 space-y-2">
+                        <div className="pt-3 border-t border-border/50 space-y-2">
                           {originalProduct && (
                             <div className="p-2 bg-primary/5 rounded-md">
                               <strong>Your Product:</strong> {originalProduct}
@@ -336,7 +480,7 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
                   ) : (
                     <div className="flex items-center justify-center py-4">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      <span className="text-sm text-muted-foreground">Generating explanation...</span>
+                      <span className="text-sm text-muted-foreground">Checking trade compliance...</span>
                     </div>
                   )}
                 </div>

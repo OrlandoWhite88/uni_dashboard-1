@@ -55,7 +55,7 @@ const Layout = ({ children, className }: LayoutProps) => {
       {/* Desktop Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 h-full">
         <NavigationSidebar
-          organizationName="AI HS Code Genie"
+          organizationName="Uni Customs"
           organizations={organizations}
           onOrganizationChange={handleOrganizationChange}
           onSearch={handleSearch}
@@ -68,7 +68,7 @@ const Layout = ({ children, className }: LayoutProps) => {
         <div className="md:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
           <div className="fixed left-0 top-0 h-full" onClick={(e) => e.stopPropagation()}>
             <NavigationSidebar
-              organizationName="AI HS Code Genie"
+              organizationName="Uni Customs"
               organizations={organizations}
               onOrganizationChange={handleOrganizationChange}
               onSearch={handleSearch}

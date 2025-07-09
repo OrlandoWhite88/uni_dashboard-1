@@ -27,7 +27,7 @@ const NavigationDemo = () => {
           {/* Navigation Sidebar */}
           <div className="flex-shrink-0">
             <NavigationSidebar
-              organizationName="AI HS Code Genie"
+              organizationName="Uni Customs"
               organizations={organizations}
               onSearch={handleSearch}
               onOrganizationChange={handleOrganizationChange}

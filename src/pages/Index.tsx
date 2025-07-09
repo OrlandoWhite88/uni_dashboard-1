@@ -302,12 +302,10 @@ const Index = () => {
           {/* Product Input */}
           {(state.status === "idle" && !streamingState.isStreaming && !streamingState.finalResult && !streamingState.isWaitingForAnswer) && (
             <>
-              <ProductInput 
-                onSubmit={handleClassify} 
-                isLoading={false}
-                selectedModel={selectedModel}
-                onModelChange={setSelectedModel}
-              />
+            <ProductInput
+              onSubmit={handleClassify}
+              isLoading={false}
+            />
               
               {/* Batch Processing Option */}
               <div className="mt-4 glass-card p-4 rounded-xl bg-secondary/10">

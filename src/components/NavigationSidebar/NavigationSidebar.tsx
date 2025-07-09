@@ -30,8 +30,14 @@ const defaultSections: NavigationSection[] = [
       {
         id: 'tariff-calculator',
         label: 'Tariff Calculator',
-        icon: '/appsiphone.svg',
+        icon: '/equal.square.svg',
         path: '/tariff-calculator',
+      },
+      {
+        id: 'trade-flags',
+        label: 'Trade Compliance Flags',
+        icon: '/tradecompliance.svg',
+        path: '/trade-flags',
       },
     ],
   },
@@ -69,7 +75,7 @@ const defaultSections: NavigationSection[] = [
 
 const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
   className = '',
-  organizationName = 'Organization',
+  organizationName = 'Uni Customs',
   organizations = [],
   onOrganizationChange,
   onSearch,

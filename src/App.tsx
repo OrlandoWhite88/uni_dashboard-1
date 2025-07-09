@@ -17,6 +17,7 @@ import BulkImport from "./pages/BulkImport";
 import BatchClassify from "./pages/BatchClassify";
 import DebugStripe from "./pages/DebugStripe";
 import TariffCalculatorPage from "./pages/TariffCalculatorPage";
+import TradeFlagsPage from "./pages/TradeFlagsPage";
 import ClassificationHistory from "./pages/ClassificationHistory";
 import NavigationDemo from "./pages/NavigationDemo";
 
@@ -63,6 +64,10 @@ const App = () => (
           <Route
             path="/tariff-calculator"
             element={<TariffCalculatorPage />}
+          />
+          <Route
+            path="/trade-flags"
+            element={<TradeFlagsPage />}
           />
           <Route
             path="/classification-history"

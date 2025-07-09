@@ -37,12 +37,10 @@ const Dashboard = () => {
     <Layout className="pt-32 pb-16">
       <div className="w-full max-w-2xl mx-auto">
         {/* Product Input */}
-        <ProductInput 
-          onSubmit={handleClassify} 
-          isLoading={false}
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-        />
+            <ProductInput
+              onSubmit={handleClassify}
+              isLoading={false}
+            />
         
         {/* Batch Processing Option */}
         <div className="mt-4 glass-card p-4 rounded-xl bg-secondary/10">

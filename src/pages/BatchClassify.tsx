@@ -13,6 +13,8 @@ import {
   ClassificationResponse,
   Options
 } from "@/lib/classifierService";
+import { saveClassification } from "@/lib/supabaseService";
+import { useUser } from "@clerk/clerk-react";
 import QuestionFlow from "@/components/QuestionFlow";
 
 interface Product {
@@ -57,6 +59,7 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
   // Get user's plan information
   const { userPlan, isLoading: isPlanLoading } = useUsageLimits();
   const navigate = useNavigate();
+  const { user } = useUser();
   
   // Check if user is on free plan
   const isFreePlan = userPlan?.plan_type === 'free';
@@ -71,28 +74,54 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     if (fileContent.includes(',')) {
       // CSV processing
       const lines = fileContent.split('\n');
-      const hasHeader = lines[0].toLowerCase().includes('product') || 
-                        lines[0].toLowerCase().includes('description');
+      const nonEmptyLines = _.compact(lines.map(line => line.trim()));
       
-      // Skip header if present
-      const startIndex = hasHeader ? 1 : 0;
+      if (nonEmptyLines.length === 0) return [];
       
-      return _.compact(lines.slice(startIndex)).map((line, i) => {
-        const parts = line.split(',');
-        // Try to intelligently determine which part is the product description
-        // Usually it's the longest field or a field with specific keywords
-        let description = parts[0];
-        for (const part of parts) {
-          if (part.length > description.length || 
-              part.toLowerCase().includes('product') || 
-              part.toLowerCase().includes('item')) {
-            description = part;
-          }
+      // Check if first line has headers
+      const firstLine = nonEmptyLines[0];
+      const firstLineParts = firstLine.split(',').map(part => part.trim());
+      
+      const hasHeader = firstLineParts.some(part => 
+        part.toLowerCase().includes('product') || 
+        part.toLowerCase().includes('description') ||
+        part.toLowerCase().includes('item') ||
+        part.toLowerCase().includes('name') ||
+        part.toLowerCase().includes('title')
+      );
+      
+      let headers: string[] = [];
+      let dataStartIndex = 0;
+      
+      if (hasHeader) {
+        headers = firstLineParts;
+        dataStartIndex = 1;
+      }
+      
+      // Process data rows
+      return nonEmptyLines.slice(dataStartIndex).map((line, i) => {
+        const parts = line.split(',').map(part => part.trim());
+        
+        // Build description with full context
+        let description = '';
+        
+        if (headers.length > 0) {
+          // Use headers to build structured description
+          const fieldDescriptions: string[] = [];
+          parts.forEach((part, index) => {
+            if (part && index < headers.length) {
+              fieldDescriptions.push(`${headers[index]}: ${part}`);
+            }
+          });
+          description = fieldDescriptions.join(', ');
+        } else {
+          // No headers, just join all parts
+          description = parts.filter(part => part).join(', ');
         }
         
         return {
           id: i + 1,
-          description: description.trim()
+          description: description || line.trim()
         };
       });
     } else {
@@ -167,6 +196,181 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     setIsProcessingAll(false);
   };
 
+  // Use streaming endpoint silently (without UI) to get updated classification logic
+  const classifyProductWithStreaming = async (product: Product): Promise<any> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const response = await fetch('https://hscode-eight.vercel.app/classify/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            product: product.description,
+            interactive: true,
+            max_questions: 3,
+            use_multi_hypothesis: true,
+            hypothesis_count: 3
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Stream failed: ${response.status} ${response.statusText}`);
+        }
+
+        if (!response.body) {
+          throw new Error('No response body available');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalResult = null;
+        let currentQuestion = null;
+        let currentState = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          // Add new chunk to buffer
+          buffer += decoder.decode(value, { stream: true });
+          
+          // Process complete events from buffer
+          let eventEndIndex;
+          while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+            const eventText = buffer.substring(0, eventEndIndex);
+            buffer = buffer.substring(eventEndIndex + 2);
+            
+            // Parse the complete event
+            const lines = eventText.split('\n');
+            let dataLines = [];
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                dataLines.push(line.substring(6));
+              }
+            }
+            
+            if (dataLines.length > 0) {
+              try {
+                const jsonData = dataLines.join('');
+                const eventData = JSON.parse(jsonData);
+                
+                if (eventData.type === 'classification_complete') {
+                  finalResult = eventData.data;
+                  reader.cancel();
+                  resolve(finalResult);
+                  return;
+                } else if (eventData.type === 'question_generated') {
+                  currentQuestion = eventData.data;
+                  currentState = eventData.data.state || eventData.data.classification_state;
+                  reader.cancel();
+                  resolve({
+                    clarification_question: currentQuestion.question,
+                    state: currentState
+                  });
+                  return;
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse SSE event:', dataLines.join(''), parseError);
+              }
+            }
+          }
+        }
+
+        // If we get here without a final result or question, something went wrong
+        reject(new Error('Stream ended without final result or question'));
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
+  // Continue classification with streaming endpoint silently
+  const continueClassificationWithStreaming = async (state: any, answer: string): Promise<any> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const response = await fetch('https://hscode-eight.vercel.app/classify/continue/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            state: state,
+            answer: answer
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Continue stream failed: ${response.status} ${response.statusText}`);
+        }
+
+        if (!response.body) {
+          throw new Error('No response body available for continuation');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalResult = null;
+        let currentQuestion = null;
+        let currentState = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          
+          let eventEndIndex;
+          while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+            const eventText = buffer.substring(0, eventEndIndex);
+            buffer = buffer.substring(eventEndIndex + 2);
+            
+            const lines = eventText.split('\n');
+            let dataLines = [];
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                dataLines.push(line.substring(6));
+              }
+            }
+            
+            if (dataLines.length > 0) {
+              try {
+                const jsonData = dataLines.join('');
+                const eventData = JSON.parse(jsonData);
+                
+                if (eventData.type === 'classification_complete') {
+                  finalResult = eventData.data;
+                  reader.cancel();
+                  resolve(finalResult);
+                  return;
+                } else if (eventData.type === 'question_generated') {
+                  currentQuestion = eventData.data;
+                  currentState = eventData.data.state || eventData.data.classification_state;
+                  reader.cancel();
+                  resolve({
+                    clarification_question: currentQuestion.question,
+                    state: currentState
+                  });
+                  return;
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse continuation SSE event:', dataLines.join(''), parseError);
+              }
+            }
+          }
+        }
+
+        reject(new Error('Continue stream ended without final result or question'));
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
   // Classify a single product and update its state
   const classifyProductAndHandleState = async (product: Product) => {
     try {
@@ -175,8 +379,8 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
       // Track individual product classification start
       trackClassificationStart(`Batch item: ${product.description.substring(0, 30)}${product.description.length > 30 ? '...' : ''}`);
       
-      // Call the classification API
-      const response = await classifyProduct(product.description);
+      // Use streaming endpoint to get updated classification logic
+      const response = await classifyProductWithStreaming(product);
       
       // Process the API response
       handleClassificationResponse(product.id, response, product.description);
@@ -195,7 +399,7 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
   };
 
   // Handle classification response - can be a question or final result
-  const handleClassificationResponse = (productId: number, response: any, productDescription: string) => {
+  const handleClassificationResponse = async (productId: number, response: any, productDescription: string) => {
     console.log(`Processing response for product ${productId}:`, response);
     
     // If response is a string, it's a direct HS code result
@@ -235,7 +439,145 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     
     // Handle object response (usually a question)
     if (response && typeof response === "object") {
-      // Check if it's a final classification
+      // Check for the new API format with 'final' flag
+      if ("final" in response) {
+        if (response.final === true) {
+          // This is a final classification response
+          let finalCode = "Unknown";
+          if (response.classification && response.classification.code) {
+            finalCode = String(response.classification.code);
+          } else if (response.final_code) {
+            finalCode = String(response.final_code);
+          }
+          
+          // Track classification result event
+          trackClassificationResult(finalCode);
+          
+          // Calculate confidence score
+          let confidence = 94;
+          const hasDescription = !!response.enriched_query;
+          const hasPath = !!(response.classification?.path || response.full_path);
+          
+          // Use log_score for most accurate confidence calculation
+          if (response.classification && typeof response.classification.log_score === "number") {
+            const logScore = response.classification.log_score;
+            if (logScore >= -0.1) confidence = 99;
+            else if (logScore >= -0.3) confidence = 97;
+            else if (logScore >= -0.5) confidence = 95;
+            else if (logScore >= -0.8) confidence = 92;
+            else if (logScore >= -1.2) confidence = 88;
+            else confidence = 85;
+          } else {
+            if (hasDescription) confidence += 2;
+            if (hasPath) confidence += 3;
+            confidence = Math.min(confidence, 99);
+          }
+          
+          // Add to completed results
+          setResults(prev => [
+            ...prev,
+            {
+              id: productId,
+              description: productDescription,
+              hsCode: finalCode,
+              confidence
+            }
+          ]);
+          
+          // Update state
+          setClassificationStates(prev => ({
+            ...prev,
+            [productId]: {
+              ...prev[productId],
+              status: 'completed',
+              result: {
+                hsCode: finalCode,
+                confidence,
+                description: response.enriched_query
+              }
+            }
+          }));
+          
+          // Save classification to database
+          if (user?.id) {
+            try {
+              await saveClassification({
+                user_id: user.id,
+                user_email: user.emailAddresses?.[0]?.emailAddress,
+                product_description: productDescription,
+                hs_code: finalCode,
+                confidence: confidence,
+                full_path: response.classification?.path || response.full_path
+              });
+              console.log(`Classification saved for product ${productId}`);
+            } catch (error) {
+              console.error(`Failed to save classification for product ${productId}:`, error);
+            }
+          }
+          
+          return;
+        } else {
+          // This is a clarification question response
+          if (response.clarification_question) {
+            const question = response.clarification_question;
+            
+            // Extract question text
+            let questionText = "Please provide more information";
+            if (question && typeof question.question_text === "string") {
+              questionText = question.question_text;
+            }
+            
+            // Extract options if available
+            let options: Options[] = [];
+            if (question && Array.isArray(question.options)) {
+              options = question.options.map((opt, index) => {
+                if (opt && typeof opt === "object" && "id" in opt && "text" in opt) {
+                  return { id: String(opt.id), text: String(opt.text) };
+                } else if (typeof opt === "string") {
+                  return { id: String(index + 1), text: opt };
+                } else if (opt && typeof opt === "object" && "text" in opt) {
+                  return { id: String(index + 1), text: String(opt.text) };
+                } else {
+                  return { id: String(index + 1), text: String(opt) };
+                }
+              });
+            }
+            
+            const questionId = `question-${productId}-${Date.now()}`;
+            
+            // Update state with question
+            setClassificationStates(prev => ({
+              ...prev,
+              [productId]: {
+                ...prev[productId],
+                status: 'question',
+                state: response.state,
+                currentQuestion: {
+                  id: questionId,
+                  text: questionText,
+                  options: options
+                }
+              }
+            }));
+            
+            // Add to active questions queue
+            setActiveQuestions(prev => [
+              ...prev,
+              {
+                productId,
+                questionId,
+                text: questionText,
+                options,
+                state: response.state,
+                productDescription
+              }
+            ]);
+          }
+          return;
+        }
+      }
+      
+      // Legacy format handling - Check if it's a final classification
       if ("final_code" in response) {
         // Calculate confidence score based on available information
         const hasDescription = !!response.enriched_query;
@@ -365,7 +707,7 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
     }
   };
 
-  // Handle user answering a question
+  // Handle user answering a question  
   const handleAnswerQuestion = async (questionId: string, answer: string) => {
     // Find the question in the active questions
     const questionIndex = activeQuestions.findIndex(q => q.questionId === questionId);
@@ -393,10 +735,20 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
         }
       ]);
       
-      // Call API to continue classification with the answer
-      const response = await continueClassification(state, answer);
+      // Update state to show it's processing the answer
+      setClassificationStates(prev => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          status: 'classifying'
+        }
+      }));
       
-      // Process the response
+      // Use streaming endpoint to continue classification with the answer
+      const response = await continueClassificationWithStreaming(state, answer);
+      console.log(`Continuation response for product ${productId}:`, response);
+      
+      // Process the response using the exact same logic as initial classification
       handleClassificationResponse(productId, response, productDescription);
     } catch (error) {
       console.error(`Error processing answer for product ${productId}:`, error);
