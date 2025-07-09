@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { getTariffInfo } from "@/lib/classifierService";
 import { getUserClassifications, ClassificationRecord } from "@/lib/supabaseService";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/nextjs";
 import { Loader2, AlertCircle, DollarSign, Package, Truck, FileText, Calculator, Info, ChevronDown, Search, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomButton from "./ui/CustomButton";

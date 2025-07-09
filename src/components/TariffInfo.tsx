@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { getTariffInfo, explainTariff } from "@/lib/classifierService";
 import { Loader2, AlertCircle, ExternalLink, BookOpen, LightbulbIcon, Calculator } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import CustomButton from "./ui/CustomButton";
 import { cn } from "@/lib/utils";
 
@@ -443,7 +443,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({
   const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [explanationError, setExplanationError] = useState<string | null>(null);
   const [footnoteReferences, setFootnoteReferences] = useState<Record<string, FootnoteReference>>({});
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Memoized function to organize tariff data into logical sections
   const getTariffSections = useMemo(() => {
@@ -662,12 +662,12 @@ const TariffInfo: React.FC<TariffInfoProps> = ({
                   <div className="text-xs text-muted-foreground">Official tariff classification lookup</div>
                 </div>
               </a>
-              <CustomButton
-                onClick={() => navigate(`/tariff-calculator?hsCode=${hsCode}`)}
-                variant="outline"
-                size="sm"
-                className="flex items-center justify-start p-3 h-auto"
-              >
+                <CustomButton
+                  onClick={() => router.push(`/tariff-calculator?hsCode=${hsCode}`)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center justify-start p-3 h-auto"
+                >
                 <Calculator size={16} className="mr-2 shrink-0" />
                 <div className="text-left">
                   <div className="font-medium">Calculate Duties</div>
@@ -679,7 +679,7 @@ const TariffInfo: React.FC<TariffInfoProps> = ({
         )
       }
     ];
-  }, [tariffData, hsCode, navigate]);
+  }, [tariffData, hsCode, router]);
 
   // Update state when preloaded data changes
   useEffect(() => {

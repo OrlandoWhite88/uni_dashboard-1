@@ -1,8 +1,10 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton, useAuth } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
+import Link from "next/link";
+import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton, useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { NavigationSidebar } from "./NavigationSidebar";
 
@@ -30,7 +32,7 @@ interface LayoutProps {
 
 const Layout = ({ children, className }: LayoutProps) => {
   const { isLoaded, userId } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Mock organizations for demo - replace with actual data
@@ -138,7 +140,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                 </div>
               </SignedOut>
               
-              <Link to="/settings" className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">
+              <Link href="/settings" className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">
                 <span className="text-xs font-medium">Uni AI</span>
               </Link>
             </div>

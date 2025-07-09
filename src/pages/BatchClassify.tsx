@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect } from "react";
-import Layout from "@/components/Layout";
 import CustomButton from "@/components/ui/CustomButton";
 import { trackClassificationStart, trackQuestionAnswer, trackClassificationResult } from "@/lib/analyticsService";
 import { CheckCircle2, Download, FileText, MessageCircle, Zap, ArrowUp, Clock, ChevronDown, AlertTriangle, ExternalLink } from "lucide-react";
@@ -806,8 +805,8 @@ const BatchClassify = ({ csvFile }: { csvFile?: string | ArrayBuffer }) => {
   const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
-    <Layout className="pt-28 pb-16">
-      <div className="max-w-6xl mx-auto">
+    <div className="pt-28 pb-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight mb-3">
             Batch Classification
@@ -1084,7 +1083,7 @@ const BatchClassify = ({ csvFile }: { csvFile?: string | ArrayBuffer }) => {
           confidence={selectedResult.confidence}
         />
       )}
-    </Layout>
+    </div>
   );
 };
 

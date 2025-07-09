@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getUserClassifications, ClassificationRecord } from "@/lib/supabaseService";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/nextjs";
 import { 
   Loader2, 
   AlertCircle, 

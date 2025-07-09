@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/nextjs';
 import { getDailyUsageCount, getMonthlyUsageCount, getUserPlan, createUserPlan, getAnonymousDailyUsageCount, incrementAnonymousUsage } from '@/lib/supabaseService';
 import { toast } from 'sonner';
 

@@ -1,5 +1,7 @@
+"use client";
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { NavigationSidebarProps, NavigationSection, NavigationItem as NavigationItemType, Organization } from './types';
 import NavigationItem from './NavigationItem';
 import styles from './NavigationSidebar.module.css';
@@ -89,7 +91,7 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
   
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -150,7 +152,7 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
       if (selectedResultIndex >= 0 && searchResults[selectedResultIndex]) {
         const result = searchResults[selectedResultIndex];
         if (result.path) {
-          navigate(result.path);
+          router.push(result.path);
         } else if (result.onClick) {
           result.onClick();
         }
@@ -271,7 +273,7 @@ const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
                 }`}
                 onClick={() => {
                   if (result.path) {
-                    navigate(result.path);
+                    router.push(result.path);
                   } else if (result.onClick) {
                     result.onClick();
                   }

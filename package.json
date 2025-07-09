@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^4.30.3",
+    "@clerk/nextjs": "^6.24.0",
     "@hookform/resolvers": "^3.9.0",
     "@intercom/messenger-js-sdk": "^0.0.14",
     "@radix-ui/react-accordion": "^1.2.0",

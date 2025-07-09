@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { logUsage, saveClassification } from "@/lib/supabaseService";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/nextjs";
 import { trackClassificationResult } from "@/lib/analyticsService";
 
 // API configuration - The endpoint for the classification service
