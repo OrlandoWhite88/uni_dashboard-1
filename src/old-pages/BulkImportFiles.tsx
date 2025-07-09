@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import CustomButton from "@/components/ui/CustomButton";
 import { FileText, Upload, Clipboard, ArrowRight, Info } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 
 const BulkImportFiles = ({
   csvFile,
@@ -19,7 +19,7 @@ const BulkImportFiles = ({
 
   const [fileName, setFileName] = useState("");
   const [pastedData, setPastedData] = useState("");
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
