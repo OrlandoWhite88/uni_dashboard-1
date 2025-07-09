@@ -1,13 +1,13 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 
-import { Section } from "../../ui/section";
+import { Section } from "@/components/ui/section";
 import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
-} from "../../ui/accordion-raised";
+} from "@/components/ui/accordion";
 
 interface FAQItemProps {
   question: string;
