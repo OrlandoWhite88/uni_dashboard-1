@@ -310,21 +310,20 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
             />
           </div>
           
-          {/* Confidence section - hidden but keeping code for potential future use */}
-          {false && (
-            <div className="bg-secondary rounded-lg px-4 py-2 mb-6">
-              <div className="text-sm">
-                <span className="font-medium">Confidence:</span>{" "}
-                <span className={cn(
-                  confidence > 85 ? "text-green-600" : 
-                  confidence > 70 ? "text-amber-600" : 
-                  "text-red-600"
-                )}>
-                  {confidence}%
-                </span>
-              </div>
+          {/* Confidence section - hidden but keeping code for potential future use
+          <div className="bg-secondary rounded-lg px-4 py-2 mb-6">
+            <div className="text-sm">
+              <span className="font-medium">Confidence:</span>{" "}
+              <span className={cn(
+                confidence > 85 ? "text-green-600" : 
+                confidence > 70 ? "text-amber-600" : 
+                "text-red-600"
+              )}>
+                {confidence}%
+              </span>
             </div>
-          )}
+          </div>
+          */}
           
           <Tabs defaultValue="result" className="w-full mt-6">
             <TabsList className="grid grid-cols-3 mb-6">

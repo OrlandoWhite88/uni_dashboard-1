@@ -1,13 +1,12 @@
 
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
 const SignInPage = () => {
-  const navigate = useNavigate();
-
   useEffect(() => {
     // Redirect to Clerk hosted sign-in page
-    window.location.href = "https://accounts.uni-customs.com/sign-in";
+    if (typeof window !== 'undefined') {
+      window.location.href = "https://accounts.uni-customs.com/sign-in";
+    }
   }, []);
 
   return (

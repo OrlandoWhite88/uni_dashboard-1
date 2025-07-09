@@ -72,7 +72,7 @@ const HSCodeSubtree: React.FC<HSCodeSubtreeProps> = ({ hsCode }) => {
   }, [prefix, expanded]);
 
   const handlePrefixChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
+    const value = e.target.value;
 
     // Remove any non-digit characters for validation
     const digitsOnly = value.replace(/[^\d]/g, '');

@@ -8,12 +8,12 @@ import { NavigationSidebar } from "./NavigationSidebar";
 
 // Google Ads conversion tracking function
 function gtag_report_conversion(url: string | undefined) {
-  var callback = function () {
+  const callback = function () {
     if (typeof(url) != 'undefined') {
       window.location.href = url;
     }
   };
-  // @ts-ignore - gtag is defined in the global scope via the script in index.html
+  // @ts-expect-error - gtag is defined in the global scope via the script in index.html
   gtag('event', 'conversion', {
       'send_to': 'AW-16933718921/QN6GCMayr7EaEImX0Io_',
       'value': 1.0,

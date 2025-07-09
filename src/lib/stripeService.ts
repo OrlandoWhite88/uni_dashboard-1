@@ -20,7 +20,7 @@ const loadStripe = async () => {
       script.src = 'https://js.stripe.com/v3/';
       script.async = true;
       script.onload = () => {
-        // @ts-ignore - Stripe is loaded as a global object
+        // @ts-expect-error - Stripe is loaded as a global object
         const stripe = window.Stripe(STRIPE_PUBLISHABLE_KEY);
         resolve(stripe);
       };

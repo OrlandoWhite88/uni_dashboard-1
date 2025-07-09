@@ -6,20 +6,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import IntercomProvider from "./components/IntercomProvider";
-import Dashboard from "./pages/Dashboard";
-import Classify from "./pages/Classify";
-import ClassificationComplete from "./pages/ClassificationComplete";
-import NotFound from "./pages/NotFound";
-import Settings from "./pages/Settings";
-import SSOCallback from "./pages/SSOCallback";
-import OAuthCallback from "./pages/OAuthCallback";
-import BulkImport from "./pages/BulkImport";
-import BatchClassify from "./pages/BatchClassify";
-import DebugStripe from "./pages/DebugStripe";
-import TariffCalculatorPage from "./pages/TariffCalculatorPage";
-import TradeFlagsPage from "./pages/TradeFlagsPage";
-import ClassificationHistory from "./pages/ClassificationHistory";
-import NavigationDemo from "./pages/NavigationDemo";
+import Dashboard from "./old-pages/Dashboard";
+import Classify from "./old-pages/Classify";
+import ClassificationComplete from "./old-pages/ClassificationComplete";
+import NotFound from "./old-pages/NotFound";
+import Settings from "./old-pages/Settings";
+import SSOCallback from "./old-pages/SSOCallback";
+import OAuthCallback from "./old-pages/OAuthCallback";
+import BulkImport from "./old-pages/BulkImport";
+import BatchClassify from "./old-pages/BatchClassify";
+import DebugStripe from "./old-pages/DebugStripe";
+import TariffCalculatorPage from "./old-pages/TariffCalculatorPage";
+import TradeFlagsPage from "./old-pages/TradeFlagsPage";
+import ClassificationHistory from "./old-pages/ClassificationHistory";
+import NavigationDemo from "./old-pages/NavigationDemo";
 
 // Create Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
