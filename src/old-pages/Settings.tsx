@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2, CreditCard, Zap, Building2, Loader2 } from "lu
 import { Link } from "react-router-dom";
 import CustomButton from "@/components/ui/CustomButton";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/nextjs";
 import { createCheckoutSession } from "@/lib/stripeService";
 
 const SettingsPage = () => {

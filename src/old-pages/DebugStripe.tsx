@@ -1,6 +1,6 @@
 import React from "react";
 import Layout from "@/components/Layout";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/nextjs";
 import CustomButton from "@/components/ui/CustomButton";
 import { ArrowLeft, RefreshCcw, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
