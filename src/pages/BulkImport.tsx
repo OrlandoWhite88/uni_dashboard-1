@@ -49,7 +49,7 @@ const BulkImport = () => {
     );
   }
 
-  // Show access restriction for Starter plan users
+  // Show access restriction for Starter plan users (bulk processing not available on Starter)
   if (!isLoading && userPlan?.plan_type === 'starter') {
     return (
       <Layout>
@@ -63,7 +63,7 @@ const BulkImport = () => {
 
           <div className="glass-card p-6 rounded-xl bg-secondary/10">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Bulk Processing</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Bulk Processing Not Available</h2>
               <p className="text-gray-600">
                 Batch processing is available on Growth and Enterprise plans
               </p>
@@ -127,25 +127,25 @@ const BulkImport = () => {
               </div>
 
               <div className="text-center space-y-4">
-                  <Button 
-                    size="lg"
-                    onClick={async () => {
-                      try {
-                        const { createCheckoutSession } = await import('@/lib/stripeService');
-                        const successUrl = `${window.location.origin}/settings?upgrade=success`;
-                        const cancelUrl = `${window.location.origin}/settings?upgrade=cancelled`;
-                        await createCheckoutSession('temp-customer-id', successUrl, cancelUrl, 'growth');
-                      } catch (error) {
-                        console.error('Failed to start checkout:', error);
-                        // Fallback to email contact
-                        window.open('mailto:sales@unicustoms.ai?subject=Upgrade to Growth Plan', '_blank');
-                      }
-                    }}
-                  >
-                    Upgrade to Growth Plan
-                  </Button>
+                <Button 
+                  size="lg"
+                  onClick={async () => {
+                    try {
+                      const { createCheckoutSession } = await import('@/lib/stripeService');
+                      const successUrl = `${window.location.origin}/settings?upgrade=success`;
+                      const cancelUrl = `${window.location.origin}/settings?upgrade=cancelled`;
+                      await createCheckoutSession('temp-customer-id', successUrl, cancelUrl, 'growth');
+                    } catch (error) {
+                      console.error('Failed to start checkout:', error);
+                      // Fallback to email contact
+                      window.open('mailto:sales@unicustoms.ai?subject=Upgrade to Growth Plan', '_blank');
+                    }
+                  }}
+                >
+                  Upgrade to Growth Plan
+                </Button>
                 <p className="text-sm text-muted-foreground">
-                  Contact our sales team to discuss your needs and get started
+                  Get unlimited bulk processing access
                 </p>
               </div>
             </div>

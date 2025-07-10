@@ -16,8 +16,8 @@ const TradeFlagsPage: React.FC = () => {
 
   const planInfo = getPlanInfo();
 
-  // Show upgrade prompt for Starter users
-  if (!isLoading && userPlan?.plan_type === 'starter') {
+  // Show upgrade prompt only when PGA limit is reached for Starter users
+  if (!isLoading && userPlan?.plan_type === 'starter' && planInfo && planInfo.remaining.pgaCalculator === 0) {
     return (
       <Layout className="pt-20 pb-16">
         <div className="container mx-auto p-6">
@@ -30,9 +30,9 @@ const TradeFlagsPage: React.FC = () => {
 
           <div className="glass-card p-6 rounded-xl bg-secondary/10">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">PGA Calculator Access</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">PGA Calculator Limit Reached</h2>
               <p className="text-gray-600">
-                Your Starter plan includes limited PGA calculator uses
+                You've used all 5 PGA calculator uses for this month
               </p>
             </div>
             
@@ -56,18 +56,16 @@ const TradeFlagsPage: React.FC = () => {
                   </div>
                 </div>
                 
-                {planInfo && planInfo.remaining.pgaCalculator !== undefined && (
-                  <Card className="mt-6">
-                    <CardContent className="p-4">
-                      <div className="text-lg font-semibold">
-                        {planInfo.remaining.pgaCalculator} PGA calculator uses remaining
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Resets monthly with your billing cycle
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                <Card className="mt-6">
+                  <CardContent className="p-4">
+                    <div className="text-lg font-semibold text-orange-600">
+                      0 PGA calculator uses remaining
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Resets monthly with your billing cycle
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -107,49 +105,29 @@ const TradeFlagsPage: React.FC = () => {
               </div>
 
               <div className="text-center space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  {planInfo && planInfo.remaining.pgaCalculator > 0 && (
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        // Allow them to use their remaining tries
-                        // This would need to be implemented in the TradeComplianceFlags component
-                      }}
-                    >
-                      Use My {planInfo.remaining.pgaCalculator} Remaining Tries
-                    </Button>
-                  )}
-                  <Button 
-                    size="lg"
-                    onClick={async () => {
-                      try {
-                        const { createCheckoutSession } = await import('@/lib/stripeService');
-                        const successUrl = `${window.location.origin}/settings?upgrade=success`;
-                        const cancelUrl = `${window.location.origin}/settings?upgrade=cancelled`;
-                        await createCheckoutSession('temp-customer-id', successUrl, cancelUrl, 'growth');
-                      } catch (error) {
-                        console.error('Failed to start checkout:', error);
-                        // Fallback to email contact
-                        window.open('mailto:sales@unicustoms.ai?subject=Upgrade to Growth Plan', '_blank');
-                      }
-                    }}
-                  >
-                    Upgrade to Growth Plan
-                  </Button>
-                </div>
+                <Button 
+                  size="lg"
+                  onClick={async () => {
+                    try {
+                      const { createCheckoutSession } = await import('@/lib/stripeService');
+                      const successUrl = `${window.location.origin}/settings?upgrade=success`;
+                      const cancelUrl = `${window.location.origin}/settings?upgrade=cancelled`;
+                      await createCheckoutSession('temp-customer-id', successUrl, cancelUrl, 'growth');
+                    } catch (error) {
+                      console.error('Failed to start checkout:', error);
+                      // Fallback to email contact
+                      window.open('mailto:sales@unicustoms.ai?subject=Upgrade to Growth Plan', '_blank');
+                    }
+                  }}
+                >
+                  Upgrade to Growth Plan
+                </Button>
                 <p className="text-sm text-muted-foreground">
-                  Contact our sales team to discuss your needs and get started
+                  Get unlimited PGA calculator access
                 </p>
               </div>
             </div>
           </div>
-
-          {/* Show the PGA calculator with usage limits if they have remaining tries */}
-          {planInfo && planInfo.remaining.pgaCalculator > 0 && (
-            <div className="mt-8">
-              <TradeComplianceFlags initialHsCode={hsCode} />
-            </div>
-          )}
         </div>
       </Layout>
     );

@@ -2,13 +2,13 @@
 // This approach doesn't require a secret key, using only the publishable key
 
 // Get publishable key from environment
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_Stripe_Publishable_Key || 'pk_live_51QKRKILZPw2q2pWLdWe9PVjtrkxqWdpIMNFjAVQJUvPo3ZuZRm1cGo3cxVSHfVx63oZZmZc7EoHAy38W2nexm4yq00V46PH7I6';
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_Stripe_Publishable_Key || 'pk_live_51RjOjtBlXyYsxvVYeF4fCHX5TUIaXpGpC60MKOPrpREcxmevNiQ0vqlwy7UuIoiwdlzyZbmY0GRi4AEUd4sVMEFJ00P9JYdPlV';
 
 // Price IDs for different plans
 const STRIPE_PRICE_IDS = {
-  starter: 'price_1R3KHELZPw2q2pWLXoi3t6Kd', // Update this to actual Starter price ID
-  growth: 'price_1R3KHELZPw2q2pWLXoi3t6Kd', // Update this to actual Growth price ID  
-  enterprise: 'price_1R3KHELZPw2q2pWLXoi3t6Kd' // Update this to actual Enterprise price ID
+  starter: 'price_1RjPIHBlXyYsxvVYBv2JsNW3', // Update this to actual Starter price ID
+  growth: 'price_1RjPHzBlXyYsxvVYV9u5vWeG', // Update this to actual Growth price ID  
+  enterprise: 'price_1RjPIHBlXyYsxvVYBv2JsNW3' // Update this to actual Enterprise price ID
 };
 
 // Log initialization for debugging

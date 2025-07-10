@@ -12,14 +12,12 @@ const SettingsPage = () => {
   const { 
     isLoading, 
     userPlan, 
-    dailyUsage, 
     monthlyUsage, 
-    freeLimit, 
-    proLimit, 
-    freeRemaining, 
-    proRemaining,
+    getPlanInfo,
     reloadUsageData
   } = useUsageLimits();
+
+  const planInfo = getPlanInfo();
   const [isUpgrading, setIsUpgrading] = React.useState(false);
 
   // Handle plan upgrade
@@ -42,7 +40,8 @@ const SettingsPage = () => {
       const session = await createCheckoutSession(
         userPlan?.stripe_customer_id || userId,
         successUrl,
-        cancelUrl
+        cancelUrl,
+        'growth' // Default to growth plan for upgrades
       );
       
       console.log('Received session from Stripe:', session);
@@ -190,35 +189,39 @@ const SettingsPage = () => {
             ) : userId ? (
               <div>
                 <div className="mb-4">
-                  <h3 className="font-medium">Current Plan: {userPlan?.plan_type === 'pro' ? 'Pro' : 'Free'}</h3>
+                  <h3 className="font-medium">Current Plan: {userPlan?.plan_type || 'Starter'}</h3>
                   
-                  {userPlan?.plan_type === 'free' ? (
-                    <div className="mt-4">
-                      <p className="mb-1">Daily Usage: {dailyUsage} / {freeLimit}</p>
-                      <div className="w-full bg-secondary h-2 rounded-full">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
-                          style={{ width: `${Math.min(100, (dailyUsage / freeLimit) * 100)}%` }}
-                        />
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {freeRemaining} requests remaining today
-                      </p>
+                  <div className="mt-4">
+                    <p className="mb-1">Monthly Classifications: {monthlyUsage?.classifications || 0} / {planInfo?.limits.classifications || 100}</p>
+                    <div className="w-full bg-secondary h-2 rounded-full">
+                      <div 
+                        className="bg-primary h-2 rounded-full" 
+                        style={{ width: `${Math.min(100, ((monthlyUsage?.classifications || 0) / (planInfo?.limits.classifications || 1)) * 100)}%` }}
+                      />
                     </div>
-                  ) : (
-                    <div className="mt-4">
-                      <p className="mb-1">Monthly Usage: {monthlyUsage} / {proLimit}</p>
-                      <div className="w-full bg-secondary h-2 rounded-full">
-                        <div 
-                          className="bg-primary h-2 rounded-full" 
-                          style={{ width: `${Math.min(100, (monthlyUsage / proLimit) * 100)}%` }}
-                        />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {Math.max(0, (planInfo?.limits.classifications || 100) - (monthlyUsage?.classifications || 0))} classifications remaining this month
+                    </p>
+
+                    {monthlyUsage?.pgaCalculator !== undefined && (
+                      <div className="mt-4">
+                        <p className="mb-1">PGA Calculator: {monthlyUsage.pgaCalculator} / {planInfo?.limits.pgaCalculator === -1 ? 'Unlimited' : planInfo?.limits.pgaCalculator || 5}</p>
+                        {planInfo?.limits.pgaCalculator !== -1 && (
+                          <>
+                            <div className="w-full bg-secondary h-2 rounded-full">
+                              <div 
+                                className="bg-primary h-2 rounded-full" 
+                                style={{ width: `${Math.min(100, (monthlyUsage.pgaCalculator / (planInfo?.limits.pgaCalculator || 1)) * 100)}%` }}
+                              />
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {Math.max(0, (planInfo?.limits.pgaCalculator || 5) - monthlyUsage.pgaCalculator)} PGA uses remaining this month
+                            </p>
+                          </>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {proRemaining} requests remaining this month
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (

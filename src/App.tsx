@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Analytics } from "@vercel/analytics/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { DevWrapper, MockSignedIn, MockSignedOut } from "./components/DevWrapper";
 import IntercomProvider from "./components/IntercomProvider";
 import Dashboard from "./pages/Dashboard";
@@ -21,6 +21,7 @@ import TariffCalculatorPage from "./pages/TariffCalculatorPage";
 import TradeFlagsPage from "./pages/TradeFlagsPage";
 import ClassificationHistory from "./pages/ClassificationHistory";
 import NavigationDemo from "./pages/NavigationDemo";
+import AuthPage from "./pages/AuthPage";
 
 // Check if we're in development
 const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
@@ -47,7 +48,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     <>
       <SignedIn>{children}</SignedIn>
       <SignedOut>
-        <RedirectToSignIn />
+        <Navigate to="/auth?mode=signin" replace />
       </SignedOut>
     </>
   );
@@ -158,7 +159,8 @@ const App = () => (
             }
           />
 
-          {/* Authentication callback routes - not protected */}
+          {/* Authentication routes - not protected */}
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="/oauth-callback" element={<OAuthCallback />} />
           <Route path="/sso-callback" element={<SSOCallback />} />
 

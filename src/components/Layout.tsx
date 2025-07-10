@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Link } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton, useAuth } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
 import { Menu, X } from "lucide-react";
 import { NavigationSidebar } from "./NavigationSidebar";
 
@@ -101,40 +100,39 @@ const Layout = ({ children, className }: LayoutProps) => {
               </SignedIn>
               
               <SignedOut>
-                {/* Use Clerk's built-in components for sign in/up */}
+                {/* Auth navigation links */}
                 <div className="hidden md:flex gap-2">
-                  <SignInButton mode="modal">
-                    <button className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors">
-                      Sign In
-                    </button>
-                  </SignInButton>
+                  <Link 
+                    to="/auth?mode=signin"
+                    className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors"
+                  >
+                    Sign In
+                  </Link>
                   
-                  <SignUpButton mode="modal">
-                    <button
-                      className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                      onClick={() => gtag_report_conversion(undefined)}
-                    >
-                      Sign Up
-                    </button>
-                  </SignUpButton>
+                  <Link 
+                    to="/auth?mode=signup"
+                    className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                    onClick={() => gtag_report_conversion(undefined)}
+                  >
+                    Sign Up
+                  </Link>
                 </div>
                 
                 {/* Sign Up button for mobile users */}
                 <div className="md:hidden">
-                  <SignUpButton mode="modal">
-                    <button
-                      className="p-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                      onClick={() => gtag_report_conversion(undefined)}
-                    >
-                      <span className="sr-only">Sign Up</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide-user-plus">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <line x1="19" y1="8" x2="19" y2="14"></line>
-                        <line x1="16" y1="11" x2="22" y2="11"></line>
-                      </svg>
-                    </button>
-                  </SignUpButton>
+                  <Link 
+                    to="/auth?mode=signup"
+                    className="p-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                    onClick={() => gtag_report_conversion(undefined)}
+                  >
+                    <span className="sr-only">Sign Up</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide-user-plus">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <line x1="19" y1="8" x2="19" y2="14"></line>
+                      <line x1="16" y1="11" x2="22" y2="11"></line>
+                    </svg>
+                  </Link>
                 </div>
               </SignedOut>
               
