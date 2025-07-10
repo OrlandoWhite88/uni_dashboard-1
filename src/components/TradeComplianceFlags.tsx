@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getUserClassifications, ClassificationRecord } from "@/lib/supabaseService";
 import { useAuth } from "@clerk/clerk-react";
+import { useUsageLimits } from "@/hooks/use-usage-limits";
 import { 
   Loader2, 
   AlertCircle, 
@@ -450,6 +451,7 @@ const TRADE_PROGRAM_MAPPING: Record<string, Omit<PGAFlag, 'id'>> = {
 
 const TradeComplianceFlags: React.FC<TradeComplianceFlagsProps> = ({ initialHsCode = "" }) => {
   const { userId } = useAuth();
+  const { checkFeatureAccess, recordUsage } = useUsageLimits();
   const [hsCode, setHsCode] = useState(initialHsCode);
   const [hsCodeInput, setHsCodeInput] = useState(initialHsCode);
   const [loading, setLoading] = useState(false);
@@ -613,12 +615,27 @@ const TradeComplianceFlags: React.FC<TradeComplianceFlagsProps> = ({ initialHsCo
     }
   };
 
-  const handleSearch = () => {
-    if (hsCode && hsCode.length >= 6) {
-      fetchComplianceFlags(hsCode);
-    } else {
+  const handleSearch = async () => {
+    if (!hsCode || hsCode.length < 6) {
       setError("Please enter a valid HS code (at least 6 digits)");
+      return;
     }
+
+    // Check if user can access PGA calculator feature
+    const canAccess = await checkFeatureAccess('pgaCalculator');
+    if (!canAccess) {
+      return; // Error message already shown by checkFeatureAccess
+    }
+
+    // Record usage
+    const usageRecorded = await recordUsage('pgaCalculator');
+    if (!usageRecorded) {
+      setError("Failed to record usage. Please try again.");
+      return;
+    }
+
+    // Proceed with the search
+    fetchComplianceFlags(hsCode);
   };
 
   // Filter functions

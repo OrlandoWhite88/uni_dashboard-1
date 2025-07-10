@@ -191,8 +191,8 @@ const SettingsPage = () => {
         monthlyPrice: 0,
         cta: {
           variant: "default" as const,
-          label: currentPlan === 'free' ? "Current Plan" : "Downgrade",
-          href: "#",
+          label: currentPlan === 'free' ? "Current Plan" : "Not Available",
+          onClick: currentPlan === 'free' ? undefined : () => alert('Downgrading to Free is not available. Please contact support if needed.'),
         },
         features: [
           "AI-powered HS classification",
@@ -215,7 +215,7 @@ const SettingsPage = () => {
         cta: {
           variant: "default" as const,
           label: currentPlan === 'starter' ? "Current Plan" : "Upgrade Now",
-          href: "#",
+          onClick: currentPlan !== 'starter' ? () => handleUpgrade('starter') : undefined,
         },
         features: [
           "Everything in Free",
@@ -236,7 +236,7 @@ const SettingsPage = () => {
         cta: {
           variant: "default" as const,
           label: currentPlan === 'growth' ? "Current Plan" : "Upgrade Now",
-          href: "#",
+          onClick: currentPlan !== 'growth' ? () => handleUpgrade('growth') : undefined,
         },
         features: [
           "Everything in Starter",
