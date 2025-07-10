@@ -1,11 +1,11 @@
 import React from "react";
 import Layout from "@/components/Layout";
-import { ArrowLeft, CheckCircle2, CreditCard, Zap, Building2, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import CustomButton from "@/components/ui/CustomButton";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
 import { useAuth } from "@clerk/clerk-react";
 import { createCheckoutSession } from "@/lib/stripeService";
+import Pricing from "@/components/Pricing";
 
 const SettingsPage = () => {
   const { userId } = useAuth();
@@ -21,12 +21,12 @@ const SettingsPage = () => {
   const [isUpgrading, setIsUpgrading] = React.useState(false);
 
   // Handle plan upgrade
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (targetPlan: 'starter' | 'growth' | 'enterprise') => {
     if (!userId) return;
     setIsUpgrading(true);
     
     try {
-      console.log('Upgrade initiated for user:', userId);
+      console.log('Upgrade initiated for user:', userId, 'to plan:', targetPlan);
       console.log('Using customer ID:', userPlan?.stripe_customer_id || userId);
       
       // Create success and cancel URLs with proper encoding
@@ -41,7 +41,7 @@ const SettingsPage = () => {
         userPlan?.stripe_customer_id || userId,
         successUrl,
         cancelUrl,
-        'growth' // Default to growth plan for upgrades
+        targetPlan
       );
       
       console.log('Received session from Stripe:', session);
@@ -103,7 +103,7 @@ const SettingsPage = () => {
       // 2. We have a stored checkout session
       // 3. The session is valid (not expired, properly formatted)
       if (hasSuccessParam && storedSession && validateCheckoutSession(hasSuccessParam)) {
-        console.log('Subscription successful! Updating plan to Pro and reloading usage data.');
+        console.log('Subscription successful! Updating plan and reloading usage data.');
         clearStoredCheckoutSession(); // Clear session to prevent duplicate processing
         
         // Track conversion with Google Ads
@@ -114,19 +114,19 @@ const SettingsPage = () => {
           console.log('Google Ads conversion tracking event fired');
         }
         
-        // Update user plan to Pro in Supabase
+        // Update user plan in Supabase
         if (!userId) {
           console.warn('Cannot update plan: No user ID available');
           return;
         }
         
         try {
-          console.log('Updating user plan to Pro for user:', userId);
+          console.log('Updating user plan for user:', userId);
           
           // Update the plan in Supabase - add subscription timestamp and unique checkout ID
           const timestamp = new Date();
           const updatedPlan = await updateUserPlan(userId, { 
-            plan_type: 'pro',
+            plan_type: 'starter', // Default to starter, will be updated based on actual checkout
             subscribed_at: timestamp,
             updated_at: timestamp,
             stripe_customer_id: 'cus_' + Math.random().toString(36).substring(2, 10), // Temporary ID for test mode
@@ -137,7 +137,7 @@ const SettingsPage = () => {
           
           // Force a complete page reload to ensure all data is fresh
           if (updatedPlan) {
-            alert('Subscription successful! Your plan has been upgraded to Pro.');
+            alert('Subscription successful! Your plan has been upgraded.');
             console.log('Reloading page to refresh data...');
             setTimeout(() => window.location.reload(), 500); // Add slight delay to ensure DB updates propagate
           } else {
@@ -167,14 +167,118 @@ const SettingsPage = () => {
     // Execute the checkout verification function
     checkStripeRedirect();
   }, [userId]); // Only depend on userId to prevent multiple executions
+
+  // Create pricing plans with current user state
+  const getCurrentPricingPlans = () => {
+    const currentPlan = userPlan?.plan_type || 'free';
+    
+    return [
+      {
+        name: "Free",
+        description: "Get started with HS classification",
+        monthlyPrice: 0,
+        cta: {
+          variant: "default" as const,
+          label: currentPlan === 'free' ? "Current Plan" : "Downgrade",
+          href: "#",
+        },
+        features: [
+          "AI-powered HS classification",
+          "Basic Duty Calculator",
+          "Classifications History",
+          "Community support",
+          "Max 1 Seat",
+          "Up to 10 classifications/month",
+          "3 PGA calculator uses/month",
+        ],
+        variant: currentPlan === 'free' ? "glow-brand" as const : "default" as const,
+        isCurrentPlan: currentPlan === 'free',
+        disabled: true, // Cannot downgrade to free
+        onClick: () => {}
+      },
+      {
+        name: "Starter",
+        description: "Perfect for small businesses starting with HS classification",
+        monthlyPrice: 129,
+        cta: {
+          variant: "default" as const,
+          label: currentPlan === 'starter' ? "Current Plan" : "Upgrade Now",
+          href: "#",
+        },
+        features: [
+          "Everything in Free",
+          "Duty Calculator (MFN Only)",
+          "Support within 24 hours",
+          "Up to 100 classifications/month",
+          "5 PGA calculator uses/month",
+        ],
+        variant: currentPlan === 'starter' ? "glow-brand" as const : "default" as const,
+        isCurrentPlan: currentPlan === 'starter',
+        disabled: currentPlan === 'starter',
+        onClick: () => currentPlan !== 'starter' && handleUpgrade('starter')
+      },
+      {
+        name: "Growth",
+        description: "For growing businesses with higher classification volumes",
+        monthlyPrice: 490,
+        cta: {
+          variant: "default" as const,
+          label: currentPlan === 'growth' ? "Current Plan" : "Upgrade Now",
+          href: "#",
+        },
+        features: [
+          "Everything in Starter",
+          "Bulk processing (CSV upload)",
+          "Advanced duty calculations (MFN, GSP, FTA)",
+          "Full PGA, AD / CVD Flags",
+          "Notification of tariff changes",
+          "Priority support within 4 hours",
+          "Max 5 Seats",
+          "Up to 1,000 Classifications/month",
+          "Unlimited PGA calculator uses",
+          "3 free batch processing tries",
+        ],
+        variant: currentPlan === 'growth' ? "glow-brand" as const : "glow" as const,
+        isCurrentPlan: currentPlan === 'growth',
+        disabled: currentPlan === 'growth',
+        onClick: () => currentPlan !== 'growth' && handleUpgrade('growth')
+      },
+      {
+        name: "Enterprise",
+        description: "For large organizations with complex trade operations",
+        monthlyPrice: 2200,
+        cta: {
+          variant: "glow" as const,
+          label: currentPlan === 'enterprise' ? "Current Plan" : "Contact Sales",
+          href: currentPlan === 'enterprise' ? "#" : "https://form.typeform.com/to/yKoqyhC3",
+        },
+        features: [
+          "Everything in Growth",
+          "Unlimited classifications",
+          "Unlimited Seats",
+          "Unlimited batch processing",
+          "API Access",
+          "Real Time Monitoring and Webhook Alerts",
+          "Dedicated account manager + Certified Customs Broker",
+          "Sub 2hr Critical Support",
+          "Fine Tuning on User Data on Premise",
+        ],
+        variant: currentPlan === 'enterprise' ? "glow-brand" as const : "glow" as const,
+        isCurrentPlan: currentPlan === 'enterprise',
+        disabled: currentPlan === 'enterprise',
+        onClick: () => currentPlan !== 'enterprise' && handleUpgrade('enterprise')
+      },
+    ];
+  };
+
   return (
     <Layout className="pt-28 pb-16">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex items-center">
           <Link to="/dashboard" className="mr-4 p-2 rounded-full hover:bg-secondary/80 transition-colors">
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-2xl font-semibold">Settings</h1>
+          <h1 className="text-2xl font-semibold">Settings & Pricing</h1>
         </div>
 
         <div className="space-y-8">
@@ -189,23 +293,27 @@ const SettingsPage = () => {
             ) : userId ? (
               <div>
                 <div className="mb-4">
-                  <h3 className="font-medium">Current Plan: {userPlan?.plan_type || 'Starter'}</h3>
+                  <h3 className="font-medium">Current Plan: {userPlan?.plan_type?.charAt(0).toUpperCase() + (userPlan?.plan_type?.slice(1) || 'Free')}</h3>
                   
                   <div className="mt-4">
-                    <p className="mb-1">Monthly Classifications: {monthlyUsage?.classifications || 0} / {planInfo?.limits.classifications || 100}</p>
-                    <div className="w-full bg-secondary h-2 rounded-full">
-                      <div 
-                        className="bg-primary h-2 rounded-full" 
-                        style={{ width: `${Math.min(100, ((monthlyUsage?.classifications || 0) / (planInfo?.limits.classifications || 1)) * 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {Math.max(0, (planInfo?.limits.classifications || 100) - (monthlyUsage?.classifications || 0))} classifications remaining this month
-                    </p>
+                    <p className="mb-1">Monthly Classifications: {monthlyUsage?.classifications || 0} / {planInfo?.limits.classifications === -1 ? 'Unlimited' : planInfo?.limits.classifications || 10}</p>
+                    {planInfo?.limits.classifications !== -1 && (
+                      <>
+                        <div className="w-full bg-secondary h-2 rounded-full">
+                          <div 
+                            className="bg-primary h-2 rounded-full" 
+                            style={{ width: `${Math.min(100, ((monthlyUsage?.classifications || 0) / (planInfo?.limits.classifications || 1)) * 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {Math.max(0, (planInfo?.limits.classifications || 10) - (monthlyUsage?.classifications || 0))} classifications remaining this month
+                        </p>
+                      </>
+                    )}
 
                     {monthlyUsage?.pgaCalculator !== undefined && (
                       <div className="mt-4">
-                        <p className="mb-1">PGA Calculator: {monthlyUsage.pgaCalculator} / {planInfo?.limits.pgaCalculator === -1 ? 'Unlimited' : planInfo?.limits.pgaCalculator || 5}</p>
+                        <p className="mb-1">PGA Calculator: {monthlyUsage.pgaCalculator} / {planInfo?.limits.pgaCalculator === -1 ? 'Unlimited' : planInfo?.limits.pgaCalculator || 3}</p>
                         {planInfo?.limits.pgaCalculator !== -1 && (
                           <>
                             <div className="w-full bg-secondary h-2 rounded-full">
@@ -215,7 +323,7 @@ const SettingsPage = () => {
                               />
                             </div>
                             <p className="text-sm text-muted-foreground mt-1">
-                              {Math.max(0, (planInfo?.limits.pgaCalculator || 5) - monthlyUsage.pgaCalculator)} PGA uses remaining this month
+                              {Math.max(0, (planInfo?.limits.pgaCalculator || 3) - monthlyUsage.pgaCalculator)} PGA uses remaining this month
                             </p>
                           </>
                         )}
@@ -230,124 +338,13 @@ const SettingsPage = () => {
               </div>
             )}
           </div>
-          
+
           {/* Pricing Plans */}
-          <div className="glass-card p-6 rounded-xl">
-            <h2 className="text-xl font-medium mb-6">Choose Your Plan</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-              {/* Free Plan */}
-              <div className="bg-background border border-border rounded-xl p-6 transition-all hover:shadow-md">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
-                    <CreditCard className="text-muted-foreground" size={22} />
-                  </div>
-                </div>
-                <h3 className="text-lg font-medium text-center mb-2">Free Plan</h3>
-                <div className="text-2xl font-bold text-center mb-2">$0<span className="text-sm font-normal text-muted-foreground">/month</span></div>
-                <p className="text-muted-foreground text-center mb-4">Perfect for getting started with HS classification.</p>
-                
-                <ul className="space-y-2.5 mb-6">
-                  {["10 classifications per day", "Basic support", "Single item processing", "24-hour access"].map((feature) => (
-                    <li key={feature} className="flex items-start">
-                      <CheckCircle2 className="h-4 w-4 text-primary mr-2 shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <div className="flex justify-center">
-                  {userPlan?.plan_type === 'free' || !userPlan ? (
-                    <CustomButton variant="outline" className="w-full" disabled>
-                      Current Plan
-                    </CustomButton>
-                  ) : (
-                    <CustomButton variant="outline" className="w-full" disabled>
-                      Switch to Free
-                    </CustomButton>
-                  )}
-                </div>
-              </div>
-              
-              {/* Pro Plan */}
-              <div className="bg-primary/5 border border-primary/30 rounded-xl p-6 relative transition-all hover:shadow-md">
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-white text-xs font-medium py-1 px-3 rounded-full">
-                  Most Popular
-                </div>
-                <div className="flex items-center justify-center mb-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Zap className="text-primary" size={24} />
-                  </div>
-                </div>
-                <h3 className="text-lg font-medium text-center mb-2">Pro Plan</h3>
-                <div className="text-2xl font-bold text-center mb-2">$49<span className="text-sm font-normal text-muted-foreground">/month</span></div>
-                <p className="text-muted-foreground text-center mb-4">For businesses with regular classification needs.</p>
-                
-                <ul className="space-y-2.5 mb-6">
-                  {["1,000 classifications per month", "Priority support", "Batch processing", "Export to CSV/Excel", "API access"].map((feature) => (
-                    <li key={feature} className="flex items-start">
-                      <CheckCircle2 className="h-4 w-4 text-primary mr-2 shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <div className="flex justify-center">
-                  {userPlan?.plan_type === 'pro' ? (
-                    <CustomButton variant="outline" className="w-full" disabled>
-                      Current Plan
-                    </CustomButton>
-                  ) : !userId ? (
-                    <CustomButton className="w-full" disabled={!userId}>
-                      Sign in to Upgrade
-                    </CustomButton>
-                  ) : (
-                    <CustomButton 
-                      className="w-full" 
-                      onClick={handleUpgrade}
-                      disabled={isUpgrading}
-                    >
-                      {isUpgrading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        'Upgrade Now'
-                      )}
-                    </CustomButton>
-                  )}
-                </div>
-              </div>
-              
-              {/* Enterprise Plan */}
-              <div className="bg-background border border-border rounded-xl p-6 transition-all hover:shadow-md">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
-                    <Building2 className="text-muted-foreground" size={22} />
-                  </div>
-                </div>
-                <h3 className="text-lg font-medium text-center mb-2">Enterprise</h3>
-                <div className="text-2xl font-bold text-center mb-2">$299<span className="text-sm font-normal text-muted-foreground">/month</span></div>
-                <p className="text-muted-foreground text-center mb-4">For large organizations with high volume needs.</p>
-                
-                <ul className="space-y-2.5 mb-6">
-                  {["100,000 classifications per month", "24/7 dedicated support", "Advanced batch processing", "Custom integrations", "Team management", "Dedicated account manager"].map((feature) => (
-                    <li key={feature} className="flex items-start">
-                      <CheckCircle2 className="h-4 w-4 text-primary mr-2 shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <div className="flex justify-center">
-                  <CustomButton variant="outline" className="w-full">
-                    Contact Sales
-                  </CustomButton>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Pricing 
+            title="Choose Your Plan"
+            description="Upgrade or downgrade your plan to fit your business needs. All plans include our core AI-powered HS classification technology."
+            plans={getCurrentPricingPlans()}
+          />
         </div>
       </div>
     </Layout>

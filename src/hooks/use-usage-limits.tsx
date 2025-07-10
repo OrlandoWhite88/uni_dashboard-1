@@ -12,12 +12,19 @@ interface UsageLimits {
 }
 
 interface PlanLimits {
+  free: UsageLimits;
   starter: UsageLimits;
   growth: UsageLimits;
   enterprise: UsageLimits;
 }
 
 const PLAN_LIMITS: PlanLimits = {
+  free: {
+    classifications: 10,
+    pgaCalculator: 3,
+    batchProcessing: 0, // No batch processing
+    seats: 1
+  },
   starter: {
     classifications: 100,
     pgaCalculator: 5,
@@ -71,9 +78,9 @@ export function useUsageLimits() {
           let plan = await getUserPlan(userId);
           console.log('Retrieved user plan:', plan);
           
-          // If no plan exists, create a starter plan
+          // If no plan exists, create a free plan
           if (!plan) {
-            console.log('No plan found, creating a starter plan for user:', userId);
+            console.log('No plan found, creating a free plan for user:', userId);
             plan = await createUserPlan(userId);
             console.log('Created new plan:', plan);
           }

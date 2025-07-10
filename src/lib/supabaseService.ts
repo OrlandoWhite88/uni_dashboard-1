@@ -29,7 +29,7 @@ export async function createUserPlan(userId: string, stripeCustomerId?: string) 
     .upsert([{
       user_id: userId,
       stripe_customer_id: stripeCustomerId,
-      plan_type: 'starter',
+      plan_type: 'free',
       updated_at: new Date()
     }], {
       onConflict: 'user_id',
