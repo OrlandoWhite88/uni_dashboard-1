@@ -11,7 +11,8 @@ export interface PricingColumnProps {
   cta: {
     variant: "glow" | "default";
     label: string;
-    href: string;
+    href?: string;
+    onClick?: () => void;
   };
   features: string[];
   variant?: "default" | "glow" | "glow-brand";
@@ -33,10 +34,14 @@ export const PricingColumn: React.FC<PricingColumnProps> = ({
   const isBrand = variant === "glow-brand";
 
   const handleCTAClick = () => {
-    if (cta.href.startsWith("http")) {
-      window.open(cta.href, "_blank");
-    } else {
-      window.location.href = cta.href;
+    if (cta.onClick) {
+      cta.onClick();
+    } else if (cta.href) {
+      if (cta.href.startsWith("http")) {
+        window.open(cta.href, "_blank");
+      } else {
+        window.location.href = cta.href;
+      }
     }
   };
 

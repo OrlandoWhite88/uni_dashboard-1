@@ -27,7 +27,7 @@ const AuthPage = () => {
           {/* Logo/Brand */}
           <div className="mb-8 text-center">
             <Link to="/" className="flex items-center justify-center mb-4">
-              <img src="/uni_logo.png" alt="Logo" className="h-12 w-12" />
+              <img src="/uni_logo.png" alt="Logo" className="h-12 w-auto object-contain" />
             </Link>
             <p className="text-muted-foreground text-sm">
               {mode === 'signup' 

@@ -21,7 +21,7 @@ export async function getUserPlan(userId: string) {
   return data;
 }
 
-export async function createUserPlan(userId: string, stripeCustomerId?: string) {
+export async function createUserPlan(userId: string, stripeCustomerId?: string, email?: string, name?: string) {
   // Use upsert to handle both creating and updating
   // This prevents duplicate entries for the same user
   const { data, error } = await supabase
@@ -30,6 +30,8 @@ export async function createUserPlan(userId: string, stripeCustomerId?: string) 
       user_id: userId,
       stripe_customer_id: stripeCustomerId,
       plan_type: 'free',
+      email: email,
+      name: name,
       updated_at: new Date()
     }], {
       onConflict: 'user_id',

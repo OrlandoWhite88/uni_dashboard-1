@@ -3,12 +3,13 @@ import Layout from "@/components/Layout";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { createCheckoutSession } from "@/lib/stripeService";
 import Pricing from "@/components/Pricing";
 
 const SettingsPage = () => {
   const { userId } = useAuth();
+  const { user } = useUser();
   const { 
     isLoading, 
     userPlan, 
@@ -125,12 +126,23 @@ const SettingsPage = () => {
           
           // Update the plan in Supabase - add subscription timestamp and unique checkout ID
           const timestamp = new Date();
+          // Determine the plan type based on the checkout session or default to free for new users
+          const planType = storedSession && storedSession.includes('starter') ? 'starter' :
+                          storedSession && storedSession.includes('growth') ? 'growth' :
+                          storedSession && storedSession.includes('enterprise') ? 'enterprise' : 'free';
+          
+          // Get user email and name from Clerk for updating the plan
+          const email = user?.emailAddresses?.[0]?.emailAddress;
+          const name = user?.fullName;
+          
           const updatedPlan = await updateUserPlan(userId, { 
-            plan_type: 'starter', // Default to starter, will be updated based on actual checkout
+            plan_type: planType,
             subscribed_at: timestamp,
             updated_at: timestamp,
             stripe_customer_id: 'cus_' + Math.random().toString(36).substring(2, 10), // Temporary ID for test mode
-            last_checkout_session: storedSession || 'direct_success'
+            last_checkout_session: storedSession || 'direct_success',
+            email: email,
+            name: name
           });
           
           console.log('Plan updated successfully:', updatedPlan);

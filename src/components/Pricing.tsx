@@ -1,6 +1,10 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { User, Users } from "lucide-react";
+import { useAuth } from "@clerk/clerk-react";
+import { createCheckoutSession } from "@/lib/stripeService";
+import { useUsageLimits } from "@/hooks/use-usage-limits";
+import { toast } from "sonner";
 
 import { Section } from "./ui/section";
 import {
@@ -16,7 +20,8 @@ type Plan = {
   cta: {
     variant: "glow" | "default";
     label: string;
-    href: string;
+    href?: string;
+    onClick?: () => void;
   };
   features: string[];
   variant?: PricingColumnProps["variant"];
@@ -32,14 +37,54 @@ interface PricingProps {
 export default function Pricing({
   title = "Transparent, Predictable Pricing",
   description = "No hidden fees, usage charges, or per-classification costs that create budget uncertainty. Choose the plan that fits your business needs.",
-  plans = [
+  plans,
+  className,
+}: PricingProps) {
+  const { userId } = useAuth();
+  const { userPlan } = useUsageLimits();
+
+  // Handle plan upgrade via Stripe
+  const handleUpgrade = async (targetPlan: 'starter' | 'growth' | 'enterprise') => {
+    if (!userId) {
+      toast.error("Please sign in to upgrade your plan");
+      window.location.href = "/auth?mode=signin";
+      return;
+    }
+    
+    try {
+      toast.loading("Redirecting to checkout...");
+      
+      const successUrl = `${window.location.origin}/settings?success=true`;
+      const cancelUrl = `${window.location.origin}/settings?canceled=true`;
+      
+      const session = await createCheckoutSession(
+        userPlan?.stripe_customer_id || userId,
+        successUrl,
+        cancelUrl,
+        targetPlan
+      );
+      
+      if (!session || !session.url) {
+        throw new Error('Failed to create checkout session');
+      }
+      
+      // This will redirect away from the page
+      window.location.href = session.url;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast.error('Failed to start checkout. Please try again.');
+    }
+  };
+
+  // Default plans if none provided
+  const defaultPlans = [
     {
       name: "Free",
       description: "Get started with HS classification",
       icon: <User className="size-4" />,
       monthlyPrice: 0,
       cta: {
-        variant: "default",
+        variant: "default" as const,
         label: "Start For Free",
         href: "/auth?mode=signup",
       },
@@ -52,7 +97,7 @@ export default function Pricing({
         "Up to 10 classifications/month",
         "3 PGA calculator uses/month",
       ],
-      variant: "default",
+      variant: "default" as const,
     },
     {
       name: "Starter",
@@ -60,9 +105,9 @@ export default function Pricing({
       icon: <User className="size-4" />,
       monthlyPrice: 129,
       cta: {
-        variant: "default",
+        variant: "default" as const,
         label: "Upgrade Now",
-        href: "/settings",
+        onClick: () => handleUpgrade('starter'),
       },
       features: [
         "Everything in Free",
@@ -71,7 +116,7 @@ export default function Pricing({
         "Up to 100 classifications/month",
         "5 PGA calculator uses/month",
       ],
-      variant: "default",
+      variant: "default" as const,
     },
     {
       name: "Growth",
@@ -79,9 +124,9 @@ export default function Pricing({
       icon: <Users className="size-4" />,
       monthlyPrice: 490,
       cta: {
-        variant: "default",
+        variant: "default" as const,
         label: "Upgrade Now",
-        href: "/settings",
+        onClick: () => handleUpgrade('growth'),
       },
       features: [
         "Everything in Starter",
@@ -95,14 +140,14 @@ export default function Pricing({
         "Unlimited PGA calculator uses",
         "3 free batch processing tries",
       ],
-      variant: "glow-brand",
+      variant: "glow-brand" as const,
     },
     {
       name: "Enterprise",
       description: "For large organizations with complex trade operations",
       monthlyPrice: 2200,
       cta: {
-        variant: "glow",
+        variant: "glow" as const,
         label: "Contact Sales",
         href: "https://form.typeform.com/to/yKoqyhC3",
       },
@@ -117,11 +162,11 @@ export default function Pricing({
         "Sub 2hr Critical Support",
         "Fine Tuning on User Data on Premise",
       ],
-      variant: "glow",
+      variant: "glow" as const,
     },
-  ],
-  className,
-}: PricingProps) {
+  ];
+
+  const plansToShow = plans === false ? [] : (plans || defaultPlans);
 
   return (
     <Section className={cn(className)} id="pricing">
@@ -135,9 +180,9 @@ export default function Pricing({
           </p>
         </div>
 
-        {plans !== false && plans.length > 0 && (
+        {plansToShow.length > 0 && (
           <div className="max-w-container mx-auto grid w-full grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => (
+            {plansToShow.map((plan) => (
               <PricingColumn
                 key={plan.name}
                 name={plan.name}

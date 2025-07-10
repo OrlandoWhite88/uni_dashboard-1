@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { useDevAuth } from '@/components/DevWrapper';
 import { getMonthlyUsageCount, getUserPlan, createUserPlan, logUsage, getUserUsageSummary } from '@/lib/supabaseService';
 import { toast } from 'sonner';
@@ -47,6 +47,7 @@ const PLAN_LIMITS: PlanLimits = {
 
 export function useUsageLimits() {
   const clerkAuth = useAuth();
+  const clerkUser = useUser();
   const devAuth = useDevAuth();
   const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
   
@@ -54,6 +55,13 @@ export function useUsageLimits() {
   const { userId, isLoaded, isSignedIn } = isDevelopment 
     ? { userId: devAuth.user.id, isLoaded: devAuth.isLoaded, isSignedIn: devAuth.isSignedIn }
     : clerkAuth;
+    
+  const user = isDevelopment 
+    ? {
+        emailAddresses: [{ emailAddress: 'dev-user@example.com' }],
+        fullName: 'Dev User'
+      }
+    : clerkUser.user;
 
   const [isLoading, setIsLoading] = useState(true);
   const [userPlan, setUserPlan] = useState<any>(null);
@@ -81,7 +89,9 @@ export function useUsageLimits() {
           // If no plan exists, create a free plan
           if (!plan) {
             console.log('No plan found, creating a free plan for user:', userId);
-            plan = await createUserPlan(userId);
+            const email = user?.emailAddresses?.[0]?.emailAddress;
+            const name = user?.fullName;
+            plan = await createUserPlan(userId, undefined, email, name);
             console.log('Created new plan:', plan);
           }
           
