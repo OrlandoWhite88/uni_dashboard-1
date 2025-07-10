@@ -1,6 +1,7 @@
 
 import { createRoot } from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
+import { DevWrapper } from './components/DevWrapper';
 import App from './App.tsx';
 import './index.css';
 
@@ -11,6 +12,8 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
 }
 
+const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+
 createRoot(document.getElementById("root")!).render(
   <ClerkProvider 
     publishableKey={PUBLISHABLE_KEY}
@@ -18,6 +21,8 @@ createRoot(document.getElementById("root")!).render(
     afterSignInUrl="/"
     afterSignUpUrl="/"
   >
-    <App />
+    <DevWrapper>
+      <App />
+    </DevWrapper>
   </ClerkProvider>
 );

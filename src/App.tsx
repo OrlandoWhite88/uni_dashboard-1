@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { DevWrapper, MockSignedIn, MockSignedOut } from "./components/DevWrapper";
 import IntercomProvider from "./components/IntercomProvider";
 import Dashboard from "./pages/Dashboard";
 import Classify from "./pages/Classify";
@@ -21,8 +22,27 @@ import TradeFlagsPage from "./pages/TradeFlagsPage";
 import ClassificationHistory from "./pages/ClassificationHistory";
 import NavigationDemo from "./pages/NavigationDemo";
 
+// Check if we're in development
+const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+
 // Create Protected Route wrapper component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  if (isDevelopment) {
+    return (
+      <>
+        <MockSignedIn>{children}</MockSignedIn>
+        <MockSignedOut>
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Development Mode</h1>
+              <p className="text-gray-600">Sign in required (mocked for local development)</p>
+            </div>
+          </div>
+        </MockSignedOut>
+      </>
+    );
+  }
+
   return (
     <>
       <SignedIn>{children}</SignedIn>
@@ -43,39 +63,91 @@ const App = () => (
       <BrowserRouter>
         <IntercomProvider />
         <Routes>
-          {/* Root redirect to product */}
+          {/* Root redirect to product - protected */}
           <Route path="/" element={<Navigate to="/product" replace />} />
           
-          {/* Main routes */}
-          <Route path="/product" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/classify" element={<Classify />} />
-          <Route path="/classification-complete" element={<ClassificationComplete />} />
+          {/* Main routes - all protected */}
+          <Route
+            path="/product"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/classify"
+            element={
+              <ProtectedRoute>
+                <Classify />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/classification-complete"
+            element={
+              <ProtectedRoute>
+                <ClassificationComplete />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Settings route - accessible for all users */}
+          {/* Settings route - protected */}
           <Route
             path="/settings"
-            element={<Settings />}
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/bulk-import"
-            element={<BulkImport />}
+            element={
+              <ProtectedRoute>
+                <BulkImport />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/tariff-calculator"
-            element={<TariffCalculatorPage />}
+            element={
+              <ProtectedRoute>
+                <TariffCalculatorPage />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/trade-flags"
-            element={<TradeFlagsPage />}
+            element={
+              <ProtectedRoute>
+                <TradeFlagsPage />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/classification-history"
-            element={<ClassificationHistory />}
+            element={
+              <ProtectedRoute>
+                <ClassificationHistory />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/navigation-demo"
-            element={<NavigationDemo />}
+            element={
+              <ProtectedRoute>
+                <NavigationDemo />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/debug-stripe"
@@ -86,7 +158,7 @@ const App = () => (
             }
           />
 
-          {/* Authentication callback routes */}
+          {/* Authentication callback routes - not protected */}
           <Route path="/oauth-callback" element={<OAuthCallback />} />
           <Route path="/sso-callback" element={<SSOCallback />} />
 

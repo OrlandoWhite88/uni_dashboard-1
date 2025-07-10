@@ -3,12 +3,18 @@
 
 // Get publishable key from environment
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_Stripe_Publishable_Key || 'pk_live_51QKRKILZPw2q2pWLdWe9PVjtrkxqWdpIMNFjAVQJUvPo3ZuZRm1cGo3cxVSHfVx63oZZmZc7EoHAy38W2nexm4yq00V46PH7I6';
-const STRIPE_PRO_PRICE_ID = 'price_1R3KHELZPw2q2pWLXoi3t6Kd';
+
+// Price IDs for different plans
+const STRIPE_PRICE_IDS = {
+  starter: 'price_1R3KHELZPw2q2pWLXoi3t6Kd', // Update this to actual Starter price ID
+  growth: 'price_1R3KHELZPw2q2pWLXoi3t6Kd', // Update this to actual Growth price ID  
+  enterprise: 'price_1R3KHELZPw2q2pWLXoi3t6Kd' // Update this to actual Enterprise price ID
+};
 
 // Log initialization for debugging
 console.log('Stripe client-only initialization:');
 console.log(`Publishable Key Set: ${STRIPE_PUBLISHABLE_KEY !== ''}`);
-console.log(`Using Price ID: ${STRIPE_PRO_PRICE_ID}`);
+console.log(`Price IDs:`, STRIPE_PRICE_IDS);
 
 // Load Stripe.js script dynamically
 let stripePromise: Promise<any> | null = null;
@@ -112,9 +118,13 @@ export function validateCheckoutSession(success: boolean): boolean {
 export async function createCheckoutSession(
   customerId: string,
   successUrl: string,
-  cancelUrl: string
+  cancelUrl: string,
+  planType: 'starter' | 'growth' | 'enterprise' = 'growth'
 ) {
   try {
+    // Get the appropriate price ID for the plan
+    const priceId = STRIPE_PRICE_IDS[planType];
+    
     // Ensure success URL has a unique identifier that can't be stripped
     // Add timestamp to make the URL unique and force a fresh page load
     const enhancedSuccessUrl = `${successUrl}${successUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
@@ -122,9 +132,10 @@ export async function createCheckoutSession(
     
     console.log('Creating checkout session with params:', {
       customerId,
+      planType,
       successUrl: enhancedSuccessUrl,
       cancelUrl: enhancedCancelUrl,
-      priceId: STRIPE_PRO_PRICE_ID
+      priceId
     });
 
     // Check if we have a publishable key
@@ -153,7 +164,7 @@ export async function createCheckoutSession(
     // Redirect to Stripe Checkout directly
     // This is a client-only integration that uses redirectToCheckout
     const { error } = await stripe.redirectToCheckout({
-      lineItems: [{ price: STRIPE_PRO_PRICE_ID, quantity: 1 }],
+      lineItems: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       successUrl: enhancedSuccessUrl,
       cancelUrl: enhancedCancelUrl,

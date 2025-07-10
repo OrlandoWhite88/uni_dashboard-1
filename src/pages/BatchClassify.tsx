@@ -61,8 +61,8 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
   const navigate = useNavigate();
   const { user } = useUser();
   
-  // Check if user is on free plan
-  const isFreePlan = userPlan?.plan_type === 'free';
+  // Check if user is on starter plan
+  const isStarterPlan = userPlan?.plan_type === 'starter';
   const [showUpgradeMessage, setShowUpgradeMessage] = useState(false);
   
   // Parse products from the input
@@ -165,9 +165,9 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
 
   // Start classification for all products at once
   const startClassifyingAllProducts = async () => {
-    // Check if user is on free plan - block batch processing
-    if (isFreePlan) {
-      console.log('Batch processing not available on free plan');
+    // Check if user is on starter plan - block batch processing
+    if (isStarterPlan) {
+      console.log('Batch processing not available on starter plan');
       setShowUpgradeMessage(true);
       return;
     }

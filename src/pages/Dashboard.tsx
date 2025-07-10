@@ -10,16 +10,19 @@ import { trackClassificationStart } from "@/lib/analyticsService";
 const Dashboard = () => {
   const [selectedModel, setSelectedModel] = useState<'vertex' | 'groq'>('groq');
   const navigate = useNavigate();
-  const { checkCanMakeRequest } = useUsageLimits();
+  const { checkFeatureAccess, recordUsage, getPlanInfo } = useUsageLimits();
 
   const handleClassify = async (description: string) => {
     console.log("[Dashboard] Starting classification for:", description);
     
-    // Check if the user can make a request based on their usage limits
-    const canMakeRequest = await checkCanMakeRequest();
-    if (!canMakeRequest) {
+    // Check if the user can make a classification request
+    const canClassify = await checkFeatureAccess('classification');
+    if (!canClassify) {
       return; // Don't proceed if the user has reached their limit
     }
+    
+    // Record the usage
+    await recordUsage('classification');
     
     // Track the classification start event
     trackClassificationStart(description);

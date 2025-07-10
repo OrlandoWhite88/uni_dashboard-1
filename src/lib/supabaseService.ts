@@ -29,7 +29,7 @@ export async function createUserPlan(userId: string, stripeCustomerId?: string) 
     .upsert([{
       user_id: userId,
       stripe_customer_id: stripeCustomerId,
-      plan_type: 'free',
+      plan_type: 'starter',
       updated_at: new Date()
     }], {
       onConflict: 'user_id',
@@ -166,7 +166,7 @@ export function incrementAnonymousUsage(): number {
 }
 
 // Usage tracking functions - now supports both logged-in and anonymous users
-export async function logUsage(userId: string | null, requestType: string) {
+export async function logUsage(userId: string | null, usageType: string, featureUsed?: string) {
   // For anonymous users, use device ID and track locally
   if (!userId) {
     const deviceId = getDeviceId();
@@ -177,7 +177,9 @@ export async function logUsage(userId: string | null, requestType: string) {
       .from('usage_logs')
       .insert([{
         user_id: deviceId,
-        request_type: requestType,
+        request_type: usageType,
+        usage_type: usageType,
+        feature_used: featureUsed || usageType,
         is_anonymous: true
       }]);
       
@@ -194,7 +196,9 @@ export async function logUsage(userId: string | null, requestType: string) {
     .from('usage_logs')
     .insert([{
       user_id: userId,
-      request_type: requestType,
+      request_type: usageType,
+      usage_type: usageType,
+      feature_used: featureUsed || usageType,
       is_anonymous: false
     }]);
     
@@ -684,5 +688,29 @@ export async function getTariffChangeStats(userId: string) {
       needsReview: 0,
       recentChanges: 0
     };
+  }
+}
+
+// Get user usage summary from the view
+export async function getUserUsageSummary(userId: string) {
+  console.log('Getting user usage summary for user:', userId);
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_usage_summary')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+      
+    if (error) {
+      console.error('Error getting user usage summary:', error);
+      return null;
+    }
+    
+    console.log('Retrieved usage summary:', data);
+    return data;
+  } catch (error) {
+    console.error('Unexpected error getting usage summary:', error);
+    return null;
   }
 }
