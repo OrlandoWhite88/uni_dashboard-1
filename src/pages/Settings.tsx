@@ -27,7 +27,9 @@ const SettingsPage = () => {
     setIsUpgrading(true);
     
     try {
+      console.log('=== UPGRADE DEBUG START ===');
       console.log('Upgrade initiated for user:', userId, 'to plan:', targetPlan);
+      console.log('Target plan type:', typeof targetPlan, targetPlan);
       console.log('Using customer ID:', userPlan?.stripe_customer_id || userId);
       
       // Create success and cancel URLs with proper encoding
@@ -36,6 +38,7 @@ const SettingsPage = () => {
       
       console.log('Success URL:', successUrl);
       console.log('Cancel URL:', cancelUrl);
+      console.log('About to call createCheckoutSession with plan:', targetPlan);
       
       // Create a checkout session with Stripe
       const session = await createCheckoutSession(
@@ -186,29 +189,6 @@ const SettingsPage = () => {
     
     return [
       {
-        name: "Free",
-        description: "Get started with HS classification",
-        monthlyPrice: 0,
-        cta: {
-          variant: "default" as const,
-          label: currentPlan === 'free' ? "Current Plan" : "Not Available",
-          onClick: currentPlan === 'free' ? undefined : () => alert('Downgrading to Free is not available. Please contact support if needed.'),
-        },
-        features: [
-          "AI-powered HS classification",
-          "Basic Duty Calculator",
-          "Classifications History",
-          "Community support",
-          "Max 1 Seat",
-          "Up to 10 classifications/month",
-          "3 PGA calculator uses/month",
-        ],
-        variant: currentPlan === 'free' ? "glow-brand" as const : "default" as const,
-        isCurrentPlan: currentPlan === 'free',
-        disabled: true, // Cannot downgrade to free
-        onClick: () => {}
-      },
-      {
         name: "Starter",
         description: "Perfect for small businesses starting with HS classification",
         monthlyPrice: 129,
@@ -218,9 +198,11 @@ const SettingsPage = () => {
           onClick: currentPlan !== 'starter' ? () => handleUpgrade('starter') : undefined,
         },
         features: [
-          "Everything in Free",
-          "Duty Calculator (MFN Only)",
+          "AI-powered HS classification",
+          "Basic Duty Calculator (MFN Only)",
+          "Classifications History",
           "Support within 24 hours",
+          "Max 1 Seat",
           "Up to 100 classifications/month",
           "5 PGA calculator uses/month",
         ],
@@ -261,8 +243,8 @@ const SettingsPage = () => {
         monthlyPrice: 2200,
         cta: {
           variant: "glow" as const,
-          label: currentPlan === 'enterprise' ? "Current Plan" : "Contact Sales",
-          href: currentPlan === 'enterprise' ? "#" : "https://form.typeform.com/to/yKoqyhC3",
+          label: currentPlan === 'enterprise' ? "Current Plan" : "Upgrade Now",
+          onClick: currentPlan !== 'enterprise' ? () => handleUpgrade('enterprise') : undefined,
         },
         features: [
           "Everything in Growth",

@@ -6,7 +6,7 @@ const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_Stripe_Publishable_Key || 'p
 
 // Price IDs for different plans
 const STRIPE_PRICE_IDS = {
-  starter: 'price_1RjPIHBlXyYsxvVYBv2JsNW3', // Update this to actual Starter price ID
+  starter: 'price_1RjPHVBlXyYsxvVYLp1aeka2', // Update this to actual Starter price ID
   growth: 'price_1RjPHzBlXyYsxvVYV9u5vWeG', // Update this to actual Growth price ID  
   enterprise: 'price_1RjPIHBlXyYsxvVYBv2JsNW3' // Update this to actual Enterprise price ID
 };
@@ -122,8 +122,19 @@ export async function createCheckoutSession(
   planType: 'starter' | 'growth' | 'enterprise' = 'growth'
 ) {
   try {
+    console.log('=== STRIPE SERVICE DEBUG START ===');
+    console.log('Received planType parameter:', planType);
+    console.log('Type of planType:', typeof planType);
+    console.log('Available price IDs:', STRIPE_PRICE_IDS);
+    
     // Get the appropriate price ID for the plan
     const priceId = STRIPE_PRICE_IDS[planType];
+    
+    console.log(`Looking up price ID for plan "${planType}":`, priceId);
+    
+    if (!priceId) {
+      throw new Error(`No price ID found for plan type: ${planType}`);
+    }
     
     // Ensure success URL has a unique identifier that can't be stripped
     // Add timestamp to make the URL unique and force a fresh page load
