@@ -27,18 +27,9 @@ const SettingsPage = () => {
     setIsUpgrading(true);
     
     try {
-      console.log('=== UPGRADE DEBUG START ===');
-      console.log('Upgrade initiated for user:', userId, 'to plan:', targetPlan);
-      console.log('Target plan type:', typeof targetPlan, targetPlan);
-      console.log('Using customer ID:', userPlan?.stripe_customer_id || userId);
-      
       // Create success and cancel URLs with proper encoding
       const successUrl = `${window.location.origin}/settings?success=true`;
       const cancelUrl = `${window.location.origin}/settings?canceled=true`;
-      
-      console.log('Success URL:', successUrl);
-      console.log('Cancel URL:', cancelUrl);
-      console.log('About to call createCheckoutSession with plan:', targetPlan);
       
       // Create a checkout session with Stripe
       const session = await createCheckoutSession(

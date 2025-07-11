@@ -122,15 +122,8 @@ export async function createCheckoutSession(
   planType: 'starter' | 'growth' | 'enterprise' = 'growth'
 ) {
   try {
-    console.log('=== STRIPE SERVICE DEBUG START ===');
-    console.log('Received planType parameter:', planType);
-    console.log('Type of planType:', typeof planType);
-    console.log('Available price IDs:', STRIPE_PRICE_IDS);
-    
     // Get the appropriate price ID for the plan
     const priceId = STRIPE_PRICE_IDS[planType];
-    
-    console.log(`Looking up price ID for plan "${planType}":`, priceId);
     
     if (!priceId) {
       throw new Error(`No price ID found for plan type: ${planType}`);
@@ -140,14 +133,6 @@ export async function createCheckoutSession(
     // Add timestamp to make the URL unique and force a fresh page load
     const enhancedSuccessUrl = `${successUrl}${successUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
     const enhancedCancelUrl = `${cancelUrl}${cancelUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-    
-    console.log('Creating checkout session with params:', {
-      customerId,
-      planType,
-      successUrl: enhancedSuccessUrl,
-      cancelUrl: enhancedCancelUrl,
-      priceId
-    });
 
     // Check if we have a publishable key
     if (!STRIPE_PUBLISHABLE_KEY) {
