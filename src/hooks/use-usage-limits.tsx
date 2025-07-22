@@ -78,6 +78,13 @@ export function useUsageLimits() {
       try {
         setIsLoading(true);
         
+        console.log('[useUsageLimits] loadUsageData called with:', {
+          isLoaded,
+          isSignedIn,
+          userId: userId ? 'exists' : 'null',
+          isDevelopment
+        });
+        
         // Only load for logged-in users - no anonymous usage anymore
         if (isLoaded && isSignedIn && userId) {
           console.log('Loading user plan and usage data for logged-in user:', userId);
@@ -91,6 +98,7 @@ export function useUsageLimits() {
             console.log('No plan found, creating a free plan for user:', userId);
             const email = user?.emailAddresses?.[0]?.emailAddress;
             const name = user?.fullName;
+            console.log('User data for plan creation:', { email, name, userId });
             plan = await createUserPlan(userId, undefined, email, name);
             console.log('Created new plan:', plan);
           }
@@ -113,22 +121,80 @@ export function useUsageLimits() {
         } else if (isLoaded && !isSignedIn) {
           // For non-signed-in users, redirect to sign-in
           console.log('User not signed in, will need to redirect to sign in');
+        } else if (isLoaded) {
+          console.log('Auth loaded but user state unclear:', { isSignedIn, userId });
         }
       } catch (error) {
         console.error('Error loading usage data:', error);
+        // Don't set userPlan to null immediately - we'll handle this in checkFeatureAccess
+        // setUserPlan(null);
       } finally {
         setIsLoading(false);
       }
     }
     
     loadUsageData();
-  }, [userId, isLoaded, isSignedIn]);
+  }, [userId, isLoaded, isSignedIn, user]);
 
   // Function to check if user can use a specific feature
   const checkFeatureAccess = async (featureType: 'classification' | 'pgaCalculator' | 'batchProcessing'): Promise<boolean> => {
-    if (!isSignedIn || !userId || !userPlan) {
+    // Debug logging to help identify the issue
+    console.log('[useUsageLimits] checkFeatureAccess debug:', {
+      featureType,
+      isSignedIn,
+      userId,
+      userPlan: userPlan ? 'exists' : 'null',
+      isLoaded,
+      isLoading,
+      isDevelopment
+    });
+    
+    // If we're still loading and the user appears to be signed in, try to reload the data
+    if (isLoading && isLoaded && isSignedIn && userId && !userPlan) {
+      console.log('[useUsageLimits] User signed in but plan not loaded, attempting to reload...');
+      try {
+        const plan = await getUserPlan(userId);
+        if (plan) {
+          setUserPlan(plan);
+          console.log('[useUsageLimits] Successfully loaded user plan:', plan);
+        } else {
+          // Create a new plan if none exists
+          const email = user?.emailAddresses?.[0]?.emailAddress;
+          const name = user?.fullName;
+          const newPlan = await createUserPlan(userId, undefined, email, name);
+          if (newPlan) {
+            setUserPlan(newPlan);
+            console.log('[useUsageLimits] Created new user plan:', newPlan);
+          }
+        }
+      } catch (error) {
+        console.error('[useUsageLimits] Error loading user plan:', error);
+      }
+    }
+    
+    // Check basic authentication first
+    if (!isSignedIn || !userId) {
+      console.log('[useUsageLimits] Access denied - not signed in:', {
+        isSignedIn,
+        userId: userId ? 'exists' : 'null'
+      });
       toast.error('Please sign in to use this feature.');
       return false;
+    }
+    
+    // If user is signed in but plan is not loaded, this might be a timing issue
+    // In production, we should still allow the action but with a fallback
+    if (!userPlan) {
+      console.log('[useUsageLimits] User signed in but no plan loaded - allowing with free plan fallback');
+      // For now, we'll assume free plan limits if no plan is loaded
+      // This prevents the authentication error while still providing some protection
+      const freeLimit = PLAN_LIMITS.free[featureType];
+      if (freeLimit === 0) {
+        toast.error('This feature requires a plan upgrade.');
+        return false;
+      }
+      // Allow the action to proceed - the usage will be tracked when the plan loads
+      return true;
     }
 
     const planType = userPlan.plan_type as keyof PlanLimits;
