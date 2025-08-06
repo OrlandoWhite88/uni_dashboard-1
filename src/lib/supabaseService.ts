@@ -572,12 +572,20 @@ function compareTariffData(oldData: any, newData: any): boolean {
     'col2_specific_rate',
     'col2_other_rate',
     'begin_effect_date',
-    'end_effective_date'
+    'end_effective_date',
+    'col1_special_text'  // Added to detect special program changes
   ];
   
   for (const field of keyFields) {
-    if (oldData[field] !== newData[field]) {
-      console.log(`Tariff change detected in field ${field}: ${oldData[field]} -> ${newData[field]}`);
+    const oldValue = oldData[field];
+    const newValue = newData[field];
+    
+    // Convert to strings for comparison to handle null/undefined/number cases
+    const oldStr = oldValue === null || oldValue === undefined ? '' : String(oldValue);
+    const newStr = newValue === null || newValue === undefined ? '' : String(newValue);
+    
+    if (oldStr !== newStr) {
+      console.log(`Tariff change detected in field ${field}: "${oldStr}" -> "${newStr}"`);
       return true;
     }
   }
@@ -600,14 +608,21 @@ function compareTariffData(oldData: any, newData: any): boolean {
     'oman_indicator',
     'peru_indicator',
     'korea_indicator',
-    'columbia_indicator',
+    'colombia_indicator',  // Fixed typo: columbia -> colombia
     'panama_indicator',
     'morocco_indicator'
   ];
   
   for (const program of tradePrograms) {
-    if (oldData[program] !== newData[program]) {
-      console.log(`Trade program change detected in ${program}: ${oldData[program]} -> ${newData[program]}`);
+    const oldValue = oldData[program];
+    const newValue = newData[program];
+    
+    // Convert to strings for comparison
+    const oldStr = oldValue === null || oldValue === undefined ? '' : String(oldValue);
+    const newStr = newValue === null || newValue === undefined ? '' : String(newValue);
+    
+    if (oldStr !== newStr) {
+      console.log(`Trade program change detected in ${program}: "${oldStr}" -> "${newStr}"`);
       return true;
     }
   }

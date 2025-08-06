@@ -1,11 +1,10 @@
--- Update usage_logs table to include missing fields
-ALTER TABLE usage_logs 
-ADD COLUMN IF NOT EXISTS usage_type TEXT,
-ADD COLUMN IF NOT EXISTS feature_used TEXT,
-ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;
+-- Safe update: table structure is already correct, just need to create/update the view
 
--- Create or replace the user_usage_summary view
-CREATE OR REPLACE VIEW user_usage_summary AS
+-- Drop the existing view if it exists
+DROP VIEW IF EXISTS user_usage_summary;
+
+-- Create the user_usage_summary view
+CREATE VIEW user_usage_summary AS
 SELECT 
     user_id,
     COUNT(*) as total_usage,
@@ -19,8 +18,3 @@ WHERE
     created_at >= date_trunc('month', CURRENT_DATE)
     AND (is_anonymous = FALSE OR is_anonymous IS NULL)
 GROUP BY user_id;
-
--- Create index for better performance
-CREATE INDEX IF NOT EXISTS idx_usage_logs_user_date ON usage_logs(user_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_usage_logs_type ON usage_logs(usage_type);
-CREATE INDEX IF NOT EXISTS idx_usage_logs_anonymous ON usage_logs(is_anonymous);
