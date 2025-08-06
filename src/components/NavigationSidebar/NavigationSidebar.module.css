@@ -45,7 +45,7 @@
   margin-bottom: 16px;
   position: relative;
   transition: all 0.3s ease;
-  z-index: 200;
+  z-index: 30;
 }
 
 .organizationSelection:hover {
@@ -63,7 +63,7 @@
   background: #FFFFFF;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
-  z-index: 9999;
+  z-index: 40;
   overflow: hidden;
 }
 
@@ -178,7 +178,7 @@
   background: #FFFFFF;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
-  z-index: 1000;
+  z-index: 40;
   max-height: 200px;
   overflow-y: auto;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -336,7 +336,7 @@
   align-items: flex-start;
   justify-content: flex-start;
   position: relative;
-  z-index: 100;
+  z-index: 30;
 }
 
 .navigationSections {
