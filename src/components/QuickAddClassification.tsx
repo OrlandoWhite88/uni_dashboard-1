@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Package, Globe, DollarSign, Weight, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Plus, Package, Globe, DollarSign, Weight, FileText, AlertCircle, Loader2, Info, CheckCircle2 } from 'lucide-react';
 import CustomButton from './ui/CustomButton';
 import { useToast } from '@/hooks/use-toast';
 import { saveClassification, ClassificationRecord } from '@/lib/supabaseService';
@@ -13,6 +13,29 @@ interface QuickAddClassificationProps {
   onSuccess: () => void;
 }
 
+const INCOTERMS = [
+  { value: 'EXW', label: 'EXW - Ex Works' },
+  { value: 'FCA', label: 'FCA - Free Carrier' },
+  { value: 'CPT', label: 'CPT - Carriage Paid To' },
+  { value: 'CIP', label: 'CIP - Carriage and Insurance Paid To' },
+  { value: 'DAP', label: 'DAP - Delivered at Place' },
+  { value: 'DPU', label: 'DPU - Delivered at Place Unloaded' },
+  { value: 'DDP', label: 'DDP - Delivered Duty Paid' },
+  { value: 'FAS', label: 'FAS - Free Alongside Ship' },
+  { value: 'FOB', label: 'FOB - Free on Board' },
+  { value: 'CFR', label: 'CFR - Cost and Freight' },
+  { value: 'CIF', label: 'CIF - Cost, Insurance and Freight' },
+];
+
+const IMPORT_FREQUENCIES = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'biannual', label: 'Twice a Year' },
+  { value: 'annual', label: 'Annually' },
+  { value: 'occasional', label: 'Occasional' },
+];
+
 const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
   userId,
   userEmail,
@@ -22,31 +45,25 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetchingTariff, setFetchingTariff] = useState(false);
+  const [activeTab, setActiveTab] = useState<'basic' | 'trade'>('basic');
+  const [tariffData, setTariffData] = useState<any>(null);
   
   const [formData, setFormData] = useState({
+    // Basic Information
     hsCode: '',
     productDescription: '',
     notes: '',
+    
+    // Trade Information
     originCountry: '',
     typicalValue: '',
     typicalQuantity: '',
     quantityUnit: '',
     weightKg: '',
+    incoterms: 'FOB',
     importFrequency: 'monthly',
     annualImportValue: '',
   });
-
-  const [tariffData, setTariffData] = useState<any>(null);
-
-  // Auto-detect quantity unit from tariff data
-  useEffect(() => {
-    if (tariffData?.quantity_1_code && !formData.quantityUnit) {
-      setFormData(prev => ({
-        ...prev,
-        quantityUnit: tariffData.quantity_1_code
-      }));
-    }
-  }, [tariffData, formData.quantityUnit]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -68,23 +85,19 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
       setTariffData(data);
       
       // Auto-populate fields from tariff data
-      setFormData(prev => ({
-        ...prev,
-        productDescription: data?.brief_description || prev.productDescription,
-        quantityUnit: data?.quantity_1_code || prev.quantityUnit
-      }));
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          productDescription: data.brief_description || prev.productDescription,
+          // Auto-set quantity unit from tariff data
+          quantityUnit: data.quantity_1_code || prev.quantityUnit
+        }));
+      }
     } catch (error) {
       console.error('Error fetching tariff data:', error);
     } finally {
       setFetchingTariff(false);
     }
-  };
-
-  // Check if weight is required based on tariff data
-  const isWeightRequired = (): boolean => {
-    if (!tariffData) return false;
-    return tariffData.quantity_1_code === 'KG' || 
-           (tariffData.mfn_text_rate && tariffData.mfn_text_rate.toString().toLowerCase().includes('kg'));
   };
 
   const handleSubmit = async () => {
@@ -107,19 +120,10 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
       return;
     }
 
-    if (isWeightRequired() && !formData.weightKg) {
-      toast({
-        title: "Validation Error",
-        description: "Weight is required for this HS code",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       // Create classification record with enhanced fields
-      const classification: ClassificationRecord & any = {
+      const classification: ClassificationRecord = {
         user_id: userId,
         user_email: userEmail,
         hs_code: formData.hsCode,
@@ -134,6 +138,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
         typical_quantity: formData.typicalQuantity ? parseFloat(formData.typicalQuantity) : null,
         quantity_unit: formData.quantityUnit || null,
         weight_kg: formData.weightKg ? parseFloat(formData.weightKg) : null,
+        incoterms: formData.incoterms || null,
         import_frequency: formData.importFrequency || null,
         annual_import_value: formData.annualImportValue ? parseFloat(formData.annualImportValue) : null,
       };
@@ -164,233 +169,259 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Add Product to History</h2>
-              <p className="text-gray-600 mt-1">Manually add a product with its HS code and details</p>
+              <h2 className="text-2xl font-bold">Add Product Classification</h2>
+              <p className="text-gray-600 mt-1">Manually add a product with its HS code</p>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X className="h-6 w-6" />
             </button>
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="border-b border-gray-200">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('basic')}
+              className={`px-6 py-3 font-medium transition-colors ${
+                activeTab === 'basic'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Basic Information
+            </button>
+            <button
+              onClick={() => setActiveTab('trade')}
+              className={`px-6 py-3 font-medium transition-colors ${
+                activeTab === 'trade'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Trade Details
+            </button>
+          </div>
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-6">
-            {/* HS Code Section */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                HS Code <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  name="hsCode"
-                  value={formData.hsCode}
-                  onChange={handleInputChange}
-                  placeholder="Enter 6-10 digit HS code"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {fetchingTariff && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                  </div>
-                )}
-              </div>
-              
-              {/* Tariff Data Display */}
-              {tariffData && (
-                <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-green-100 rounded-full p-1">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+          {activeTab === 'basic' && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  HS Code <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="hsCode"
+                    value={formData.hsCode}
+                    onChange={handleInputChange}
+                    placeholder="Enter 6-10 digit HS code"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {fetchingTariff && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-green-800 mb-2">Tariff Information Found</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <p className="text-green-700">
-                              <strong>MFN Rate:</strong> {tariffData.mfn_text_rate || 'Free'}
-                            </p>
-                            {tariffData.quantity_1_code && (
-                              <p className="text-green-700">
-                                <strong>Unit:</strong> {tariffData.quantity_1_code}
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            {tariffData.col1_special_text && (
-                              <p className="text-green-700">
-                                <strong>Special Programs:</strong> {tariffData.col1_special_text}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        {tariffData.brief_description && (
-                          <p className="text-green-700 mt-2">
-                            <strong>Description:</strong> {tariffData.brief_description}
-                          </p>
-                        )}
+                  )}
+                </div>
+                {tariffData && (
+                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-green-800 font-medium">
+                          Tariff data found
+                        </p>
+                        <p className="text-xs text-green-700 mt-1">
+                          MFN Rate: {tariffData.mfn_text_rate || 'Free'}
+                          {tariffData.quantity_1_code && (
+                            <span className="ml-2">• Unit: {tariffData.quantity_1_code}</span>
+                          )}
+                        </p>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Product Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Product Description <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="productDescription"
-                value={formData.productDescription}
-                onChange={handleInputChange}
-                placeholder="Enter detailed product description"
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Trade Information Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Globe className="inline h-4 w-4 mr-1" />
-                  Country of Origin
-                </label>
-                <select
-                  name="originCountry"
-                  value={formData.originCountry}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select country</option>
-                  {COUNTRIES.map(country => (
-                    <option key={country.code} value={country.code}>
-                      {country.name}
-                    </option>
-                  ))}
-                </select>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <DollarSign className="inline h-4 w-4 mr-1" />
-                  Typical Invoice Value (USD)
+                  Product Description <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="number"
-                  name="typicalValue"
-                  value={formData.typicalValue}
+                <textarea
+                  name="productDescription"
+                  value={formData.productDescription}
                   onChange={handleInputChange}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter detailed product description"
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              </div>
-            </div>
-
-            {/* Quantity and Weight Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Package className="inline h-4 w-4 mr-1" />
-                  Typical Quantity
-                </label>
-                <input
-                  type="number"
-                  name="typicalQuantity"
-                  value={formData.typicalQuantity}
-                  onChange={handleInputChange}
-                  placeholder="0"
-                  step="0.001"
-                  min="0"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Unit
-                  {tariffData?.quantity_1_code && (
-                    <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
-                      Auto-detected: {tariffData.quantity_1_code}
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  name="quantityUnit"
-                  value={formData.quantityUnit}
-                  onChange={handleInputChange}
-                  placeholder="e.g., PCS, KG, L"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  readOnly={!!tariffData?.quantity_1_code}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Weight className="inline h-4 w-4 mr-1" />
-                  Weight (kg)
-                  {isWeightRequired() && (
-                    <span className="ml-2 text-xs px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">
-                      Required
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="number"
-                  name="weightKg"
-                  value={formData.weightKg}
-                  onChange={handleInputChange}
-                  placeholder="0.000"
-                  step="0.001"
-                  min="0"
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isWeightRequired() 
-                      ? 'border-yellow-300 bg-yellow-50' 
-                      : 'border-gray-300'
-                  }`}
-                />
-                {isWeightRequired() && (
-                  <p className="text-xs text-yellow-600 mt-1">
-                    Weight is required for this HS code due to weight-based duty rates
+                {tariffData?.brief_description && formData.productDescription === tariffData.brief_description && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    <Info className="inline h-3 w-3 mr-1" />
+                    Auto-populated from tariff data
                   </p>
                 )}
               </div>
-            </div>
 
-            {/* Import Information Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Import Frequency
+                  Notes
                 </label>
-                <select
-                  name="importFrequency"
-                  value={formData.importFrequency}
+                <textarea
+                  name="notes"
+                  value={formData.notes}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="biannual">Twice a Year</option>
-                  <option value="annual">Annually</option>
-                  <option value="occasional">Occasional</option>
-                </select>
+                  placeholder="Additional notes or comments (optional)"
+                  rows={2}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'trade' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Globe className="inline h-4 w-4 mr-1" />
+                    Country of Origin
+                  </label>
+                  <select
+                    name="originCountry"
+                    value={formData.originCountry}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select country</option>
+                    {COUNTRIES.map(country => (
+                      <option key={country.code} value={country.code}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <DollarSign className="inline h-4 w-4 mr-1" />
+                    Typical Invoice Value (USD)
+                  </label>
+                  <input
+                    type="number"
+                    name="typicalValue"
+                    value={formData.typicalValue}
+                    onChange={handleInputChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Package className="inline h-4 w-4 mr-1" />
+                    Typical Quantity
+                  </label>
+                  <input
+                    type="number"
+                    name="typicalQuantity"
+                    value={formData.typicalQuantity}
+                    onChange={handleInputChange}
+                    placeholder="0"
+                    step="0.001"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Unit
+                  </label>
+                  {tariffData?.quantity_1_code ? (
+                    <div className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg">
+                      <span className="text-sm font-medium">{tariffData.quantity_1_code}</span>
+                      <span className="text-xs text-gray-500 ml-1">(from tariff)</span>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      name="quantityUnit"
+                      value={formData.quantityUnit}
+                      onChange={handleInputChange}
+                      placeholder="PCS, KG, etc."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Weight className="inline h-4 w-4 mr-1" />
+                    Weight (kg)
+                  </label>
+                  <input
+                    type="number"
+                    name="weightKg"
+                    value={formData.weightKg}
+                    onChange={handleInputChange}
+                    placeholder="0.000"
+                    step="0.001"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Incoterms
+                  </label>
+                  <select
+                    name="incoterms"
+                    value={formData.incoterms}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {INCOTERMS.map(term => (
+                      <option key={term.value} value={term.value}>
+                        {term.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Import Frequency
+                  </label>
+                  <select
+                    name="importFrequency"
+                    value={formData.importFrequency}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {IMPORT_FREQUENCIES.map(freq => (
+                      <option key={freq.value} value={freq.value}>
+                        {freq.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -404,27 +435,26 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
                   onChange={handleInputChange}
                   placeholder="0.00"
                   step="0.01"
-                  min="0"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-            </div>
 
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes
-              </label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleInputChange}
-                placeholder="Additional notes or comments"
-                rows={2}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {/* Info box about units */}
+              {tariffData?.quantity_1_code && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium">Unit Information</p>
+                      <p className="text-xs mt-1">
+                        The quantity unit has been automatically set to <strong>{tariffData.quantity_1_code}</strong> based on the tariff schedule for HS code {formData.hsCode}.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -444,7 +474,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
               </CustomButton>
               <CustomButton
                 onClick={handleSubmit}
-                disabled={loading || !formData.hsCode || !formData.productDescription || (isWeightRequired() && !formData.weightKg)}
+                disabled={loading || !formData.hsCode || !formData.productDescription}
               >
                 {loading ? (
                   <>

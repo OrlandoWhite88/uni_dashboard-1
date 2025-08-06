@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { Loader2, AlertCircle, DollarSign, Package, Truck, FileText, Calculator, Info, ChevronDown, Search, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomButton from "./ui/CustomButton";
+import { useSearchParams } from "react-router-dom";
 
 interface TariffCalculatorProps {
   initialHsCode?: string;
@@ -554,26 +555,37 @@ const COUNTRY_VAT_RATES = {
 
 const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" }) => {
   const { userId } = useAuth();
-  const [hsCode, setHsCode] = useState(initialHsCode);
+  const [searchParams] = useSearchParams();
+  
+  // Get initial values from URL params
+  const urlHsCode = searchParams.get('hsCode') || initialHsCode;
+  const urlDescription = searchParams.get('description') || "";
+  const urlOriginCountry = searchParams.get('originCountry') || "";
+  const urlInvoiceValue = searchParams.get('invoiceValue') || "";
+  const urlQuantity = searchParams.get('quantity') || "1";
+  const urlWeight = searchParams.get('weight') || "";
+  const urlQuantityUnit = searchParams.get('quantityUnit') || "";
+  
+  const [hsCode, setHsCode] = useState(urlHsCode);
   const [tariffData, setTariffData] = useState<TariffData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState(initialHsCode ? 2 : 1);
+  const [step, setStep] = useState(urlHsCode ? 2 : 1);
   
   // Past classifications state
   const [pastClassifications, setPastClassifications] = useState<ClassificationRecord[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [hsCodeInput, setHsCodeInput] = useState(initialHsCode);
+  const [hsCodeInput, setHsCodeInput] = useState(urlHsCode);
 
   const [shipmentDetails, setShipmentDetails] = useState<ShipmentDetails>({
-    hsCode: initialHsCode,
-    description: "",
-    invoiceValue: "",
+    hsCode: urlHsCode,
+    description: urlDescription,
+    invoiceValue: urlInvoiceValue,
     freightCost: "",
     insuranceCost: "",
-    quantity: "1",
-    weight: "",
-    countryOfOrigin: "",
+    quantity: urlQuantity,
+    weight: urlWeight,
+    countryOfOrigin: urlOriginCountry,
     destinationCountry: "",
     vatRate: "",
     additionalFees: "",

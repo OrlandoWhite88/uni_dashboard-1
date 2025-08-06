@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
 import { useNavigate } from 'react-router-dom';
+import ProductDetailsModal from '@/components/ProductDetailsModal';
 
 interface DashboardStats {
   totalClassifications: number;
@@ -48,6 +49,8 @@ const ClassificationDashboard = () => {
     recentChanges: 0
   });
   const [checkingTariffs, setCheckingTariffs] = useState(false);
+  const [selectedClassification, setSelectedClassification] = useState<ClassificationRecord | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -227,7 +230,10 @@ const ClassificationDashboard = () => {
               <div 
                 key={classification.id} 
                 className="flex items-center justify-between p-3 bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
-                onClick={() => navigate('/classification-history')}
+                onClick={() => {
+                  setSelectedClassification(classification);
+                  setShowDetailsModal(true);
+                }}
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">
@@ -306,6 +312,17 @@ const ClassificationDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Product Details Modal */}
+      <ProductDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedClassification(null);
+        }}
+        classification={selectedClassification}
+        onUpdate={loadDashboardData}
+      />
     </div>
   );
 };
