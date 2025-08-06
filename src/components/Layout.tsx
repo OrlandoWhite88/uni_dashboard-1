@@ -79,7 +79,7 @@ const Layout = ({ children, className }: LayoutProps) => {
 
       {/* Main Content Area */}
       <div className="flex-1 md:ml-[280px]">
-        <header className="w-full border-b border-border/40 backdrop-blur-sm bg-background/80 fixed top-0 right-0 left-0 md:left-[280px] z-50">
+        <header className="w-full border-b border-border/40 backdrop-blur-sm bg-background/80 fixed top-0 right-0 left-0 md:left-[280px] z-30">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-5xl">
             <div className="flex items-center">
               {/* Mobile menu button */}
