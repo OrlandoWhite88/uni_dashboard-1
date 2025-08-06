@@ -8,6 +8,7 @@ import CustomButton from "./ui/CustomButton";
 
 interface TariffCalculatorProps {
   initialHsCode?: string;
+  initialClassificationData?: ClassificationRecord;
 }
 
 interface ShipmentDetails {
@@ -552,7 +553,7 @@ const COUNTRY_VAT_RATES = {
 
 };
 
-const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" }) => {
+const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "", initialClassificationData }) => {
   const { userId } = useAuth();
   const [hsCode, setHsCode] = useState(initialHsCode);
   const [tariffData, setTariffData] = useState<TariffData | null>(null);
@@ -567,13 +568,13 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
 
   const [shipmentDetails, setShipmentDetails] = useState<ShipmentDetails>({
     hsCode: initialHsCode,
-    description: "",
-    invoiceValue: "",
+    description: initialClassificationData?.product_description || "",
+    invoiceValue: initialClassificationData?.typical_value?.toString() || "",
     freightCost: "",
     insuranceCost: "",
-    quantity: "1",
-    weight: "",
-    countryOfOrigin: "",
+    quantity: initialClassificationData?.typical_quantity?.toString() || "1",
+    weight: initialClassificationData?.weight_kg?.toString() || "",
+    countryOfOrigin: initialClassificationData?.origin_country || "",
     destinationCountry: "",
     vatRate: "",
     additionalFees: "",
@@ -839,15 +840,24 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     }
   };
 
-  const selectHsCode = (code: string, description?: string) => {
+  const selectHsCode = (code: string, description?: string, classificationData?: ClassificationRecord) => {
     setHsCode(code);
     setHsCodeInput(code);
     setShowDropdown(false);
-    if (description) {
-      setShipmentDetails(prev => ({
-        ...prev,
-        description
-      }));
+    
+    // Auto-populate form fields with saved classification data
+    setShipmentDetails(prev => ({
+      ...prev,
+      description: description || classificationData?.product_description || prev.description,
+      invoiceValue: classificationData?.typical_value?.toString() || prev.invoiceValue,
+      quantity: classificationData?.typical_quantity?.toString() || prev.quantity,
+      weight: classificationData?.weight_kg?.toString() || prev.weight,
+      countryOfOrigin: classificationData?.origin_country || prev.countryOfOrigin,
+    }));
+
+    // If we have initial classification data and we're setting the initial HS code, move to step 2
+    if (classificationData && code === initialHsCode) {
+      setStep(2);
     }
   };
 
@@ -1162,7 +1172,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
                 {filteredClassifications.slice(0, 10).map((classification) => (
                   <div
                     key={classification.id}
-                    onClick={() => selectHsCode(classification.hs_code, classification.product_description)}
+                    onClick={() => selectHsCode(classification.hs_code, classification.product_description, classification)}
                     className="p-3 hover:bg-secondary cursor-pointer border-b border-border/50 last:border-b-0"
                   >
                     <div className="flex items-center justify-between">

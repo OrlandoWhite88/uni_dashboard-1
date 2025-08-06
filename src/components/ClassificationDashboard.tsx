@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { getUserClassifications, ClassificationRecord, getTariffChangeStats, checkTariffChanges } from '@/lib/supabaseService';
-import { 
-  Calendar, 
-  Package, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Calendar,
+  Package,
+  AlertTriangle,
+  CheckCircle,
   Clock,
   TrendingUp,
   ArrowRight,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
 import { useNavigate } from 'react-router-dom';
+import ProductDetailsModal from '@/components/ProductDetailsModal';
 
 interface DashboardStats {
   totalClassifications: number;
@@ -48,6 +49,10 @@ const ClassificationDashboard = () => {
     recentChanges: 0
   });
   const [checkingTariffs, setCheckingTariffs] = useState(false);
+  
+  // Modal state
+  const [selectedClassification, setSelectedClassification] = useState<ClassificationRecord | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -126,6 +131,21 @@ const ClassificationDashboard = () => {
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  const handleClassificationClick = (classification: ClassificationRecord) => {
+    setSelectedClassification(classification);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedClassification(null);
+  };
+
+  const handleDataUpdated = () => {
+    // Refresh the dashboard data when classification data is updated
+    loadDashboardData();
   };
 
   if (!userId || loading) {
@@ -224,10 +244,10 @@ const ClassificationDashboard = () => {
           
           <div className="space-y-2">
             {recentClassifications.map((classification) => (
-              <div 
-                key={classification.id} 
+              <div
+                key={classification.id}
                 className="flex items-center justify-between p-3 bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
-                onClick={() => navigate('/classification-history')}
+                onClick={() => handleClassificationClick(classification)}
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">
@@ -305,6 +325,19 @@ const ClassificationDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Product Details Modal */}
+      {selectedClassification && (
+        <ProductDetailsModal
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          product={selectedClassification.product_description}
+          hsCode={selectedClassification.hs_code}
+          confidence={Math.round(selectedClassification.confidence || 0)}
+          classificationData={selectedClassification}
+          onDataUpdated={handleDataUpdated}
+        />
       )}
     </div>
   );

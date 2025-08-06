@@ -58,7 +58,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetchingTariff, setFetchingTariff] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'trade' | 'supplier'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'trade'>('basic');
   
   const [formData, setFormData] = useState({
     // Basic Information
@@ -75,18 +75,16 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
     incoterms: 'FOB',
     importFrequency: 'monthly',
     annualImportValue: '',
-    
-    // Supplier Information
-    supplierName: '',
-    supplierCountry: '',
-    supplierContact: '',
-    
-    // Tags and Certificates
-    productTags: '',
-    ftaCertificates: '',
   });
 
   const [tariffData, setTariffData] = useState<any>(null);
+
+  // Check if weight is required for calculation (same logic as TariffCalculator)
+  const isWeightRequiredForCalculation = (): boolean => {
+    if (!tariffData) return false;
+    return tariffData.quantity_1_code === 'KG' ||
+           (tariffData.mfn_text_rate && tariffData.mfn_text_rate.toString().toLowerCase().includes('kg'));
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -141,27 +139,19 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
       return;
     }
 
+    // Validate weight if required
+    if (isWeightRequiredForCalculation() && !formData.weightKg) {
+      toast({
+        title: "Validation Error",
+        description: "Weight is required for this HS code due to weight-based tariff rates",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // Prepare supplier info JSON
-      const supplierInfo = formData.supplierName ? {
-        name: formData.supplierName,
-        country: formData.supplierCountry,
-        contact: formData.supplierContact,
-      } : null;
-
-      // Prepare FTA certificates JSON
-      const ftaCertificates = formData.ftaCertificates ? {
-        certificates: formData.ftaCertificates.split(',').map(cert => cert.trim()),
-        lastUpdated: new Date().toISOString()
-      } : null;
-
-      // Prepare tags array
-      const productTags = formData.productTags 
-        ? formData.productTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
-        : [];
-
-      // Create classification record with enhanced fields
+      // Create classification record with essential fields only
       const classification: ClassificationRecord & any = {
         user_id: userId,
         user_email: userEmail,
@@ -171,7 +161,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
         tariff_data: tariffData,
         is_manual_entry: true,
         
-        // Enhanced fields
+        // Essential trade fields
         origin_country: formData.originCountry || null,
         typical_value: formData.typicalValue ? parseFloat(formData.typicalValue) : null,
         typical_quantity: formData.typicalQuantity ? parseFloat(formData.typicalQuantity) : null,
@@ -180,9 +170,11 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
         incoterms: formData.incoterms || null,
         import_frequency: formData.importFrequency || null,
         annual_import_value: formData.annualImportValue ? parseFloat(formData.annualImportValue) : null,
-        supplier_info: supplierInfo,
-        product_tags: productTags,
-        fta_certificates: ftaCertificates,
+        
+        // Remove supplier and tags fields
+        supplier_info: null,
+        product_tags: [],
+        fta_certificates: null,
       };
 
       const result = await saveClassification(classification);
@@ -217,7 +209,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold">Quick Add Product</h2>
-              <p className="text-gray-600 mt-1">Manually add a product with its HS code and details</p>
+              <p className="text-gray-600 mt-1">Manually add a product with its HS code and essential details</p>
             </div>
             <button
               onClick={onClose}
@@ -228,12 +220,12 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Simplified Tabs - Only Basic and Trade */}
         <div className="border-b border-gray-200">
           <div className="flex">
             <button
               onClick={() => setActiveTab('basic')}
-              className={`px-6 py-3 font-medium ${
+              className={`px-6 py-3 font-medium flex-1 ${
                 activeTab === 'basic'
                   ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -243,23 +235,13 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('trade')}
-              className={`px-6 py-3 font-medium ${
+              className={`px-6 py-3 font-medium flex-1 ${
                 activeTab === 'trade'
                   ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Trade Details
-            </button>
-            <button
-              onClick={() => setActiveTab('supplier')}
-              className={`px-6 py-3 font-medium ${
-                activeTab === 'supplier'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Supplier & Tags
             </button>
           </div>
         </div>
@@ -292,6 +274,11 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
                     <p className="text-sm text-green-800">
                       ✓ Tariff data found: {tariffData.mfn_text_rate || 'Free'}
                     </p>
+                    {isWeightRequiredForCalculation() && (
+                      <p className="text-xs text-orange-600 mt-1">
+                        ⚠️ Weight required for this HS code (weight-based tariff rates)
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -401,21 +388,25 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Weight className="inline h-4 w-4 mr-1" />
-                    Weight (kg)
-                  </label>
-                  <input
-                    type="number"
-                    name="weightKg"
-                    value={formData.weightKg}
-                    onChange={handleInputChange}
-                    placeholder="0.000"
-                    step="0.001"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+                {/* Smart weight field - only show when required */}
+                {isWeightRequiredForCalculation() && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Weight className="inline h-4 w-4 mr-1" />
+                      Weight (kg) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="weightKg"
+                      value={formData.weightKg}
+                      onChange={handleInputChange}
+                      placeholder="0.000"
+                      step="0.001"
+                      className="w-full px-4 py-2 border border-orange-300 bg-orange-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <p className="text-xs text-orange-600 mt-1">Required for this HS code</p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -577,7 +568,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
               </CustomButton>
               <CustomButton
                 onClick={handleSubmit}
-                disabled={loading || !formData.hsCode || !formData.productDescription}
+                disabled={loading || !formData.hsCode || !formData.productDescription || (isWeightRequiredForCalculation() && !formData.weightKg)}
               >
                 {loading ? (
                   <>
