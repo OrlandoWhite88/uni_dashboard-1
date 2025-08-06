@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Package, Globe, DollarSign, Weight, FileText, AlertCircle, Loader2, Info, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Plus, Package, Globe, DollarSign, Weight, FileText, Tag, Building, AlertCircle, Loader2 } from 'lucide-react';
 import CustomButton from './ui/CustomButton';
 import { useToast } from '@/hooks/use-toast';
 import { saveClassification, ClassificationRecord } from '@/lib/supabaseService';
@@ -36,6 +36,19 @@ const IMPORT_FREQUENCIES = [
   { value: 'occasional', label: 'Occasional' },
 ];
 
+const QUANTITY_UNITS = [
+  { value: 'PCS', label: 'Pieces' },
+  { value: 'KG', label: 'Kilograms' },
+  { value: 'MT', label: 'Metric Tons' },
+  { value: 'L', label: 'Liters' },
+  { value: 'M', label: 'Meters' },
+  { value: 'M2', label: 'Square Meters' },
+  { value: 'M3', label: 'Cubic Meters' },
+  { value: 'DOZ', label: 'Dozen' },
+  { value: 'GROSS', label: 'Gross' },
+  { value: 'PACK', label: 'Pack' },
+];
+
 const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
   userId,
   userEmail,
@@ -45,8 +58,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetchingTariff, setFetchingTariff] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'trade'>('basic');
-  const [tariffData, setTariffData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'basic' | 'trade' | 'supplier'>('basic');
   
   const [formData, setFormData] = useState({
     // Basic Information
@@ -58,12 +70,23 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
     originCountry: '',
     typicalValue: '',
     typicalQuantity: '',
-    quantityUnit: '',
+    quantityUnit: 'PCS',
     weightKg: '',
     incoterms: 'FOB',
     importFrequency: 'monthly',
     annualImportValue: '',
+    
+    // Supplier Information
+    supplierName: '',
+    supplierCountry: '',
+    supplierContact: '',
+    
+    // Tags and Certificates
+    productTags: '',
+    ftaCertificates: '',
   });
+
+  const [tariffData, setTariffData] = useState<any>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -84,13 +107,11 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
       const data = await getTariffInfo(hsCode);
       setTariffData(data);
       
-      // Auto-populate fields from tariff data
-      if (data) {
+      // Auto-populate description if available
+      if (data?.brief_description && !formData.productDescription) {
         setFormData(prev => ({
           ...prev,
-          productDescription: data.brief_description || prev.productDescription,
-          // Auto-set quantity unit from tariff data
-          quantityUnit: data.quantity_1_code || prev.quantityUnit
+          productDescription: data.brief_description
         }));
       }
     } catch (error) {
@@ -122,8 +143,26 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
 
     setLoading(true);
     try {
+      // Prepare supplier info JSON
+      const supplierInfo = formData.supplierName ? {
+        name: formData.supplierName,
+        country: formData.supplierCountry,
+        contact: formData.supplierContact,
+      } : null;
+
+      // Prepare FTA certificates JSON
+      const ftaCertificates = formData.ftaCertificates ? {
+        certificates: formData.ftaCertificates.split(',').map(cert => cert.trim()),
+        lastUpdated: new Date().toISOString()
+      } : null;
+
+      // Prepare tags array
+      const productTags = formData.productTags 
+        ? formData.productTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+        : [];
+
       // Create classification record with enhanced fields
-      const classification: ClassificationRecord = {
+      const classification: ClassificationRecord & any = {
         user_id: userId,
         user_email: userEmail,
         hs_code: formData.hsCode,
@@ -141,6 +180,9 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
         incoterms: formData.incoterms || null,
         import_frequency: formData.importFrequency || null,
         annual_import_value: formData.annualImportValue ? parseFloat(formData.annualImportValue) : null,
+        supplier_info: supplierInfo,
+        product_tags: productTags,
+        fta_certificates: ftaCertificates,
       };
 
       const result = await saveClassification(classification);
@@ -169,17 +211,17 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Add Product Classification</h2>
-              <p className="text-gray-600 mt-1">Manually add a product with its HS code</p>
+              <h2 className="text-2xl font-bold">Quick Add Product</h2>
+              <p className="text-gray-600 mt-1">Manually add a product with its HS code and details</p>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600"
             >
               <X className="h-6 w-6" />
             </button>
@@ -191,7 +233,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
           <div className="flex">
             <button
               onClick={() => setActiveTab('basic')}
-              className={`px-6 py-3 font-medium transition-colors ${
+              className={`px-6 py-3 font-medium ${
                 activeTab === 'basic'
                   ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
@@ -201,13 +243,23 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('trade')}
-              className={`px-6 py-3 font-medium transition-colors ${
+              className={`px-6 py-3 font-medium ${
                 activeTab === 'trade'
                   ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
               Trade Details
+            </button>
+            <button
+              onClick={() => setActiveTab('supplier')}
+              className={`px-6 py-3 font-medium ${
+                activeTab === 'supplier'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Supplier & Tags
             </button>
           </div>
         </div>
@@ -237,20 +289,9 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
                 </div>
                 {tariffData && (
                   <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm text-green-800 font-medium">
-                          Tariff data found
-                        </p>
-                        <p className="text-xs text-green-700 mt-1">
-                          MFN Rate: {tariffData.mfn_text_rate || 'Free'}
-                          {tariffData.quantity_1_code && (
-                            <span className="ml-2">• Unit: {tariffData.quantity_1_code}</span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
+                    <p className="text-sm text-green-800">
+                      ✓ Tariff data found: {tariffData.mfn_text_rate || 'Free'}
+                    </p>
                   </div>
                 )}
               </div>
@@ -267,12 +308,6 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
                   rows={3}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {tariffData?.brief_description && formData.productDescription === tariffData.brief_description && (
-                  <p className="text-xs text-blue-600 mt-1">
-                    <Info className="inline h-3 w-3 mr-1" />
-                    Auto-populated from tariff data
-                  </p>
-                )}
               </div>
 
               <div>
@@ -283,7 +318,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
                   name="notes"
                   value={formData.notes}
                   onChange={handleInputChange}
-                  placeholder="Additional notes or comments (optional)"
+                  placeholder="Additional notes or comments"
                   rows={2}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -352,21 +387,18 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Unit
                   </label>
-                  {tariffData?.quantity_1_code ? (
-                    <div className="px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg">
-                      <span className="text-sm font-medium">{tariffData.quantity_1_code}</span>
-                      <span className="text-xs text-gray-500 ml-1">(from tariff)</span>
-                    </div>
-                  ) : (
-                    <input
-                      type="text"
-                      name="quantityUnit"
-                      value={formData.quantityUnit}
-                      onChange={handleInputChange}
-                      placeholder="PCS, KG, etc."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  )}
+                  <select
+                    name="quantityUnit"
+                    value={formData.quantityUnit}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {QUANTITY_UNITS.map(unit => (
+                      <option key={unit.value} value={unit.value}>
+                        {unit.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -438,21 +470,92 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+            </div>
+          )}
 
-              {/* Info box about units */}
-              {tariffData?.quantity_1_code && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-blue-600 mt-0.5" />
-                    <div className="text-sm text-blue-800">
-                      <p className="font-medium">Unit Information</p>
-                      <p className="text-xs mt-1">
-                        The quantity unit has been automatically set to <strong>{tariffData.quantity_1_code}</strong> based on the tariff schedule for HS code {formData.hsCode}.
-                      </p>
-                    </div>
-                  </div>
+          {activeTab === 'supplier' && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Building className="inline h-4 w-4 mr-1" />
+                  Supplier Name
+                </label>
+                <input
+                  type="text"
+                  name="supplierName"
+                  value={formData.supplierName}
+                  onChange={handleInputChange}
+                  placeholder="Enter supplier company name"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Supplier Country
+                  </label>
+                  <select
+                    name="supplierCountry"
+                    value={formData.supplierCountry}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select country</option>
+                    {COUNTRIES.map(country => (
+                      <option key={country.code} value={country.code}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Supplier Contact
+                  </label>
+                  <input
+                    type="text"
+                    name="supplierContact"
+                    value={formData.supplierContact}
+                    onChange={handleInputChange}
+                    placeholder="Email or phone"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Tag className="inline h-4 w-4 mr-1" />
+                  Product Tags
+                </label>
+                <input
+                  type="text"
+                  name="productTags"
+                  value={formData.productTags}
+                  onChange={handleInputChange}
+                  placeholder="Enter tags separated by commas (e.g., electronics, consumer goods)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Separate multiple tags with commas</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FileText className="inline h-4 w-4 mr-1" />
+                  FTA Certificates
+                </label>
+                <input
+                  type="text"
+                  name="ftaCertificates"
+                  value={formData.ftaCertificates}
+                  onChange={handleInputChange}
+                  placeholder="Certificate numbers or types (e.g., USMCA, GSP)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">List applicable FTA certificates</p>
+              </div>
             </div>
           )}
         </div>

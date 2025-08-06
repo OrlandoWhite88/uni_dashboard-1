@@ -277,21 +277,6 @@ export interface ClassificationRecord {
   tariff_change_detected?: string;
   previous_tariff_data?: any;
   status?: 'current' | 'outdated' | 'needs_review' | 'changed' | 'discontinued';
-  
-  // Enhanced fields
-  origin_country?: string | null;
-  typical_value?: number | null;
-  typical_quantity?: number | null;
-  quantity_unit?: string | null;
-  weight_kg?: number | null;
-  incoterms?: string | null;
-  import_frequency?: string | null;
-  annual_import_value?: number | null;
-  supplier_info?: any;
-  product_tags?: string[];
-  fta_certificates?: any;
-  classification_method?: string;
-  is_manual_entry?: boolean;
 }
 
 export async function saveClassification(classification: ClassificationRecord) {
