@@ -1,51 +1,377 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import Layout from '@/components/Layout';
-import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord, checkTariffChanges, getTariffChangeStats, acceptTariffChanges } from '@/lib/supabaseService';
-import TariffInfo from '@/components/TariffInfo';
-import QuickAddClassification from '@/components/QuickAddClassification';
+import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
+  Plus, 
+  Filter, 
   Calendar, 
   Package, 
-  Star, 
-  Trash2, 
-  Filter,
+  Globe, 
+  DollarSign, 
+  Weight, 
+  Calculator,
+  Eye,
+  Edit,
+  Trash2,
+  Download,
+  Tag,
+  Building,
+  FileText,
   AlertCircle,
   Loader2,
-  Heart,
-  Copy,
-  X,
-  Info,
-  Clock,
-  RefreshCw,
-  Database,
-  Calculator,
-  CheckCircle,
-  ArrowRight,
-  Plus,
-  Upload,
-  DollarSign,
-  TrendingUp,
-  Globe
+  X
 } from 'lucide-react';
-import CustomButton from '@/components/ui/CustomButton';
+import { getUserClassifications, ClassificationRecord, deleteClassification } from '@/lib/supabaseService';
 import { useToast } from '@/hooks/use-toast';
+import CustomButton from '@/components/ui/CustomButton';
+import QuickAddClassification from '@/components/QuickAddClassification';
 
-const ClassificationHistory = () => {
+interface ClassificationHistoryProps {}
+
+interface EnhancedClassificationRecord extends ClassificationRecord {
+  origin_country?: string;
+  typical_value?: number;
+  typical_quantity?: number;
+  quantity_unit?: string;
+  weight_kg?: number;
+  supplier_info?: {
+    name?: string;
+    country?: string;
+    contact?: string;
+  };
+  incoterms?: string;
+  product_tags?: string[];
+  fta_certificates?: {
+    certificates?: string[];
+    lastUpdated?: string;
+  };
+  import_frequency?: string;
+  annual_import_value?: number;
+  is_manual_entry?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface ClassificationDetailsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  classification: EnhancedClassificationRecord | null;
+  onCalculate: (classification: EnhancedClassificationRecord) => void;
+  onEdit: (classification: EnhancedClassificationRecord) => void;
+  onDelete: (id: string) => void;
+}
+
+const COUNTRIES = [
+  { code: "US", name: "United States" },
+  { code: "CA", name: "Canada" },
+  { code: "MX", name: "Mexico" },
+  { code: "CN", name: "China" },
+  { code: "DE", name: "Germany" },
+  { code: "JP", name: "Japan" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "FR", name: "France" },
+  { code: "IT", name: "Italy" },
+  { code: "KR", name: "South Korea" },
+  // Add more countries as needed
+];
+
+const getCountryName = (code: string): string => {
+  const country = COUNTRIES.find(c => c.code === code);
+  return country ? country.name : code;
+};
+
+const ClassificationDetailsModal: React.FC<ClassificationDetailsModalProps> = ({
+  isOpen,
+  onClose,
+  classification,
+  onCalculate,
+  onEdit,
+  onDelete
+}) => {
+  if (!isOpen || !classification) return null;
+
+  const formatCurrency = (value: number | null | undefined): string => {
+    if (!value) return 'N/A';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Classification Details</h2>
+              <p className="text-gray-600 mt-1">HS Code: {classification.hs_code}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 flex items-center">
+                <Package className="h-5 w-5 mr-2" />
+                Basic Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Product Description</label>
+                  <p className="text-sm text-gray-900 mt-1">{classification.product_description}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Classification Date</label>
+                  <p className="text-sm text-gray-900 mt-1">{formatDate(classification.created_at)}</p>
+                </div>
+                {classification.notes && (
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Notes</label>
+                    <p className="text-sm text-gray-900 mt-1">{classification.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Trade Information */}
+            {(classification.origin_country || classification.typical_value || classification.typical_quantity) && (
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center">
+                  <Globe className="h-5 w-5 mr-2" />
+                  Trade Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {classification.origin_country && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Country of Origin</label>
+                      <p className="text-sm text-gray-900 mt-1">{getCountryName(classification.origin_country)}</p>
+                    </div>
+                  )}
+                  {classification.typical_value && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Typical Value</label>
+                      <p className="text-sm text-gray-900 mt-1">{formatCurrency(classification.typical_value)}</p>
+                    </div>
+                  )}
+                  {classification.typical_quantity && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Typical Quantity</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {classification.typical_quantity} {classification.quantity_unit || 'units'}
+                      </p>
+                    </div>
+                  )}
+                  {classification.weight_kg && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Weight</label>
+                      <p className="text-sm text-gray-900 mt-1">{classification.weight_kg} kg</p>
+                    </div>
+                  )}
+                  {classification.incoterms && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Incoterms</label>
+                      <p className="text-sm text-gray-900 mt-1">{classification.incoterms}</p>
+                    </div>
+                  )}
+                  {classification.import_frequency && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Import Frequency</label>
+                      <p className="text-sm text-gray-900 mt-1 capitalize">{classification.import_frequency}</p>
+                    </div>
+                  )}
+                  {classification.annual_import_value && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Annual Import Value</label>
+                      <p className="text-sm text-gray-900 mt-1">{formatCurrency(classification.annual_import_value)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Supplier Information */}
+            {classification.supplier_info && (
+              <div className="bg-green-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center">
+                  <Building className="h-5 w-5 mr-2" />
+                  Supplier Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {classification.supplier_info.name && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Supplier Name</label>
+                      <p className="text-sm text-gray-900 mt-1">{classification.supplier_info.name}</p>
+                    </div>
+                  )}
+                  {classification.supplier_info.country && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Supplier Country</label>
+                      <p className="text-sm text-gray-900 mt-1">{getCountryName(classification.supplier_info.country)}</p>
+                    </div>
+                  )}
+                  {classification.supplier_info.contact && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Contact</label>
+                      <p className="text-sm text-gray-900 mt-1">{classification.supplier_info.contact}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tags and Certificates */}
+            {(classification.product_tags?.length || classification.fta_certificates?.certificates?.length) && (
+              <div className="bg-purple-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center">
+                  <Tag className="h-5 w-5 mr-2" />
+                  Tags & Certificates
+                </h3>
+                <div className="space-y-3">
+                  {classification.product_tags && classification.product_tags.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Product Tags</label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {classification.product_tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {classification.fta_certificates?.certificates && classification.fta_certificates.certificates.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">FTA Certificates</label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {classification.fta_certificates.certificates.map((cert, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            {cert}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tariff Information */}
+            {classification.tariff_data && (
+              <div className="bg-yellow-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center">
+                  <Calculator className="h-5 w-5 mr-2" />
+                  Tariff Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">MFN Rate</label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {classification.tariff_data.mfn_text_rate || 'Free'}
+                    </p>
+                  </div>
+                  {classification.tariff_data.brief_description && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Tariff Description</label>
+                      <p className="text-sm text-gray-900 mt-1">{classification.tariff_data.brief_description}</p>
+                    </div>
+                  )}
+                  {classification.tariff_data.col1_special_text && (
+                    <div className="md:col-span-2">
+                      <label className="text-sm font-medium text-gray-700">Special Programs</label>
+                      <p className="text-sm text-gray-900 mt-1">{classification.tariff_data.col1_special_text}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              {classification.is_manual_entry && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Manual Entry
+                </span>
+              )}
+              <span>Last updated: {formatDate(classification.updated_at || classification.created_at)}</span>
+            </div>
+            <div className="flex gap-3">
+              <CustomButton
+                variant="outline"
+                onClick={() => onEdit(classification)}
+                size="sm"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </CustomButton>
+              <CustomButton
+                onClick={() => onCalculate(classification)}
+                size="sm"
+              >
+                <Calculator className="mr-2 h-4 w-4" />
+                Calculate Duty
+              </CustomButton>
+              <CustomButton
+                variant="outline"
+                onClick={() => onDelete(classification.id)}
+                size="sm"
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </CustomButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ClassificationHistory: React.FC<ClassificationHistoryProps> = () => {
   const { userId } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [classifications, setClassifications] = useState<ClassificationRecord[]>([]);
+
+  const [classifications, setClassifications] = useState<EnhancedClassificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'current' | 'needs_review' | 'changed'>('all');
-  const [selectedClassification, setSelectedClassification] = useState<ClassificationRecord | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [checkingTariffs, setCheckingTariffs] = useState(false);
-  const [tariffStats, setTariffStats] = useState({ total: 0, changed: 0, needsReview: 0, recentChanges: 0 });
-  const [acceptingChanges, setAcceptingChanges] = useState(false);
+  const [filterTag, setFilterTag] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [selectedClassification, setSelectedClassification] = useState<EnhancedClassificationRecord | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -58,15 +384,8 @@ const ClassificationHistory = () => {
     
     setLoading(true);
     try {
-      const data = await getUserClassifications(userId);
-      setClassifications(data);
-      
-      // Load tariff stats
-      const stats = await getTariffChangeStats(userId);
-      setTariffStats(stats);
-      
-      // Check for tariff changes on page load (on-demand checking)
-      checkTariffsInBackground();
+      const data = await getUserClassifications(userId, 100);
+      setClassifications(data as EnhancedClassificationRecord[]);
     } catch (error) {
       console.error('Error loading classifications:', error);
       toast({
@@ -79,86 +398,48 @@ const ClassificationHistory = () => {
     }
   };
 
-  const checkTariffsInBackground = async () => {
-    if (!userId || checkingTariffs) return;
-    
-    setCheckingTariffs(true);
-    try {
-      console.log('Checking for tariff changes...');
-      const result = await checkTariffChanges(userId);
-      
-      if (result.changed > 0 || result.discontinued > 0) {
-        let message = '';
-        if (result.changed > 0 && result.discontinued > 0) {
-          message = `${result.changed} classification${result.changed > 1 ? 's have' : ' has'} tariff changes and ${result.discontinued} HS code${result.discontinued > 1 ? 's are' : ' is'} discontinued.`;
-        } else if (result.changed > 0) {
-          message = `${result.changed} classification${result.changed > 1 ? 's have' : ' has'} tariff changes that need review.`;
-        } else {
-          message = `${result.discontinued} HS code${result.discontinued > 1 ? 's are' : ' is'} discontinued and need${result.discontinued === 1 ? 's' : ''} reclassification.`;
-        }
-        
-        toast({
-          title: "Changes Detected",
-          description: message,
-          variant: "default",
-        });
-        
-        // Reload classifications to show updated data
-        const updatedData = await getUserClassifications(userId);
-        setClassifications(updatedData);
-        
-        // Update stats
-        const updatedStats = await getTariffChangeStats(userId);
-        setTariffStats(updatedStats);
-      }
-      
-      console.log(`Tariff check completed: ${result.checked} checked, ${result.changed} changed, ${result.discontinued} discontinued, ${result.errors} errors`);
-    } catch (error) {
-      console.error('Error checking tariff changes:', error);
-    } finally {
-      setCheckingTariffs(false);
-    }
+  const handleViewDetails = (classification: EnhancedClassificationRecord) => {
+    setSelectedClassification(classification);
+    setShowDetailsModal(true);
   };
 
-  const handleRefresh = async () => {
-    await loadClassifications();
+  const handleCalculate = (classification: EnhancedClassificationRecord) => {
+    // Navigate to tariff calculator with pre-filled data
+    const params = new URLSearchParams({
+      hsCode: classification.hs_code,
+      description: classification.product_description,
+      ...(classification.origin_country && { originCountry: classification.origin_country }),
+      ...(classification.typical_value && { invoiceValue: classification.typical_value.toString() }),
+      ...(classification.typical_quantity && { quantity: classification.typical_quantity.toString() }),
+      ...(classification.weight_kg && { weight: classification.weight_kg.toString() }),
+    });
+    
+    navigate(`/tariff-calculator?${params.toString()}`);
+    setShowDetailsModal(false);
   };
 
-  const handleSearch = async () => {
-    if (!userId) return;
-    
-    setLoading(true);
-    try {
-      const data = searchTerm 
-        ? await searchClassifications(userId, searchTerm)
-        : await getUserClassifications(userId);
-      setClassifications(data);
-    } catch (error) {
-      console.error('Error searching classifications:', error);
-      toast({
-        title: "Error",
-        description: "Failed to search classifications",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleEdit = (classification: EnhancedClassificationRecord) => {
+    // For now, just show a toast - editing functionality would need to be implemented
+    toast({
+      title: "Edit Feature",
+      description: "Edit functionality will be available in a future update",
+    });
+    setShowDetailsModal(false);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this classification?')) return;
-    
+    if (!confirm('Are you sure you want to delete this classification?')) {
+      return;
+    }
+
     try {
-      const success = await deleteClassification(id);
-      if (success) {
-        setClassifications(prev => prev.filter(c => c.id !== id));
-        toast({
-          title: "Success",
-          description: "Classification deleted successfully",
-        });
-      } else {
-        throw new Error('Failed to delete');
-      }
+      await deleteClassification(id);
+      await loadClassifications();
+      toast({
+        title: "Success",
+        description: "Classification deleted successfully",
+      });
+      setShowDetailsModal(false);
     } catch (error) {
       console.error('Error deleting classification:', error);
       toast({
@@ -169,682 +450,231 @@ const ClassificationHistory = () => {
     }
   };
 
-  const handleToggleFavorite = async (id: string, currentFavorite: boolean) => {
-    try {
-      const updated = await toggleClassificationFavorite(id, !currentFavorite);
-      if (updated) {
-        setClassifications(prev => 
-          prev.map(c => c.id === id ? { ...c, is_favorite: !currentFavorite } : c)
-        );
-        toast({
-          title: "Success",
-          description: `Classification ${!currentFavorite ? 'added to' : 'removed from'} favorites`,
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update favorite status",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleAcceptTariffChanges = async (classificationId: string) => {
-    setAcceptingChanges(true);
-    try {
-      const result = await acceptTariffChanges(classificationId);
-      if (result) {
-        // Update the classification in the local state
-        setClassifications(prev => 
-          prev.map(c => c.id === classificationId ? {
-            ...c,
-            status: 'current',
-            needs_review: false,
-            previous_tariff_data: null,
-            tariff_change_detected: null
-          } : c)
-        );
-        
-        // Update the selected classification if it's the one we just accepted
-        if (selectedClassification?.id === classificationId) {
-          setSelectedClassification(prev => prev ? {
-            ...prev,
-            status: 'current',
-            needs_review: false,
-            previous_tariff_data: null,
-            tariff_change_detected: null
-          } : null);
-        }
-        
-        toast({
-          title: "Changes Accepted",
-          description: "Tariff changes have been accepted and the classification is now current.",
-        });
-        
-        // Reload stats
-        const updatedStats = await getTariffChangeStats(userId!);
-        setTariffStats(updatedStats);
-      } else {
-        throw new Error('Failed to accept changes');
-      }
-    } catch (error) {
-      console.error('Error accepting tariff changes:', error);
-      toast({
-        title: "Error",
-        description: "Failed to accept tariff changes",
-        variant: "destructive",
-      });
-    } finally {
-      setAcceptingChanges(false);
-    }
-  };
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: `${label} copied to clipboard`,
-    });
-  };
-
-  const filteredClassifications = classifications.filter(c => {
-    // Search filter
-    const matchesSearch = c.product_description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         c.hs_code.toLowerCase().includes(searchTerm.toLowerCase());
-    if (!matchesSearch) return false;
-
-    // Filter by favorites
-    if (showFavoritesOnly && !c.is_favorite) return false;
+  // Filter classifications based on search term and tag
+  const filteredClassifications = classifications.filter(classification => {
+    const matchesSearch = !searchTerm || 
+      classification.hs_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      classification.product_description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Filter by status
-    if (statusFilter !== 'all') {
-      const needsReview = c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
-      
-      switch (statusFilter) {
-        case 'current':
-          return !needsReview && c.status !== 'changed';
-        case 'needs_review':
-          return needsReview;
-        case 'changed':
-          return c.status === 'changed';
-        default:
-          return true;
-      }
-    }
+    const matchesTag = !filterTag || 
+      (classification.product_tags && classification.product_tags.some(tag => 
+        tag.toLowerCase().includes(filterTag.toLowerCase())
+      ));
     
-    return true;
+    return matchesSearch && matchesTag;
   });
 
-  const formatDate = (dateString: string) => {
+  // Get all unique tags for filter dropdown
+  const allTags = Array.from(new Set(
+    classifications.flatMap(c => c.product_tags || [])
+  )).sort();
+
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     });
   };
 
-  if (!userId) {
+  const formatCurrency = (value: number | null | undefined): string => {
+    if (!value) return '';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  if (loading) {
     return (
-      <Layout className="pt-28 pb-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Sign In Required</h1>
-          <p className="text-gray-600">Please sign in to view your classification history.</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading classification history...</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout className="pt-28 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Classification History</h1>
-            <p className="text-gray-600">
-              View and manage your past HS code classifications
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <CustomButton
-              onClick={() => setShowQuickAdd(true)}
-              className="flex items-center bg-blue-600 hover:bg-blue-700"
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Classification History</h1>
+          <p className="text-muted-foreground mt-1">
+            View and manage your product classifications
+          </p>
+        </div>
+        <CustomButton onClick={() => setShowQuickAdd(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Product
+        </CustomButton>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by HS code or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        {allTags.length > 0 && (
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <select
+              value={filterTag}
+              onChange={(e) => setFilterTag(e.target.value)}
+              className="pl-10 pr-8 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring appearance-none bg-background"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Quick Add
+              <option value="">All Tags</option>
+              {allTags.map(tag => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Classifications List */}
+      {filteredClassifications.length === 0 ? (
+        <div className="text-center py-12">
+          <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No classifications found</h3>
+          <p className="text-muted-foreground mb-4">
+            {classifications.length === 0 
+              ? "Start by adding your first product classification"
+              : "Try adjusting your search or filter criteria"
+            }
+          </p>
+          {classifications.length === 0 && (
+            <CustomButton onClick={() => setShowQuickAdd(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Your First Product
             </CustomButton>
-            <CustomButton
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={checkingTariffs}
-              className="flex items-center"
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${checkingTariffs ? 'animate-spin' : ''}`} />
-              {checkingTariffs ? 'Checking Tariffs...' : 'Refresh'}
-            </CustomButton>
-          </div>
-        </div>
-
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Package className="h-5 w-5 text-blue-600" />
-              <h3 className="font-medium text-blue-800">Total Classifications</h3>
-            </div>
-            <div className="text-2xl font-bold text-blue-900">
-              {classifications.length}
-            </div>
-            <p className="text-sm text-blue-600">
-              All time classifications
-            </p>
-          </div>
-
-          <div className={`bg-gradient-to-br p-4 rounded-lg ${
-            classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
-              ? 'from-red-50 to-red-100 border border-red-200'
-              : 'from-gray-50 to-gray-100 border border-gray-200'
-          }`}>
-            <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className={`h-5 w-5 ${
-                classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
-                  ? 'text-red-600'
-                  : 'text-gray-600'
-              }`} />
-              <h3 className={`font-medium ${
-                classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
-                  ? 'text-red-800'
-                  : 'text-gray-800'
-              }`}>Needs Review</h3>
-            </div>
-            <div className={`text-2xl font-bold ${
-              classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
-                ? 'text-red-900'
-                : 'text-gray-900'
-            }`}>
-              {classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length}
-            </div>
-            <p className={`text-sm ${
-              classifications.filter(c => c.needs_review || new Date(c.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)).length > 0
-                ? 'text-red-600'
-                : 'text-gray-600'
-            }`}>
-              Tariff changes or HS code changes
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="h-5 w-5 text-green-600" />
-              <h3 className="font-medium text-green-800">Last Updated</h3>
-            </div>
-            <div className="text-xl font-bold text-green-900">
-              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </div>
-            <p className="text-sm text-green-600">
-              HTS Revision: 2024
-            </p>
-          </div>
-        </div>
-
-
-        {/* Search and Filters */}
-        <div className="bg-white border border-gray-200 p-6 rounded-lg mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by product description, HS code, or notes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <CustomButton onClick={handleSearch} className="flex items-center">
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </CustomButton>
-          </div>
-          
-          <div className="flex items-center gap-4 mt-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showFavoritesOnly}
-                onChange={(e) => setShowFavoritesOnly(e.target.checked)}
-                className="rounded border-gray-300"
-              />
-              <Star className="h-4 w-4" />
-              <span className="text-sm">Favorites only</span>
-            </label>
-
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white"
-              >
-                <option value="all">All Status</option>
-                <option value="current">Current</option>
-                <option value="needs_review">Needs Review</option>
-                <option value="changed">Changed</option>
-              </select>
-            </div>
-            
-            <div className="text-sm text-gray-500">
-              {filteredClassifications.length} classification{filteredClassifications.length !== 1 ? 's' : ''}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content Area with Sidebar */}
-        <div className="relative">
-          {/* Classifications Table */}
-          {loading ? (
-            <div className="bg-white border border-gray-200 p-8 rounded-lg text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p>Loading your classifications...</p>
-            </div>
-          ) : filteredClassifications.length === 0 ? (
-            <div className="bg-white border border-gray-200 p-8 rounded-lg text-center">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                {searchTerm || showFavoritesOnly ? 'No matching classifications found' : 'No classifications yet'}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {searchTerm || showFavoritesOnly 
-                  ? 'Try adjusting your search or filters'
-                  : 'Start classifying products to build your history'
-                }
-              </p>
-              {!searchTerm && !showFavoritesOnly && (
-                <CustomButton onClick={() => window.location.href = '/'}>
-                  Start Classifying
-                </CustomButton>
-              )}
-            </div>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Product Description
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      HS Code
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Calculate Tariff
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredClassifications.map((classification) => (
-                    <tr 
-                      key={classification.id} 
-                      className={`hover:bg-gray-50 cursor-pointer transition-colors ${
-                        selectedClassification?.id === classification.id ? 'bg-blue-50' : ''
-                      }`}
-                      onClick={() => {
-                        setSelectedClassification(classification);
-                        setSidebarOpen(true);
-                      }}
-                    >
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate max-w-xs">
-                              {classification.product_description}
-                            </div>
-                            {classification.notes && (
-                              <div className="text-xs text-gray-500 truncate max-w-xs">
-                                {classification.notes}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            {classification.is_favorite && (
-                              <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                            )}
-                            {/* Status indicator dot */}
-                            <div className={`w-2 h-2 rounded-full ${
-                              classification.status === 'discontinued'
-                                ? 'bg-red-600'
-                                : classification.needs_review || new Date(classification.classification_date!) < new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
-                                ? 'bg-yellow-500' 
-                                : classification.status === 'changed'
-                                ? 'bg-red-500'
-                                : 'bg-green-500'
-                            }`} />
-                            {/* Discontinued badge */}
-                            {classification.status === 'discontinued' && (
-                              <span className="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded">
-                                Discontinued
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-blue-600">
-                            {classification.hs_code}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copyToClipboard(classification.hs_code, 'HS Code');
-                            }}
-                            className="opacity-60 hover:opacity-100 text-gray-400 hover:text-gray-600"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          {formatDate(classification.classification_date!)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = `/tariff-calculator?hsCode=${encodeURIComponent(classification.hs_code)}`;
-                          }}
-                          className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs"
-                        >
-                          <Calculator className="h-3 w-3" />
-                          Calculate
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleFavorite(classification.id!, classification.is_favorite || false);
-                            }}
-                            className="text-gray-400 hover:text-red-500"
-                          >
-                            <Heart className={`h-4 w-4 ${classification.is_favorite ? 'text-red-500 fill-current' : ''}`} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedClassification(classification);
-                              setSidebarOpen(true);
-                            }}
-                            className="text-gray-400 hover:text-blue-500"
-                          >
-                            <Info className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(classification.id!);
-                            }}
-                            className="text-gray-400 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           )}
-
-          {/* Right Sidebar */}
-          {sidebarOpen && selectedClassification && (
-            <div className="fixed inset-y-0 right-0 w-full sm:w-1/2 lg:w-1/3 xl:w-1/3 bg-white border-l border-gray-200 shadow-lg z-50 overflow-y-auto">
-              <div className="p-6">
-                {/* Sidebar Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold">Classification Details</h3>
-                  <button
-                    onClick={() => setSidebarOpen(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {/* Product Information */}
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Product Description</label>
-                    <p className="text-sm mt-1 bg-gray-50 p-3 rounded-md">
-                      {selectedClassification.product_description}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">HS Code</label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xl font-mono font-bold text-blue-600">
-                        {selectedClassification.hs_code}
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredClassifications.map((classification) => (
+            <div
+              key={classification.id}
+              className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleViewDetails(classification)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-mono font-semibold text-lg">{classification.hs_code}</h3>
+                    {classification.is_manual_entry && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Manual
                       </span>
-                      <button
-                        onClick={() => copyToClipboard(selectedClassification.hs_code, 'HS Code')}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Date</label>
-                      <p className="text-sm mt-1">
-                        {formatDate(selectedClassification.classification_date!)}
-                      </p>
-                    </div>
-                    {selectedClassification.confidence && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Confidence</label>
-                        <p className="text-sm mt-1">
-                          {Math.round(selectedClassification.confidence)}%
-                        </p>
+                    )}
+                    {classification.product_tags && classification.product_tags.length > 0 && (
+                      <div className="flex gap-1">
+                        {classification.product_tags.slice(0, 2).map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {classification.product_tags.length > 2 && (
+                          <span className="text-xs text-muted-foreground">
+                            +{classification.product_tags.length - 2} more
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
-
-                  {selectedClassification.notes && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Notes</label>
-                      <p className="text-sm mt-1 bg-gray-50 p-3 rounded-md">
-                        {selectedClassification.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Tariff Change Comparison - Show if status is 'changed' */}
-                {selectedClassification.status === 'changed' && selectedClassification.previous_tariff_data && (
-                  <div className="mb-6">
-                    <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-                      <div className="flex items-center gap-2 mb-3">
-                        <AlertCircle className="h-5 w-5 text-red-600" />
-                        <h4 className="font-medium text-red-800">Tariff Changes Detected</h4>
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                    {classification.product_description}
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    {classification.origin_country && (
+                      <div className="flex items-center gap-1">
+                        <Globe className="h-4 w-4 text-muted-foreground" />
+                        <span>{getCountryName(classification.origin_country)}</span>
                       </div>
-                      
-                      <p className="text-sm text-red-700 mb-4">
-                        Changes were detected on {selectedClassification.tariff_change_detected ? 
-                          formatDate(selectedClassification.tariff_change_detected) : 'recently'}. 
-                        Review the changes below and accept them to update your classification.
-                      </p>
-                      
-                      {/* Comparison Table */}
-                      <div className="bg-white rounded-md border border-red-200 overflow-hidden mb-4">
-                        <div className="grid grid-cols-3 gap-0 text-xs font-medium bg-red-100 text-red-800">
-                          <div className="p-2 border-r border-red-200">Field</div>
-                          <div className="p-2 border-r border-red-200">Previous</div>
-                          <div className="p-2">Current</div>
-                        </div>
-                        
-                        {/* Compare key tariff fields */}
-                        {(() => {
-                          const oldData = selectedClassification.previous_tariff_data;
-                          const newData = selectedClassification.tariff_data;
-                          const changedFields = [];
-                          
-                          // All possible tariff fields to check (matching backend logic)
-                          const fieldsToCheck = [
-                            { key: 'mfn_text_rate', label: 'MFN Text Rate' },
-                            { key: 'mfn_ad_val_rate', label: 'MFN Ad Valorem Rate' },
-                            { key: 'mfn_specific_rate', label: 'MFN Specific Rate' },
-                            { key: 'mfn_other_rate', label: 'MFN Other Rate' },
-                            { key: 'col2_text_rate', label: 'Column 2 Text Rate' },
-                            { key: 'col2_ad_val_rate', label: 'Column 2 Ad Valorem Rate' },
-                            { key: 'col2_specific_rate', label: 'Column 2 Specific Rate' },
-                            { key: 'col2_other_rate', label: 'Column 2 Other Rate' },
-                            { key: 'begin_effect_date', label: 'Begin Effective Date' },
-                            { key: 'end_effective_date', label: 'End Effective Date' }
-                          ];
-                          
-                          // Trade program indicators
-                          const tradeProgramFields = [
-                            { key: 'gsp_indicator', label: 'GSP Indicator' },
-                            { key: 'cbi_indicator', label: 'CBI Indicator' },
-                            { key: 'agoa_indicator', label: 'AGOA Indicator' },
-                            { key: 'nafta_canada_ind', label: 'NAFTA Canada Indicator' },
-                            { key: 'nafta_mexico_ind', label: 'NAFTA Mexico Indicator' },
-                            { key: 'usmca_indicator', label: 'USMCA Indicator' },
-                            { key: 'israel_fta_indicator', label: 'Israel FTA Indicator' },
-                            { key: 'jordan_indicator', label: 'Jordan Indicator' },
-                            { key: 'singapore_indicator', label: 'Singapore Indicator' },
-                            { key: 'chile_indicator', label: 'Chile Indicator' },
-                            { key: 'australia_indicator', label: 'Australia Indicator' },
-                            { key: 'bahrain_indicator', label: 'Bahrain Indicator' },
-                            { key: 'dr_cafta_indicator', label: 'DR-CAFTA Indicator' },
-                            { key: 'oman_indicator', label: 'Oman Indicator' },
-                            { key: 'peru_indicator', label: 'Peru Indicator' },
-                            { key: 'korea_indicator', label: 'Korea Indicator' },
-                            { key: 'columbia_indicator', label: 'Colombia Indicator' },
-                            { key: 'panama_indicator', label: 'Panama Indicator' },
-                            { key: 'morocco_indicator', label: 'Morocco Indicator' }
-                          ];
-                          
-                          // Check all fields
-                          [...fieldsToCheck, ...tradeProgramFields].forEach(field => {
-                            const oldValue = oldData?.[field.key];
-                            const newValue = newData?.[field.key];
-                            
-                            // Convert to strings for comparison to handle null/undefined/empty cases
-                            const oldStr = oldValue === null || oldValue === undefined ? '' : String(oldValue);
-                            const newStr = newValue === null || newValue === undefined ? '' : String(newValue);
-                            
-                            if (oldStr !== newStr) {
-                              changedFields.push(
-                                <div key={field.key} className="grid grid-cols-3 gap-0 text-xs border-t border-red-100">
-                                  <div className="p-2 border-r border-red-100 font-medium">{field.label}</div>
-                                  <div className="p-2 border-r border-red-100 text-red-600">
-                                    {oldStr || 'N/A'}
-                                  </div>
-                                  <div className="p-2 text-green-600 font-medium">
-                                    {newStr || 'N/A'}
-                                  </div>
-                                </div>
-                              );
-                            }
-                          });
-                          
-                          // If no specific changes found, show a debug view
-                          if (changedFields.length === 0) {
-                            console.log('Debug - Old tariff data:', oldData);
-                            console.log('Debug - New tariff data:', newData);
-                            
-                            return (
-                              <div className="p-3 text-xs">
-                                <div className="text-gray-500 text-center mb-3">
-                                  No specific field changes detected in standard fields.
-                                </div>
-                                <div className="text-xs text-gray-400">
-                                  <div className="mb-2"><strong>Debug Info:</strong></div>
-                                  <div className="bg-gray-50 p-2 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                                    <div className="mb-1"><strong>Previous:</strong> {JSON.stringify(oldData, null, 2)}</div>
-                                    <div><strong>Current:</strong> {JSON.stringify(newData, null, 2)}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                          
-                          return changedFields;
-                        })()}
+                    )}
+                    {classification.typical_value && (
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <span>{formatCurrency(classification.typical_value)}</span>
                       </div>
-                      
-                      {/* Accept Changes Button */}
-                      <div className="flex justify-end">
-                        <CustomButton
-                          onClick={() => handleAcceptTariffChanges(selectedClassification.id!)}
-                          disabled={acceptingChanges}
-                          className="flex items-center bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          {acceptingChanges ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                          )}
-                          {acceptingChanges ? 'Accepting...' : 'Accept Changes'}
-                        </CustomButton>
+                    )}
+                    {classification.typical_quantity && (
+                      <div className="flex items-center gap-1">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                        <span>{classification.typical_quantity} {classification.quantity_unit || 'units'}</span>
                       </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>{formatDate(classification.created_at)}</span>
                     </div>
                   </div>
-                )}
-
-                {/* Tariff Information */}
-                <div>
-                  <h4 className="font-medium mb-3">Tariff Information</h4>
-                  <TariffInfo hsCode={selectedClassification.hs_code} />
+                </div>
+                <div className="flex items-center gap-2 ml-4">
+                  <CustomButton
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCalculate(classification);
+                    }}
+                  >
+                    <Calculator className="h-4 w-4" />
+                  </CustomButton>
+                  <CustomButton
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewDetails(classification);
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </CustomButton>
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Sidebar Overlay */}
-          {sidebarOpen && (
-            <div 
-              className="fixed inset-0 bg-black/20 z-40"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
+          ))}
         </div>
+      )}
 
-        {/* Quick Add Modal */}
-        {showQuickAdd && (
-          <QuickAddClassification
-            userId={userId}
-            userEmail={undefined} // Email will be fetched from user context if needed
-            onClose={() => setShowQuickAdd(false)}
-            onSuccess={() => {
-              setShowQuickAdd(false);
-              loadClassifications();
-            }}
-          />
-        )}
-      </div>
-    </Layout>
+      {/* Quick Add Modal */}
+      {showQuickAdd && (
+        <QuickAddClassification
+          userId={userId!}
+          userEmail={undefined}
+          onClose={() => setShowQuickAdd(false)}
+          onSuccess={() => {
+            setShowQuickAdd(false);
+            loadClassifications();
+          }}
+        />
+      )}
+
+      {/* Classification Details Modal */}
+      <ClassificationDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        classification={selectedClassification}
+        onCalculate={handleCalculate}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+    </div>
   );
 };
 
