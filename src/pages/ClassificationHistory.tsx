@@ -1,8 +1,9 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import Layout from '@/components/Layout';
 import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord, checkTariffChanges, getTariffChangeStats, acceptTariffChanges } from '@/lib/supabaseService';
 import TariffInfo from '@/components/TariffInfo';
+import QuickAddClassification from '@/components/QuickAddClassification';
 import { 
   Search, 
   Calendar, 
@@ -21,7 +22,12 @@ import {
   Database,
   Calculator,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Upload,
+  DollarSign,
+  TrendingUp,
+  Globe
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +45,7 @@ const ClassificationHistory = () => {
   const [checkingTariffs, setCheckingTariffs] = useState(false);
   const [tariffStats, setTariffStats] = useState({ total: 0, changed: 0, needsReview: 0, recentChanges: 0 });
   const [acceptingChanges, setAcceptingChanges] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -303,15 +310,24 @@ const ClassificationHistory = () => {
               View and manage your past HS code classifications
             </p>
           </div>
-          <CustomButton
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={checkingTariffs}
-            className="flex items-center"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${checkingTariffs ? 'animate-spin' : ''}`} />
-            {checkingTariffs ? 'Checking Tariffs...' : 'Refresh'}
-          </CustomButton>
+          <div className="flex gap-3">
+            <CustomButton
+              onClick={() => setShowQuickAdd(true)}
+              className="flex items-center bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Quick Add
+            </CustomButton>
+            <CustomButton
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={checkingTariffs}
+              className="flex items-center"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${checkingTariffs ? 'animate-spin' : ''}`} />
+              {checkingTariffs ? 'Checking Tariffs...' : 'Refresh'}
+            </CustomButton>
+          </div>
         </div>
 
         {/* Stats Section */}
@@ -814,6 +830,19 @@ const ClassificationHistory = () => {
             />
           )}
         </div>
+
+        {/* Quick Add Modal */}
+        {showQuickAdd && (
+          <QuickAddClassification
+            userId={userId}
+            userEmail={undefined} // Email will be fetched from user context if needed
+            onClose={() => setShowQuickAdd(false)}
+            onSuccess={() => {
+              setShowQuickAdd(false);
+              loadClassifications();
+            }}
+          />
+        )}
       </div>
     </Layout>
   );
