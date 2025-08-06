@@ -277,6 +277,20 @@ export interface ClassificationRecord {
   tariff_change_detected?: string;
   previous_tariff_data?: any;
   status?: 'current' | 'outdated' | 'needs_review' | 'changed' | 'discontinued';
+  
+  // Enhanced fields for customs brokers
+  origin_country?: string;
+  typical_value?: number;
+  typical_quantity?: number;
+  quantity_unit?: string;
+  weight_kg?: number;
+  incoterms?: string;
+  import_frequency?: string;
+  annual_import_value?: number;
+  supplier_info?: any;
+  product_tags?: string[];
+  fta_certificates?: any;
+  is_manual_entry?: boolean;
 }
 
 export async function saveClassification(classification: ClassificationRecord) {

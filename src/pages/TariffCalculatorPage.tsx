@@ -7,11 +7,15 @@ const TariffCalculatorPage: React.FC = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const hsCode = queryParams.get("hsCode") || "";
+  const originCountry = queryParams.get("originCountry") || "";
 
   return (
     <Layout className="pt-20 pb-16">
       <div className="space-y-6">
-        <TariffCalculator initialHsCode={hsCode} />
+        <TariffCalculator
+          initialHsCode={hsCode}
+          initialOriginCountry={originCountry}
+        />
       </div>
     </Layout>
   );

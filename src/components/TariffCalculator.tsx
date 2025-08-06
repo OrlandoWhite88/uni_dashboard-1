@@ -8,6 +8,7 @@ import CustomButton from "./ui/CustomButton";
 
 interface TariffCalculatorProps {
   initialHsCode?: string;
+  initialOriginCountry?: string;
 }
 
 interface ShipmentDetails {
@@ -552,7 +553,10 @@ const COUNTRY_VAT_RATES = {
 
 };
 
-const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" }) => {
+const TariffCalculator: React.FC<TariffCalculatorProps> = ({
+  initialHsCode = "",
+  initialOriginCountry = ""
+}) => {
   const { userId } = useAuth();
   const [hsCode, setHsCode] = useState(initialHsCode);
   const [tariffData, setTariffData] = useState<TariffData | null>(null);
@@ -573,7 +577,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
     insuranceCost: "",
     quantity: "1",
     weight: "",
-    countryOfOrigin: "",
+    countryOfOrigin: initialOriginCountry,
     destinationCountry: "",
     vatRate: "",
     additionalFees: "",
@@ -813,6 +817,25 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({ initialHsCode = "" 
       standardMfnRate: tariffData.mfn_ad_val_rate || 0
     };
   };
+
+  // Read URL parameters for pre-population
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const originCountry = urlParams.get('originCountry');
+    const hsCodeParam = urlParams.get('hsCode');
+    
+    if (originCountry && !initialOriginCountry) {
+      setShipmentDetails(prev => ({
+        ...prev,
+        countryOfOrigin: originCountry
+      }));
+    }
+    
+    if (hsCodeParam && !initialHsCode) {
+      setHsCode(hsCodeParam);
+      setHsCodeInput(hsCodeParam);
+    }
+  }, [initialOriginCountry, initialHsCode]);
 
   // Load past classifications on mount
   useEffect(() => {

@@ -3,12 +3,13 @@ import { useAuth } from '@clerk/clerk-react';
 import Layout from '@/components/Layout';
 import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord, checkTariffChanges, getTariffChangeStats, acceptTariffChanges } from '@/lib/supabaseService';
 import TariffInfo from '@/components/TariffInfo';
-import { 
-  Search, 
-  Calendar, 
-  Package, 
-  Star, 
-  Trash2, 
+import QuickAddClassification from '@/components/QuickAddClassification';
+import {
+  Search,
+  Calendar,
+  Package,
+  Star,
+  Trash2,
   Filter,
   AlertCircle,
   Loader2,
@@ -21,7 +22,8 @@ import {
   Database,
   Calculator,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  Plus
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +41,7 @@ const ClassificationHistory = () => {
   const [checkingTariffs, setCheckingTariffs] = useState(false);
   const [tariffStats, setTariffStats] = useState({ total: 0, changed: 0, needsReview: 0, recentChanges: 0 });
   const [acceptingChanges, setAcceptingChanges] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -303,15 +306,24 @@ const ClassificationHistory = () => {
               View and manage your past HS code classifications
             </p>
           </div>
-          <CustomButton
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={checkingTariffs}
-            className="flex items-center"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${checkingTariffs ? 'animate-spin' : ''}`} />
-            {checkingTariffs ? 'Checking Tariffs...' : 'Refresh'}
-          </CustomButton>
+          <div className="flex gap-3">
+            <CustomButton
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={checkingTariffs}
+              className="flex items-center"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${checkingTariffs ? 'animate-spin' : ''}`} />
+              {checkingTariffs ? 'Checking Tariffs...' : 'Refresh'}
+            </CustomButton>
+            <CustomButton
+              onClick={() => setShowQuickAdd(true)}
+              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add HS Code
+            </CustomButton>
+          </div>
         </div>
 
         {/* Stats Section */}
@@ -550,7 +562,16 @@ const ClassificationHistory = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.location.href = `/tariff-calculator?hsCode=${encodeURIComponent(classification.hs_code)}`;
+                            const params = new URLSearchParams({
+                              hsCode: classification.hs_code
+                            });
+                            
+                            // Add origin country if available
+                            if (classification.origin_country) {
+                              params.set('originCountry', classification.origin_country);
+                            }
+                            
+                            window.location.href = `/tariff-calculator?${params.toString()}`;
                           }}
                           className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs"
                         >
@@ -815,6 +836,18 @@ const ClassificationHistory = () => {
           )}
         </div>
       </div>
+      
+      {/* Quick Add Classification Modal */}
+      {showQuickAdd && (
+        <QuickAddClassification
+          userId={userId}
+          onClose={() => setShowQuickAdd(false)}
+          onSuccess={() => {
+            setShowQuickAdd(false);
+            loadClassifications(); // Reload classifications to show the new entry
+          }}
+        />
+      )}
     </Layout>
   );
 };

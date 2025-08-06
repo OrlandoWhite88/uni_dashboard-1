@@ -150,7 +150,7 @@ const Classify = () => {
       const resultData = {
         hsCode: streamingState.finalResult.final_code || "Unknown",
         description: streamingState.finalResult.enriched_query || originalProductDescription || "Product",
-        confidence: 95,
+        confidence: streamingState.finalResult.confidence || 90,
         fullPath: streamingState.finalResult.full_path,
         originalProduct: originalProductDescription,
         classificationDecisions: streamingState.classificationDecisions,
