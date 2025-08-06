@@ -35,8 +35,6 @@ const Layout = ({ children, className }: LayoutProps) => {
   // Mock organizations for demo - replace with actual data
   const organizations = [
     { id: '1', name: 'Uni Customs', icon: '/uni_logo.png' },
-    { id: '2', name: 'Freight World Wide', icon: '/uni_logo.png' },
-    { id: '3', name: 'Rohlig Logistics', icon: '/uni_logo.png' },
   ];
 
   const handleOrganizationChange = (org: { id: string; name: string; icon?: string }) => {
