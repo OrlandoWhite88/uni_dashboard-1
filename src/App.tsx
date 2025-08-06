@@ -19,7 +19,6 @@ import BatchClassify from "./pages/BatchClassify";
 import DebugStripe from "./pages/DebugStripe";
 import TariffCalculatorPage from "./pages/TariffCalculatorPage";
 import TradeFlagsPage from "./pages/TradeFlagsPage";
-import ClassificationHistory from "./pages/ClassificationHistory";
 import NavigationDemo from "./pages/NavigationDemo";
 import AuthPage from "./pages/AuthPage";
 
@@ -131,14 +130,6 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <TradeFlagsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/classification-history"
-            element={
-              <ProtectedRoute>
-                <ClassificationHistory />
               </ProtectedRoute>
             }
           />
