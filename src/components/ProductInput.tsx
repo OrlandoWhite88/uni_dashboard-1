@@ -32,7 +32,7 @@ const ProductInput = ({ onSubmit, isLoading }: ProductInputProps) => {
 
   return (
     <div className="w-full animate-fade-in">
-      <div className="mb-6 text-center">
+      <div className="mb-4 text-center">
         <h1 className="text-3xl font-semibold tracking-tight mb-3">
           Accurate HS Codes Instantly
         </h1>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { getTariffInfo } from "@/lib/classifierService";
 import { getUserClassifications, ClassificationRecord } from "@/lib/supabaseService";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/nextjs";
 import { Loader2, AlertCircle, DollarSign, Package, Truck, FileText, Calculator, Info, ChevronDown, Search, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomButton from "./ui/CustomButton";
@@ -681,7 +681,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({
     
     let bestRate = null;
     let bestProgram = null;
-    let eligiblePrograms: EligibleProgram[] = [];
+    const eligiblePrograms: EligibleProgram[] = [];
     
     // Check each eligible symbol
     for (const symbol of eligibleSymbols) {
@@ -983,7 +983,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({
     
     let dutyAmount = 0;
     let dutyRateDescription = "";
-    let warnings: string[] = [];
+    const warnings: string[] = [];
     
     // Calculate duty based on rate type
     if (rateAnalysis.bestRate.type === 'Free') {

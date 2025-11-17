@@ -1,6 +1,7 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import Layout from "@/components/Layout";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useClassifier } from "@/lib/classifierService";
 import { useClassificationStream } from "@/hooks/useClassificationStream";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
@@ -59,9 +60,9 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }> {
   }
 }
 
-const Classify = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+const ClassifyPageContent = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { state, classify, continueWithAnswer, reset, debugInfo } = useClassifier();
   const streamingState = useClassificationStream();
   const [progressPercent, setProgressPercent] = useState(0);
@@ -72,31 +73,32 @@ const Classify = () => {
   const progressTimerRef = useRef<number | null>(null);
   const { reloadUsageData } = useUsageLimits();
 
-  // Get product description and model from navigation state
+  // Get product description and model from URL search params
   useEffect(() => {
-    const navState = location.state as { productDescription?: string; model?: 'vertex' | 'groq' } | null;
+    const description = searchParams.get('description');
+    const model = searchParams.get('model') as 'vertex' | 'groq' | null;
     
-    if (!navState?.productDescription) {
-      // If no product description, redirect back to dashboard
-      navigate('/dashboard');
+    if (!description) {
+      // If no product description, redirect back to product page
+      router.push('/product');
       return;
     }
 
-    setOriginalProductDescription(navState.productDescription);
-    setSelectedModel(navState.model || 'groq');
+    setOriginalProductDescription(description);
+    setSelectedModel(model || 'groq');
 
     // Start classification immediately
     if (useStreaming) {
-      streamingState.startStreaming(navState.productDescription, {
+      streamingState.startStreaming(description, {
         interactive: true,
         maxQuestions: 3,
         hypothesisCount: 3,
-        model: navState.model || 'groq'
+        model: model || 'groq'
       });
     } else {
-      classify(navState.productDescription, navState.model || 'groq');
+      classify(description, model || 'groq');
     }
-  }, [location.state]);
+  }, [searchParams]);
 
   // Cleanup any timers on unmount
   useEffect(() => {
@@ -107,21 +109,21 @@ const Classify = () => {
     };
   }, []);
 
-  // Handle reset - go back to dashboard
+  // Handle reset - go back to product page
   const handleReset = () => {
     reset();
-    navigate('/dashboard');
+    router.push('/product');
   };
 
-  // Handle streaming reset - go back to dashboard
+  // Handle streaming reset - go back to product page
   const handleStreamingReset = () => {
     streamingState.reset();
-    navigate('/dashboard');
+    router.push('/product');
   };
 
   // Handle restart classification with forced path
   const handleRestartClassification = async (productDescription: string, forcedPath: Array<{ code: string; description: string }>) => {
-    console.log("[Classify] Restarting classification with forced path:", forcedPath);
+    console.log("[ClassifyPage] Restarting classification with forced path:", forcedPath);
     
     // Keep the original product description
     setOriginalProductDescription(productDescription);
@@ -158,9 +160,9 @@ const Classify = () => {
       };
       
       sessionStorage.setItem('classificationResult', JSON.stringify(resultData));
-      navigate('/classification-complete');
+      router.push('/classification-complete');
     }
-  }, [streamingState.finalResult, streamingState.isStreaming, streamingState.isWaitingForAnswer, useStreaming, reloadUsageData, navigate, originalProductDescription, streamingState.classificationDecisions]);
+  }, [streamingState.finalResult, streamingState.isStreaming, streamingState.isWaitingForAnswer, useStreaming, reloadUsageData, router, originalProductDescription, streamingState.classificationDecisions]);
 
   // Handle traditional mode result
   useEffect(() => {
@@ -185,13 +187,13 @@ const Classify = () => {
       };
       
       sessionStorage.setItem('classificationResult', JSON.stringify(resultData));
-      navigate('/classification-complete');
+      router.push('/classification-complete');
     }
-  }, [state.status, state, useStreaming, reloadUsageData, navigate, originalProductDescription]);
+  }, [state.status, state, useStreaming, reloadUsageData, router, originalProductDescription]);
 
   // Handle answer submission
   const handleAnswer = (questionId: string, answer: string) => {
-    console.log("[Classify] Submitting answer:", { questionId, answer });
+    console.log("[ClassifyPage] Submitting answer:", { questionId, answer });
 
     // Track the question answer event
     if (state.status === "question" && typeof state.question === "string") {
@@ -252,8 +254,7 @@ const Classify = () => {
 
   return (
     <ErrorBoundary>
-      <Layout className="pt-32 pb-16">
-        <div className="w-full max-w-2xl mx-auto">
+      <div className="w-full max-w-2xl mx-auto">
           {/* Streaming Progress */}
           {useStreaming && (streamingState.isStreaming || streamingState.isSessionActive) && (
             <StreamingProgress 
@@ -340,10 +341,9 @@ const Classify = () => {
               </div>
             </div>
           )}
-        </div>
-      </Layout>
+      </div>
     </ErrorBoundary>
   );
 };
 
-export default Classify;
+export default ClassifyPageContent;

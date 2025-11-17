@@ -1,3 +1,4 @@
+<<<<<<< HEAD:src/pages/BulkImport.tsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from '@clerk/clerk-react';
 import { useUsageLimits } from '@/hooks/use-usage-limits';
@@ -8,6 +9,13 @@ import { useNavigate } from "react-router-dom";
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+=======
+"use client";
+
+import React, { useState } from "react";
+import BulkImportFiles from "@/pages/BulkImportFiles";
+import BatchClassify from "@/pages/BatchClassify";
+>>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/bulk-import/page.tsx
 
 const BulkImport = () => {
   const { userId } = useAuth();

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/nextjs';
 import { getUserClassifications, ClassificationRecord, getTariffChangeStats, checkTariffChanges } from '@/lib/supabaseService';
 import { 
   Calendar, 
@@ -14,7 +14,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import CustomButton from '@/components/ui/CustomButton';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 interface DashboardStats {
   totalClassifications: number;
@@ -32,7 +32,7 @@ interface TariffStats {
 
 const ClassificationDashboard = () => {
   const { userId } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
     totalClassifications: 0,
     recentClassifications: 0,
@@ -215,7 +215,7 @@ const ClassificationDashboard = () => {
             <CustomButton
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/classification-history')}
+              onClick={() => router.push('/classification-history')}
               className="flex items-center text-sm"
             >
               View All <ArrowRight className="h-4 w-4 ml-1" />
@@ -227,7 +227,7 @@ const ClassificationDashboard = () => {
               <div 
                 key={classification.id} 
                 className="flex items-center justify-between p-3 bg-muted/20 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
-                onClick={() => navigate('/classification-history')}
+                onClick={() => router.push('/classification-history')}
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">

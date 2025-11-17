@@ -1,6 +1,8 @@
- import React, { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import Layout from '@/components/Layout';
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import { getUserClassifications, deleteClassification, toggleClassificationFavorite, searchClassifications, ClassificationRecord, checkTariffChanges, getTariffChangeStats, acceptTariffChanges } from '@/lib/supabaseService';
 import TariffInfo from '@/components/TariffInfo';
 import QuickAddClassification from '@/components/QuickAddClassification';
@@ -30,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const ClassificationHistory = () => {
   const { userId } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [classifications, setClassifications] = useState<ClassificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -285,19 +288,18 @@ const ClassificationHistory = () => {
 
   if (!userId) {
     return (
-      <Layout className="pt-28 pb-16">
+      <div className="pt-28 pb-16">
         <div className="max-w-4xl mx-auto text-center">
           <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Sign In Required</h1>
           <p className="text-gray-600">Please sign in to view your classification history.</p>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout className="pt-28 pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
@@ -462,7 +464,7 @@ const ClassificationHistory = () => {
                 }
               </p>
               {!searchTerm && !showFavoritesOnly && (
-                <CustomButton onClick={() => window.location.href = '/'}>
+                <CustomButton onClick={() => router.push('/')}>
                   Start Classifying
                 </CustomButton>
               )}
@@ -562,6 +564,7 @@ const ClassificationHistory = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+<<<<<<< HEAD:src/pages/ClassificationHistory.tsx
                             const params = new URLSearchParams({
                               hsCode: classification.hs_code
                             });
@@ -572,6 +575,9 @@ const ClassificationHistory = () => {
                             }
                             
                             window.location.href = `/tariff-calculator?${params.toString()}`;
+=======
+                            router.push(`/tariff-calculator?hsCode=${encodeURIComponent(classification.hs_code)}`);
+>>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/classification-history/page.tsx
                           }}
                           className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs"
                         >
@@ -835,6 +841,7 @@ const ClassificationHistory = () => {
             />
           )}
         </div>
+<<<<<<< HEAD:src/pages/ClassificationHistory.tsx
       </div>
       
       {/* Quick Add Classification Modal */}
@@ -849,6 +856,9 @@ const ClassificationHistory = () => {
         />
       )}
     </Layout>
+=======
+    </div>
+>>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/classification-history/page.tsx
   );
 };
 

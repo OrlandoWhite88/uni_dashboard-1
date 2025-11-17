@@ -1,11 +1,10 @@
 import React, { useMemo, useState, useEffect } from "react";
-import Layout from "@/components/Layout";
 import CustomButton from "@/components/ui/CustomButton";
 import { trackClassificationStart, trackQuestionAnswer, trackClassificationResult } from "@/lib/analyticsService";
 import { CheckCircle2, Download, FileText, MessageCircle, Zap, ArrowUp, Clock, ChevronDown, AlertTriangle, ExternalLink } from "lucide-react";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import _ from "lodash";
 import { 
   classifyProduct, 
@@ -14,7 +13,7 @@ import {
   Options
 } from "@/lib/classifierService";
 import { saveClassification } from "@/lib/supabaseService";
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/nextjs";
 import QuestionFlow from "@/components/QuestionFlow";
 
 interface Product {
@@ -55,10 +54,10 @@ interface Question {
   productDescription: string;
 }
 
-const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
+const BatchClassify = ({ csvFile }: { csvFile?: string | ArrayBuffer }) => {
   // Get user's plan information
   const { userPlan, isLoading: isPlanLoading } = useUsageLimits();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useUser();
   
   // Check if user is on starter plan
@@ -160,7 +159,7 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
 
   // Handle navigation to upgrade page
   const handleUpgrade = () => {
-    navigate('/settings');
+    router.push('/settings');
   };
 
   // Start classification for all products at once
@@ -806,8 +805,8 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
   const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
-    <Layout className="pt-28 pb-16">
-      <div className="max-w-6xl mx-auto">
+    <div className="pt-28 pb-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight mb-3">
             Batch Classification
@@ -1084,7 +1083,7 @@ const BatchClassify = ({ csvFile }: { csvFile: string | ArrayBuffer }) => {
           confidence={selectedResult.confidence}
         />
       )}
-    </Layout>
+    </div>
   );
 };
 

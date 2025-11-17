@@ -8,8 +8,8 @@ import HSCodeSubtree from "./HSCodeSubtree";
 import ClassificationDecisionPath, { ClassificationDecision } from "./ClassificationDecisionPath";
 import { explainTariff, getTariffInfo, getHSCodeSubtree } from "@/lib/classifierService";
 import { saveClassification } from "@/lib/supabaseService";
-import { useAuth } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 // Trade Flags interfaces (from TradeComplianceFlags component)
 interface PGAFlag {
@@ -68,7 +68,7 @@ interface HSCodeResultProps {
 }
 
 const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProduct, classificationDecisions, onReset, onRestartClassification }: HSCodeResultProps) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { userId } = useAuth();
   const [copied, setCopied] = useState(false);
   const [showTradeFlags, setShowTradeFlags] = useState(false);
@@ -182,7 +182,7 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
 
   const handleCalculateTariffs = () => {
     // Navigate to tariff calculator with pre-populated HS code
-    navigate(`/tariff-calculator?hsCode=${hsCode}`);
+    router.push(`/tariff-calculator?hsCode=${hsCode}`);
   };
 
   const handleViewChildren = async () => {
@@ -310,21 +310,20 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
             />
           </div>
           
-          {/* Confidence section - hidden but keeping code for potential future use */}
-          {false && (
-            <div className="bg-secondary rounded-lg px-4 py-2 mb-6">
-              <div className="text-sm">
-                <span className="font-medium">Confidence:</span>{" "}
-                <span className={cn(
-                  confidence > 85 ? "text-green-600" : 
-                  confidence > 70 ? "text-amber-600" : 
-                  "text-red-600"
-                )}>
-                  {confidence}%
-                </span>
-              </div>
+          {/* Confidence section - hidden but keeping code for potential future use
+          <div className="bg-secondary rounded-lg px-4 py-2 mb-6">
+            <div className="text-sm">
+              <span className="font-medium">Confidence:</span>{" "}
+              <span className={cn(
+                confidence > 85 ? "text-green-600" : 
+                confidence > 70 ? "text-amber-600" : 
+                "text-red-600"
+              )}>
+                {confidence}%
+              </span>
             </div>
-          )}
+          </div>
+          */}
           
           <Tabs defaultValue="result" className="w-full mt-6">
             <TabsList className="grid grid-cols-3 mb-6">
@@ -453,7 +452,7 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
                       {/* View Full Report Link */}
                       <div className="pt-3 border-t border-border/50">
                         <button
-                          onClick={() => navigate(`/trade-flags?hsCode=${hsCode.replace(/\./g, '')}`)}
+                          onClick={() => router.push(`/trade-flags?hsCode=${hsCode.replace(/\./g, '')}`)}
                           className="flex items-center text-primary hover:text-primary/80 text-xs font-medium"
                         >
                           <ExternalLink size={12} className="mr-1" />

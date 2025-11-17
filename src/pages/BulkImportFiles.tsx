@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import Layout from "@/components/Layout";
 import CustomButton from "@/components/ui/CustomButton";
 import { FileText, Upload, Clipboard, ArrowRight, Info } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 const BulkImportFiles = ({
   csvFile,
@@ -19,7 +17,6 @@ const BulkImportFiles = ({
 
   const [fileName, setFileName] = useState("");
   const [pastedData, setPastedData] = useState("");
-  const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -41,8 +38,8 @@ const BulkImportFiles = ({
   };
 
   return (
-    <Layout className="pt-28 pb-16">
-      <div className="max-w-4xl mx-auto">
+    <div className="pt-28 pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight mb-3">
             Bulk Import
@@ -204,7 +201,7 @@ Product 3: plastic water bottles"
           </div>
         )}
       </div>
-    </Layout>
+    </div>
   );
 };
 

@@ -1,6 +1,12 @@
 // src/lib/hsCodeGenerator.ts
 import { useState } from "react";
-import { classifyProduct, continueClassification, ClassificationResponse } from "./classifyService";
+import { 
+  classifyProduct, 
+  continueClassification, 
+  ClassificationResponse, 
+  ClassificationState, 
+  OptionItem 
+} from "./classifierService";
 
 // Types
 export type GeneratorState = "idle" | "analyzing" | "questioning" | "generating" | "complete" | "error";
@@ -15,14 +21,14 @@ export interface HSResult {
 export interface Question {
   id: string;
   text: string;
-  options?: string[];
+  options?: OptionItem[];
 }
 
 export const useHSCodeGenerator = () => {
   const [state, setState] = useState<GeneratorState>("idle");
   const [productDescription, setProductDescription] = useState("");
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [sessionState, setSessionState] = useState<string | null>(null);
+  const [sessionState, setSessionState] = useState<ClassificationState | string | null>(null);
   const [result, setResult] = useState<HSResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);

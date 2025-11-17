@@ -1,18 +1,26 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+<<<<<<< HEAD
 import { Link, useNavigate } from "react-router-dom";
 import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
+=======
+import Link from "next/link";
+import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton, useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+>>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2
 import { Menu, X } from "lucide-react";
 import { NavigationSidebar } from "./NavigationSidebar";
 
 // Google Ads conversion tracking function
 function gtag_report_conversion(url: string | undefined) {
-  var callback = function () {
+  const callback = function () {
     if (typeof(url) != 'undefined') {
       window.location.href = url;
     }
   };
-  // @ts-ignore - gtag is defined in the global scope via the script in index.html
+  // @ts-expect-error - gtag is defined in the global scope via the script in index.html
   gtag('event', 'conversion', {
       'send_to': 'AW-16933718921/QN6GCMayr7EaEImX0Io_',
       'value': 1.0,
@@ -29,7 +37,7 @@ interface LayoutProps {
 
 const Layout = ({ children, className }: LayoutProps) => {
   const { isLoaded, userId } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Mock organizations for demo - replace with actual data
@@ -134,7 +142,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                 </div>
               </SignedOut>
               
-              <Link to="/settings" className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">
+              <Link href="/settings" className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">
                 <span className="text-xs font-medium">Uni AI</span>
               </Link>
             </div>

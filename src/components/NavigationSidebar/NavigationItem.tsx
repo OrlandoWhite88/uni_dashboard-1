@@ -1,5 +1,8 @@
+"use client";
+
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { NavigationItem as NavigationItemType } from './types';
 import styles from './NavigationSidebar.module.css';
 
@@ -9,6 +12,9 @@ interface NavigationItemProps {
 }
 
 const NavigationItem: React.FC<NavigationItemProps> = ({ item, isCollapsible = false }) => {
+  const pathname = usePathname();
+  const isActive = item.path ? pathname === item.path : false;
+
   const content = (
     <div className={styles.navigationItemInner}>
       <div className={styles.navigationItemContent}>
@@ -57,14 +63,12 @@ const NavigationItem: React.FC<NavigationItemProps> = ({ item, isCollapsible = f
 
   if (item.path) {
     return (
-      <NavLink
-        to={item.path}
-        className={({ isActive }) => 
-          `${styles.navigationItem} ${isActive ? styles.active : ''}`
-        }
+      <Link
+        href={item.path}
+        className={`${styles.navigationItem} ${isActive ? styles.active : ''}`}
       >
         {content}
-      </NavLink>
+      </Link>
     );
   }
 

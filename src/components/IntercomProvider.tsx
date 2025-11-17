@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser } from '@clerk/nextjs';
 import Intercom from '@intercom/messenger-js-sdk';
 
 

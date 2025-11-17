@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { useDevAuth } from '@/components/DevWrapper';
 import { getMonthlyUsageCount, getUserPlan, createUserPlan, logUsage, getUserUsageSummary } from '@/lib/supabaseService';
+=======
+import { useAuth } from '@clerk/nextjs';
+import { getDailyUsageCount, getMonthlyUsageCount, getUserPlan, createUserPlan, getAnonymousDailyUsageCount, incrementAnonymousUsage } from '@/lib/supabaseService';
+>>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2
 import { toast } from 'sonner';
 
 interface UsageLimits {
