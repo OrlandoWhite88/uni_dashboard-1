@@ -255,7 +255,7 @@ const Classify = () => {
       <Layout className="pt-32 pb-16">
         <div className="w-full max-w-2xl mx-auto">
           {/* Streaming Progress */}
-          {streamingState.isStreaming && useStreaming && (
+          {useStreaming && (streamingState.isStreaming || streamingState.isSessionActive) && (
             <StreamingProgress 
               streamingState={streamingState}
               showTechnicalDetails={showTechnicalDetails}

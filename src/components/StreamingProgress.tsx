@@ -19,6 +19,7 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
 }) => {
   const { 
     isStreaming, 
+    isSessionActive,
     currentStage, 
     progress, 
     elapsedTime, 
@@ -26,10 +27,11 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
     events,
     isWaitingForAnswer,
     currentQuestion,
-    classificationDecisions
+    classificationDecisions,
+    error
   } = streamingState;
 
-  if (!isStreaming) {
+  if (!isSessionActive) {
     return null;
   }
 
@@ -42,14 +44,33 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
     return `${minutes}m ${remainingSeconds}s`;
   };
 
+  const statusMessage = () => {
+    if (error) {
+      return 'Connection interrupted. Please try again.';
+    }
+    if (isStreaming) {
+      return 'Real-time classification in progress...';
+    }
+    if (isWaitingForAnswer) {
+      return 'Waiting for your response...';
+    }
+    return 'Resuming classification...';
+  };
+
   // Show normal progress view
   return (
     <div className="glass-card p-8 rounded-xl animate-scale-in">
       {/* Main progress section */}
       <div className="flex flex-col items-center justify-center mb-6">
         <div className="relative mb-4">
-          <Loader2 className="h-10 w-10 text-primary animate-spin" />
-          <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
+          {isStreaming ? (
+            <>
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
+            </>
+          ) : (
+            <Clock className="h-10 w-10 text-primary" />
+          )}
         </div>
         
         <h3 className="text-base font-medium mb-2 text-center">
@@ -139,7 +160,7 @@ const StreamingProgress: React.FC<StreamingProgressProps> = ({
       {/* Status message */}
       <div className="mt-4 text-center">
         <p className="text-xs text-muted-foreground">
-          {isWaitingForAnswer ? 'Waiting for your response...' : 'Real-time classification in progress...'}
+          {statusMessage()}
         </p>
       </div>
     </div>

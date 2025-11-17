@@ -33,6 +33,7 @@ export interface ClassificationDecision {
 
 export interface StreamingState {
   isStreaming: boolean;
+  isSessionActive: boolean;
   events: StreamEvent[];
   currentStage: string;
   currentBeam: BeamPath[];
@@ -51,6 +52,7 @@ export interface StreamingState {
 export const useClassificationStream = () => {
   const [state, setState] = useState<StreamingState>({
     isStreaming: false,
+    isSessionActive: false,
     events: [],
     currentStage: 'idle',
     currentBeam: [],
@@ -376,7 +378,8 @@ export const useClassificationStream = () => {
             currentBeam: newBeam,
             progress: newProgress,
             finalResult,
-            isStreaming: false
+            isStreaming: false,
+            isSessionActive: false
           };
       }
 
@@ -402,6 +405,7 @@ export const useClassificationStream = () => {
       setState(prev => ({
         ...prev,
         isStreaming: true,
+        isSessionActive: true,
         events: [],
         currentBeam: [],
         finalResult: null,
@@ -490,7 +494,22 @@ export const useClassificationStream = () => {
         }
       }
 
-      setState(prev => ({ ...prev, isStreaming: false }));
+      setState(prev => {
+        const shouldKeepActive =
+          prev.isWaitingForAnswer ||
+          (!prev.finalResult && !prev.error && (prev.events.length > 0 || prev.progress > 0));
+
+        return {
+          ...prev,
+          isStreaming: false,
+          isSessionActive: shouldKeepActive,
+          currentStage: shouldKeepActive
+            ? prev.isWaitingForAnswer
+              ? 'Waiting for your answer...'
+              : 'Still working on your classification...'
+            : prev.currentStage
+        };
+      });
       stopTimer();
 
     } catch (error) {
@@ -498,6 +517,7 @@ export const useClassificationStream = () => {
       setState(prev => ({
         ...prev,
         isStreaming: false,
+        isSessionActive: false,
         error: error instanceof Error ? error.message : 'Unknown streaming error'
       }));
       stopTimer();
@@ -510,7 +530,7 @@ export const useClassificationStream = () => {
       readerRef.current.cancel();
       readerRef.current = null;
     }
-    setState(prev => ({ ...prev, isStreaming: false }));
+    setState(prev => ({ ...prev, isStreaming: false, isSessionActive: false }));
     stopTimer();
   }, [stopTimer]);
 
@@ -521,7 +541,7 @@ export const useClassificationStream = () => {
       readerRef.current = null;
     }
     // Only set isStreaming to false, preserve all other state including finalResult
-    setState(prev => ({ ...prev, isStreaming: false }));
+    setState(prev => ({ ...prev, isStreaming: false, isSessionActive: false }));
     stopTimer();
   }, [stopTimer]);
 
@@ -538,7 +558,9 @@ export const useClassificationStream = () => {
         ...prev,
         currentQuestion: null,
         isWaitingForAnswer: false,
-        currentStage: 'Resuming classification...'
+        currentStage: 'Resuming classification...',
+        isSessionActive: true,
+        isStreaming: true
       }));
 
       // Determine the correct continue endpoint based on the current model
@@ -614,14 +636,25 @@ export const useClassificationStream = () => {
         }
       }
 
-      setState(prev => ({ ...prev, isStreaming: false }));
+      setState(prev => {
+        const shouldKeepActive =
+          prev.isWaitingForAnswer ||
+          (!prev.finalResult && !prev.error && (prev.events.length > 0 || prev.progress > 0));
+
+        return {
+          ...prev,
+          isStreaming: false,
+          isSessionActive: shouldKeepActive
+        };
+      });
 
     } catch (error) {
       console.error('Error answering question:', error);
       setState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Failed to answer question',
-        isStreaming: false
+        isStreaming: false,
+        isSessionActive: false
       }));
     }
   }, [state.currentQuestion, state.isWaitingForAnswer, handleStreamEvent]);
@@ -631,6 +664,7 @@ export const useClassificationStream = () => {
     stopStreaming();
     setState({
       isStreaming: false,
+      isSessionActive: false,
       events: [],
       currentStage: 'idle',
       currentBeam: [],

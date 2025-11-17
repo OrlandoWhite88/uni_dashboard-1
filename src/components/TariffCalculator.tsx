@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { Loader2, AlertCircle, DollarSign, Package, Truck, FileText, Calculator, Info, ChevronDown, Search, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomButton from "./ui/CustomButton";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 
 interface TariffCalculatorProps {
   initialHsCode?: string;
@@ -874,10 +875,27 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({
     }
   };
 
-  const filteredClassifications = pastClassifications.filter(c => 
-    c.hs_code.toLowerCase().includes(hsCodeInput.toLowerCase()) ||
-    c.product_description.toLowerCase().includes(hsCodeInput.toLowerCase())
+  const filteredClassifications = useMemo(
+    () =>
+      pastClassifications.filter(
+        (c) =>
+          c.hs_code.toLowerCase().includes(hsCodeInput.toLowerCase()) ||
+          c.product_description.toLowerCase().includes(hsCodeInput.toLowerCase())
+      ),
+    [pastClassifications, hsCodeInput]
   );
+
+  useEffect(() => {
+    const hasInput = hsCodeInput.trim().length > 0;
+    if (!hasInput) {
+      setShowDropdown(false);
+      return;
+    }
+
+    if (filteredClassifications.length > 0) {
+      setShowDropdown(true);
+    }
+  }, [hsCodeInput, filteredClassifications.length]);
 
   const fetchTariffData = async (code: string) => {
     setLoading(true);
@@ -1162,9 +1180,9 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({
               onChange={(e) => {
                 setHsCodeInput(e.target.value);
                 setHsCode(e.target.value);
-                setShowDropdown(e.target.value.length > 0 && pastClassifications.length > 0);
+                setShowDropdown(e.target.value.length > 0 && filteredClassifications.length > 0);
               }}
-              onFocus={() => setShowDropdown(pastClassifications.length > 0)}
+              onFocus={() => setShowDropdown(filteredClassifications.length > 0)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
               placeholder="Enter 6-10 digit HS code or search past classifications"
               className="flex h-12 w-full rounded-md border border-input bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -1178,7 +1196,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({
             
             {/* Dropdown for past classifications */}
             {showDropdown && filteredClassifications.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border border-border bg-card shadow-xl">
                 <div className="p-2 border-b border-border">
                   <p className="text-xs text-muted-foreground font-medium">Recent Classifications</p>
                 </div>
@@ -1893,7 +1911,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({
 
         {renderProgressSteps()}
 
-        <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+        <div className="bg-card border border-border rounded-lg shadow-sm">
           <div className="p-6">
             {step === 1 && renderHSCodeStep()}
             {step === 2 && renderProductDetailsStep()}
@@ -1941,112 +1959,124 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({
           </div>
         )}
 
-        {/* Help and Documentation */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-medium text-blue-800 mb-2">How This Calculator Works</h3>
-          <div className="text-sm text-blue-700 space-y-2">
-            <p>
-              <strong>Enhanced Accuracy:</strong> This calculator uses official U.S. tariff schedules and automatically 
-              applies the best available trade program rates based on your country of origin.
-            </p>
-            <p>
-              <strong>Trade Programs Included:</strong> GSP, AGOA, CBI, USMCA, and all bilateral FTAs with 
-              automatic eligibility checking and rate application.
-            </p>
-            <p>
-              <strong>Rate Type Intelligence:</strong> Handles ad valorem, specific, and compound duty rates 
-              with proper unit conversions (weight-based, quantity-based, etc.).
-            </p>
-            <p>
-              <strong>Compliance Features:</strong> Includes FTA origin compliance checking, GSP country 
-              exclusions, and non-NTR country identification.
-            </p>
-          </div>
-        </div>
+        <div className="border border-border rounded-lg bg-card">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="calculator-reference" className="border-b-0">
+              <AccordionTrigger className="px-4 py-3 text-left text-sm font-medium text-foreground">
+                Calculator Reference & Disclaimer
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4 text-sm leading-6 text-muted-foreground md:px-6">
+                <div className="space-y-6 rounded-md border border-border bg-muted/60 px-4 py-4 md:px-6">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+                      How This Calculator Works
+                    </h4>
+                    <p>
+                      <span className="font-medium text-foreground">Enhanced Accuracy:</span> This calculator uses official
+                      U.S. tariff schedules and automatically applies the best available trade program rates based on your
+                      country of origin.
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">Trade Programs Included:</span> GSP, AGOA, CBI, USMCA,
+                      and all bilateral FTAs with automatic eligibility checking and rate application.
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">Rate Type Intelligence:</span> Handles ad valorem,
+                      specific, and compound duty rates with proper unit conversions (weight-based, quantity-based, etc.).
+                    </p>
+                    <p>
+                      <span className="font-medium text-foreground">Compliance Features:</span> Includes FTA origin
+                      compliance checking, GSP country exclusions, and non-NTR country identification.
+                    </p>
+                  </div>
 
-        {/* Quick Reference */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-card border border-border rounded-lg p-4">
-            <h4 className="font-medium mb-2">Trade Program Symbols</h4>
-            <div className="text-xs space-y-1">
-              <div className="flex justify-between">
-                <span>A*, A, A+</span>
-                <span className="text-muted-foreground">GSP Programs</span>
-              </div>
-              <div className="flex justify-between">
-                <span>D</span>
-                <span className="text-muted-foreground">AGOA (Africa)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>E</span>
-                <span className="text-muted-foreground">CBI (Caribbean)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>S</span>
-                <span className="text-muted-foreground">USMCA (N. America)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>P</span>
-                <span className="text-muted-foreground">CAFTA-DR (C. America)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>AU, CL, SG, etc.</span>
-                <span className="text-muted-foreground">Bilateral FTAs</span>
-              </div>
-            </div>
-          </div>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+                        Trade Program Symbols
+                      </h4>
+                      <dl className="space-y-2 text-xs md:text-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">A*, A, A+</dt>
+                          <dd className="text-right">GSP Programs</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">D</dt>
+                          <dd className="text-right">AGOA (Africa)</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">E</dt>
+                          <dd className="text-right">CBI (Caribbean)</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">S</dt>
+                          <dd className="text-right">USMCA (N. America)</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">P</dt>
+                          <dd className="text-right">CAFTA-DR (C. America)</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">AU, CL, SG, etc.</dt>
+                          <dd className="text-right">Bilateral FTAs</dd>
+                        </div>
+                      </dl>
+                    </div>
 
-          <div className="bg-card border border-border rounded-lg p-4">
-            <h4 className="font-medium mb-2">Rate Types</h4>
-            <div className="text-xs space-y-1">
-              <div className="flex justify-between">
-                <span>Free</span>
-                <span className="text-muted-foreground">0% duty</span>
-              </div>
-              <div className="flex justify-between">
-                <span>X%</span>
-                <span className="text-muted-foreground">Ad valorem (% of value)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>$X/kg</span>
-                <span className="text-muted-foreground">Specific (per unit)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Column 2</span>
-                <span className="text-muted-foreground">Non-NTR countries</span>
-              </div>
-              <div className="flex justify-between">
-                <span>MFN/NTR</span>
-                <span className="text-muted-foreground">Standard rates</span>
-              </div>
-            </div>
-          </div>
-        </div>
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+                        Rate Types
+                      </h4>
+                      <dl className="space-y-2 text-xs md:text-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">Free</dt>
+                          <dd className="text-right">0% duty</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">X%</dt>
+                          <dd className="text-right">Ad valorem (% of value)</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">$X/kg</dt>
+                          <dd className="text-right">Specific (per unit)</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">Column 2</dt>
+                          <dd className="text-right">Non-NTR countries</dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <dt className="font-medium text-foreground">MFN/NTR</dt>
+                          <dd className="text-right">Standard rates</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
 
-        {/* Disclaimer */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="font-medium text-yellow-800 mb-2 flex items-center">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            Important Disclaimer
-          </h4>
-          <div className="text-sm text-yellow-700 space-y-1">
-            <p>
-              This calculator provides estimates based on current tariff schedules and trade program rules. 
-              Actual duties may vary based on:
-            </p>
-            <ul className="list-disc list-inside space-y-0.5 ml-2">
-              <li>Product-specific requirements and classifications</li>
-              <li>Documentation and certificate requirements</li>
-              <li>Port-specific procedures and additional fees</li>
-              <li>Changes in trade policy or tariff schedules</li>
-              <li>Anti-dumping or countervailing duties</li>
-              <li>Section 232, 301, or other additional tariffs</li>
-            </ul>
-            <p className="mt-2 font-medium">
-              Always consult with a licensed customs broker or trade attorney for complex transactions 
-              or when significant amounts are involved.
-            </p>
-          </div>
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+                      Important Disclaimer
+                    </h4>
+                    <p>
+                      This calculator provides estimates based on current tariff schedules and trade program rules. Actual
+                      duties may vary based on:
+                    </p>
+                    <ul className="list-disc space-y-1 pl-5">
+                      <li>Product-specific requirements and classifications</li>
+                      <li>Documentation and certificate requirements</li>
+                      <li>Port-specific procedures and additional fees</li>
+                      <li>Changes in trade policy or tariff schedules</li>
+                      <li>Anti-dumping or countervailing duties</li>
+                      <li>Section 232, 301, or other additional tariffs</li>
+                    </ul>
+                    <p className="font-medium text-foreground">
+                      Always consult with a licensed customs broker or trade attorney for complex transactions or when
+                      significant amounts are involved.
+                    </p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
       </div>
     </div>
