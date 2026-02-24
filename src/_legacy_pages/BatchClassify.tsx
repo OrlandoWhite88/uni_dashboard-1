@@ -501,8 +501,6 @@ const BatchClassify = ({ csvFile }: { csvFile?: string | ArrayBuffer }) => {
           if (user?.id) {
             try {
               await saveClassification({
-                user_id: user.id,
-                user_email: user.emailAddresses?.[0]?.emailAddress,
                 product_description: productDescription,
                 hs_code: finalCode,
                 confidence: confidence,

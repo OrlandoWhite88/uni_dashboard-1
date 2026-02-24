@@ -19,7 +19,7 @@ export const useDevAuth = () => useContext(DevAuthContext);
 
 // Development wrapper that provides mock authentication
 export const DevWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+  const isDevelopment = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
   
   if (!isDevelopment) {
     return <>{children}</>;
@@ -38,11 +38,11 @@ export const DevWrapper: React.FC<{ children: React.ReactNode }> = ({ children }
 
 // Mock Clerk components for development
 export const MockSignedIn: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+  const isDevelopment = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
   return isDevelopment ? <>{children}</> : null;
 };
 
 export const MockSignedOut: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+  const isDevelopment = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
   return isDevelopment ? null : <>{children}</>;
 };

@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { User, Users } from "lucide-react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/nextjs";
 import { createCheckoutSession } from "@/lib/stripeService";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
 import { toast } from "sonner";

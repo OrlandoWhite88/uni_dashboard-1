@@ -57,11 +57,10 @@ const ClassificationHistory = () => {
     
     setLoading(true);
     try {
-      const data = await getUserClassifications(userId);
+      const data = await getUserClassifications();
       setClassifications(data);
       
-      // Load tariff stats
-      const stats = await getTariffChangeStats(userId);
+      const stats = await getTariffChangeStats();
       setTariffStats(stats);
       
       // Check for tariff changes on page load (on-demand checking)
@@ -83,8 +82,7 @@ const ClassificationHistory = () => {
     
     setCheckingTariffs(true);
     try {
-      console.log('Checking for tariff changes...');
-      const result = await checkTariffChanges(userId);
+      const result = await checkTariffChanges();
       
       if (result.changed > 0 || result.discontinued > 0) {
         let message = '';
@@ -102,16 +100,13 @@ const ClassificationHistory = () => {
           variant: "default",
         });
         
-        // Reload classifications to show updated data
-        const updatedData = await getUserClassifications(userId);
+        const updatedData = await getUserClassifications();
         setClassifications(updatedData);
         
         // Update stats
-        const updatedStats = await getTariffChangeStats(userId);
+        const updatedStats = await getTariffChangeStats();
         setTariffStats(updatedStats);
       }
-      
-      console.log(`Tariff check completed: ${result.checked} checked, ${result.changed} changed, ${result.discontinued} discontinued, ${result.errors} errors`);
     } catch (error) {
       console.error('Error checking tariff changes:', error);
     } finally {
@@ -129,8 +124,8 @@ const ClassificationHistory = () => {
     setLoading(true);
     try {
       const data = searchTerm 
-        ? await searchClassifications(userId, searchTerm)
-        : await getUserClassifications(userId);
+        ? await searchClassifications(searchTerm)
+        : await getUserClassifications();
       setClassifications(data);
     } catch (error) {
       console.error('Error searching classifications:', error);
@@ -223,7 +218,7 @@ const ClassificationHistory = () => {
         });
         
         // Reload stats
-        const updatedStats = await getTariffChangeStats(userId!);
+        const updatedStats = await getTariffChangeStats();
         setTariffStats(updatedStats);
       } else {
         throw new Error('Failed to accept changes');
@@ -299,6 +294,7 @@ const ClassificationHistory = () => {
   }
 
   return (
+    <>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
@@ -564,20 +560,13 @@ const ClassificationHistory = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-<<<<<<< HEAD:src/pages/ClassificationHistory.tsx
                             const params = new URLSearchParams({
                               hsCode: classification.hs_code
                             });
-                            
-                            // Add origin country if available
                             if (classification.origin_country) {
                               params.set('originCountry', classification.origin_country);
                             }
-                            
-                            window.location.href = `/tariff-calculator?${params.toString()}`;
-=======
-                            router.push(`/tariff-calculator?hsCode=${encodeURIComponent(classification.hs_code)}`);
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/classification-history/page.tsx
+                            router.push(`/tariff-calculator?${params.toString()}`);
                           }}
                           className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs"
                         >
@@ -841,24 +830,18 @@ const ClassificationHistory = () => {
             />
           )}
         </div>
-<<<<<<< HEAD:src/pages/ClassificationHistory.tsx
-      </div>
-      
-      {/* Quick Add Classification Modal */}
+    </div>
+
       {showQuickAdd && (
         <QuickAddClassification
-          userId={userId}
           onClose={() => setShowQuickAdd(false)}
           onSuccess={() => {
             setShowQuickAdd(false);
-            loadClassifications(); // Reload classifications to show the new entry
+            loadClassifications();
           }}
         />
       )}
-    </Layout>
-=======
-    </div>
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/classification-history/page.tsx
+    </>
   );
 };
 

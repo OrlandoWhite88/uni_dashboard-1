@@ -131,11 +131,11 @@ const SettingsPage = () => {
           const email = user?.emailAddresses?.[0]?.emailAddress;
           const name = user?.fullName;
           
-          const updatedPlan = await updateUserPlan(userId, { 
+          const updatedPlan = await updateUserPlan({ 
             plan_type: planType,
             subscribed_at: timestamp,
             updated_at: timestamp,
-            stripe_customer_id: 'cus_' + Math.random().toString(36).substring(2, 10), // Temporary ID for test mode
+            stripe_customer_id: 'cus_' + Math.random().toString(36).substring(2, 10),
             last_checkout_session: storedSession || 'direct_success',
             email: email,
             name: name

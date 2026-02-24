@@ -153,12 +153,11 @@ const HSCodeResult = ({ hsCode, description, confidence, fullPath, originalProdu
         });
 
         const classificationData = {
-          user_id: userId,
           product_description: originalProduct || description,
           hs_code: hsCode,
           confidence: confidence,
           full_path: fullPath,
-          tariff_data: preloadedTariffData // Use the preloaded tariff data
+          tariff_data: preloadedTariffData
         };
 
         const result = await saveClassification(classificationData);

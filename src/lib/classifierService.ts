@@ -797,8 +797,7 @@ export function useClassifier() {
         
         // Log usage only when we get a final result
         try {
-          // Pass userId (will be null for anonymous users, which logUsage handles)
-          await logUsage(userId, 'final_classification');
+          await logUsage('final_classification');
           addDebug(`Logged final result usage for user: ${userId || 'anonymous'}`);
         } catch (error) {
           addDebug(`Error logging usage: ${error}`);
@@ -814,14 +813,9 @@ export function useClassifier() {
         if (userId && productDescription) {
           try {
             await saveClassification({
-              user_id: userId,
-              user_email: null, // User email not available in current Clerk version
               product_description: productDescription,
               hs_code: finalCode,
               confidence: confidence,
-              full_path: undefined, // String results don't have path info
-              tariff_data: null,
-              notes: null
             });
             addDebug(`Classification saved to database for user: ${userId}`);
           } catch (error) {
@@ -865,9 +859,8 @@ export function useClassifier() {
             const path = result.classification?.path || result.full_path;
             const pathString = typeof path === "string" ? path : undefined;
             
-            // Log usage only when we get a final result
             try {
-              await logUsage(userId, 'final_classification');
+              await logUsage('final_classification');
               addDebug(`Logged final result usage for user: ${userId || 'anonymous'}`);
             } catch (error) {
               addDebug(`Error logging usage: ${error}`);
@@ -940,14 +933,10 @@ export function useClassifier() {
             if (userId && (productDescription || description)) {
               try {
                 await saveClassification({
-                  user_id: userId,
-                  user_email: null, // User email not available in current Clerk version
                   product_description: productDescription || description,
                   hs_code: finalCode,
                   confidence: confidence,
                   full_path: pathString,
-                  tariff_data: null,
-                  notes: null
                 });
                 addDebug(`Classification saved to database for user: ${userId}`);
               } catch (error) {
@@ -1132,10 +1121,8 @@ export function useClassifier() {
             
           const path = typeof result.full_path === "string" ? result.full_path : undefined;
           
-          // Log usage only when we get a final result
           try {
-            // Pass userId (will be null for anonymous users, which logUsage handles)
-            await logUsage(userId, 'final_classification');
+            await logUsage('final_classification');
             addDebug(`Logged final result usage for user: ${userId || 'anonymous'}`);
           } catch (error) {
             addDebug(`Error logging usage: ${error}`);

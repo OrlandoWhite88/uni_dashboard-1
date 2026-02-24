@@ -60,7 +60,7 @@ const ClassificationDashboard = () => {
     
     setLoading(true);
     try {
-      const classifications = await getUserClassifications(userId, 10); // Get last 10
+      const classifications = await getUserClassifications(10);
       
       // Calculate stats
       const now = new Date();
@@ -86,7 +86,7 @@ const ClassificationDashboard = () => {
       setRecentClassifications(classifications.slice(0, 5)); // Show top 5
       
       // Load tariff change stats
-      const tariffChangeStats = await getTariffChangeStats(userId);
+      const tariffChangeStats = await getTariffChangeStats();
       setTariffStats(tariffChangeStats);
       
       // Check for tariff changes in background
@@ -103,16 +103,12 @@ const ClassificationDashboard = () => {
     
     setCheckingTariffs(true);
     try {
-      console.log('Checking for tariff changes...');
-      const result = await checkTariffChanges(userId);
+      const result = await checkTariffChanges();
       
       if (result.changed > 0) {
-        // Update tariff stats after changes detected
-        const updatedStats = await getTariffChangeStats(userId);
+        const updatedStats = await getTariffChangeStats();
         setTariffStats(updatedStats);
       }
-      
-      console.log(`Tariff check completed: ${result.checked} checked, ${result.changed} changed, ${result.errors} errors`);
     } catch (error) {
       console.error('Error checking tariff changes:', error);
     } finally {
