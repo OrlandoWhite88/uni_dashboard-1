@@ -856,7 +856,7 @@ const TariffCalculator: React.FC<TariffCalculatorProps> = ({
   const loadPastClassifications = async () => {
     if (!userId) return;
     try {
-      const classifications = await getUserClassifications(userId, 20);
+      const classifications = await getUserClassifications(20);
       setPastClassifications(classifications);
     } catch (error) {
       console.error('Error loading past classifications:', error);

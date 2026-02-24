@@ -4,7 +4,7 @@ import { trackClassificationStart, trackQuestionAnswer, trackClassificationResul
 import { CheckCircle2, Download, FileText, MessageCircle, Zap, ArrowUp, Clock, ChevronDown, AlertTriangle, ExternalLink } from "lucide-react";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import _ from "lodash";
 import { 
   classifyProduct, 
@@ -13,7 +13,7 @@ import {
   Options
 } from "@/lib/classifierService";
 import { saveClassification } from "@/lib/supabaseService";
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/nextjs";
 import QuestionFlow from "@/components/QuestionFlow";
 
 interface Product {
@@ -61,7 +61,7 @@ interface BatchClassifyProps {
 const BatchClassify: React.FC<BatchClassifyProps> = ({ csvFile }) => {
   // Get user's plan information
   const { userPlan, isLoading: isPlanLoading, checkFeatureAccess, recordUsage } = useUsageLimits();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useUser();
   
   // Check if user is on starter plan
@@ -166,7 +166,7 @@ const BatchClassify: React.FC<BatchClassifyProps> = ({ csvFile }) => {
 
   // Handle navigation to upgrade page
   const handleUpgrade = () => {
-    navigate('/settings');
+    router.push('/settings');
   };
 
   // Start classification for all products at once
@@ -515,8 +515,6 @@ const BatchClassify: React.FC<BatchClassifyProps> = ({ csvFile }) => {
           if (user?.id) {
             try {
               await saveClassification({
-                user_id: user.id,
-                user_email: user.emailAddresses?.[0]?.emailAddress,
                 product_description: productDescription,
                 hs_code: finalCode,
                 confidence: confidence,

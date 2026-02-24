@@ -7,8 +7,6 @@ import { getTariffInfo } from '@/lib/classifierService';
 import { COUNTRIES } from './TariffCalculator';
 
 interface QuickAddClassificationProps {
-  userId: string;
-  userEmail?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -50,8 +48,6 @@ const QUANTITY_UNITS = [
 ];
 
 const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
-  userId,
-  userEmail,
   onClose,
   onSuccess
 }) => {
@@ -163,8 +159,7 @@ const QuickAddClassification: React.FC<QuickAddClassificationProps> = ({
 
       // Create classification record with enhanced fields
       const classification: ClassificationRecord & any = {
-        user_id: userId,
-        user_email: userEmail,
+        user_id: '',
         hs_code: formData.hsCode,
         product_description: formData.productDescription,
         notes: formData.notes,
