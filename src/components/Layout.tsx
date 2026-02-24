@@ -2,14 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-<<<<<<< HEAD
-import { Link, useNavigate } from "react-router-dom";
-import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/clerk-react";
-=======
 import Link from "next/link";
-import { SignedIn, SignedOut, UserButton, SignInButton, SignUpButton, useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2
+import { SignedIn, SignedOut, UserButton, useAuth } from "@clerk/nextjs";
 import { Menu, X } from "lucide-react";
 import { NavigationSidebar } from "./NavigationSidebar";
 
@@ -37,7 +31,6 @@ interface LayoutProps {
 
 const Layout = ({ children, className }: LayoutProps) => {
   const { isLoaded, userId } = useAuth();
-  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Mock organizations for demo - replace with actual data
@@ -109,14 +102,14 @@ const Layout = ({ children, className }: LayoutProps) => {
                 {/* Auth navigation links */}
                 <div className="hidden md:flex gap-2">
                   <Link 
-                    to="/auth?mode=signin"
+                    href="/auth?mode=signin"
                     className="px-4 py-2 text-sm font-medium bg-secondary rounded-md hover:bg-secondary/80 transition-colors"
                   >
                     Sign In
                   </Link>
                   
                   <Link 
-                    to="/auth?mode=signup"
+                    href="/auth?mode=signup"
                     className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                     onClick={() => gtag_report_conversion(undefined)}
                   >
@@ -127,7 +120,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                 {/* Sign Up button for mobile users */}
                 <div className="md:hidden">
                   <Link 
-                    to="/auth?mode=signup"
+                    href="/auth?mode=signup"
                     className="p-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
                     onClick={() => gtag_report_conversion(undefined)}
                   >

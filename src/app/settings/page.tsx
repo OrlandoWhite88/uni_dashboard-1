@@ -1,19 +1,10 @@
 "use client";
 
 import React from "react";
-<<<<<<< HEAD:src/pages/Settings.tsx
-import Layout from "@/components/Layout";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useUsageLimits } from "@/hooks/use-usage-limits";
-import { useAuth, useUser } from "@clerk/clerk-react";
-=======
-import { ArrowLeft, CheckCircle2, CreditCard, Zap, Building2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import CustomButton from "@/components/ui/CustomButton";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
-import { useAuth } from "@clerk/nextjs";
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/settings/page.tsx
+import { useAuth, useUser } from "@clerk/nextjs";
 import { createCheckoutSession } from "@/lib/stripeService";
 import Pricing from "@/components/Pricing";
 
@@ -183,8 +174,7 @@ const SettingsPage = () => {
     
     // Execute the checkout verification function
     checkStripeRedirect();
-  }, [userId]); // Only depend on userId to prevent multiple executions
-<<<<<<< HEAD:src/pages/Settings.tsx
+  }, [userId, user]); // Only depend on userId and user to prevent multiple executions
 
   // Create pricing plans with current user state
   const getCurrentPricingPlans = () => {
@@ -269,26 +259,15 @@ const SettingsPage = () => {
   };
 
   return (
-    <Layout className="pt-28 pb-16">
-      <div className="max-w-6xl mx-auto">
-=======
-  
-  return (
     <div className="max-w-4xl mx-auto">
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/settings/page.tsx
         <div className="mb-8 flex items-center">
           <button 
             onClick={() => router.push('/product')} 
             className="mr-4 p-2 rounded-full hover:bg-secondary/80 transition-colors"
           >
             <ArrowLeft size={20} />
-<<<<<<< HEAD:src/pages/Settings.tsx
-          </Link>
-          <h1 className="text-2xl font-semibold">Settings & Pricing</h1>
-=======
           </button>
           <h1 className="text-2xl font-semibold">Settings</h1>
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/settings/page.tsx
         </div>
 
         <div className="space-y-8">
