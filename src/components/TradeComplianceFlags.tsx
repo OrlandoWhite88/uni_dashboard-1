@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getUserClassifications, ClassificationRecord } from "@/lib/supabaseService";
-<<<<<<< HEAD
-import { useAuth } from "@clerk/clerk-react";
-import { useUsageLimits } from "@/hooks/use-usage-limits";
-=======
 import { useAuth } from "@clerk/nextjs";
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2
+import { useUsageLimits } from "@/hooks/use-usage-limits";
 import { 
   Loader2, 
   AlertCircle, 

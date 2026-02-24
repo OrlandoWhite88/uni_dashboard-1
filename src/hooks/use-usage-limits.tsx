@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { useAuth, useUser } from '@clerk/clerk-react';
-import { useDevAuth } from '@/components/DevWrapper';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { getMonthlyUsageCount, getUserPlan, createUserPlan, logUsage, getUserUsageSummary } from '@/lib/supabaseService';
-=======
-import { useAuth } from '@clerk/nextjs';
-import { getDailyUsageCount, getMonthlyUsageCount, getUserPlan, createUserPlan, getAnonymousDailyUsageCount, incrementAnonymousUsage } from '@/lib/supabaseService';
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2
 import { toast } from 'sonner';
 
 interface UsageLimits {
@@ -51,22 +45,8 @@ const PLAN_LIMITS: PlanLimits = {
 };
 
 export function useUsageLimits() {
-  const clerkAuth = useAuth();
-  const clerkUser = useUser();
-  const devAuth = useDevAuth();
-  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
-  
-  // Use development auth in development, Clerk auth in production
-  const { userId, isLoaded, isSignedIn } = isDevelopment 
-    ? { userId: devAuth.user.id, isLoaded: devAuth.isLoaded, isSignedIn: devAuth.isSignedIn }
-    : clerkAuth;
-    
-  const user = isDevelopment 
-    ? {
-        emailAddresses: [{ emailAddress: 'dev-user@example.com' }],
-        fullName: 'Dev User'
-      }
-    : clerkUser.user;
+  const { userId, isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
 
   const [isLoading, setIsLoading] = useState(true);
   const [userPlan, setUserPlan] = useState<any>(null);

@@ -2,19 +2,14 @@
 // This approach doesn't require a secret key, using only the publishable key
 
 // Get publishable key from environment
-<<<<<<< HEAD
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_Stripe_Publishable_Key || 'pk_live_51RjOjtBlXyYsxvVYeF4fCHX5TUIaXpGpC60MKOPrpREcxmevNiQ0vqlwy7UuIoiwdlzyZbmY0GRi4AEUd4sVMEFJ00P9JYdPlV';
+const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_Stripe_Publishable_Key || 'pk_live_51RjOjtBlXyYsxvVYeF4fCHX5TUIaXpGpC60MKOPrpREcxmevNiQ0vqlwy7UuIoiwdlzyZbmY0GRi4AEUd4sVMEFJ00P9JYdPlV';
 
 // Price IDs for different plans
 const STRIPE_PRICE_IDS = {
-  starter: 'price_1RjPHVBlXyYsxvVYLp1aeka2', // Update this to actual Starter price ID
-  growth: 'price_1RjPHzBlXyYsxvVYV9u5vWeG', // Update this to actual Growth price ID  
-  enterprise: 'price_1RjPIHBlXyYsxvVYBv2JsNW3' // Update this to actual Enterprise price ID
+  starter: 'price_1RjPHVBlXyYsxvVYLp1aeka2',
+  growth: 'price_1RjPHzBlXyYsxvVYV9u5vWeG',
+  enterprise: 'price_1RjPIHBlXyYsxvVYBv2JsNW3'
 };
-=======
-const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_Stripe_Publishable_Key || 'pk_live_51QKRKILZPw2q2pWLdWe9PVjtrkxqWdpIMNFjAVQJUvPo3ZuZRm1cGo3cxVSHfVx63oZZmZc7EoHAy38W2nexm4yq00V46PH7I6';
-const STRIPE_PRO_PRICE_ID = 'price_1R3KHELZPw2q2pWLXoi3t6Kd';
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2
 
 // Log initialization for debugging
 console.log('Stripe client-only initialization:');

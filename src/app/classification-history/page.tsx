@@ -564,20 +564,15 @@ const ClassificationHistory = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-<<<<<<< HEAD:src/pages/ClassificationHistory.tsx
                             const params = new URLSearchParams({
                               hsCode: classification.hs_code
                             });
                             
-                            // Add origin country if available
                             if (classification.origin_country) {
                               params.set('originCountry', classification.origin_country);
                             }
                             
-                            window.location.href = `/tariff-calculator?${params.toString()}`;
-=======
-                            router.push(`/tariff-calculator?hsCode=${encodeURIComponent(classification.hs_code)}`);
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/classification-history/page.tsx
+                            router.push(`/tariff-calculator?${params.toString()}`);
                           }}
                           className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs"
                         >
@@ -841,9 +836,6 @@ const ClassificationHistory = () => {
             />
           )}
         </div>
-<<<<<<< HEAD:src/pages/ClassificationHistory.tsx
-      </div>
-      
       {/* Quick Add Classification Modal */}
       {showQuickAdd && (
         <QuickAddClassification
@@ -851,14 +843,11 @@ const ClassificationHistory = () => {
           onClose={() => setShowQuickAdd(false)}
           onSuccess={() => {
             setShowQuickAdd(false);
-            loadClassifications(); // Reload classifications to show the new entry
+            loadClassifications();
           }}
         />
       )}
-    </Layout>
-=======
     </div>
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/classification-history/page.tsx
   );
 };
 

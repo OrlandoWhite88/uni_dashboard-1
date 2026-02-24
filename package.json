@@ -73,10 +73,6 @@
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-<<<<<<< HEAD
-    "@vitejs/plugin-react-swc": "^3.10.2",
-=======
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2
     "autoprefixer": "^10.4.20",
     "eslint": "^9.30.1",
     "eslint-plugin-react": "^7.37.5",
@@ -86,17 +82,6 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
-<<<<<<< HEAD
-    "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
-  },
-  "description": "**URL**: https://lovable.dev/projects/a9c9e9e8-5019-425a-b5df-9d4abe21ab86",
-  "main": "eslint.config.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
-=======
     "typescript-eslint": "^8.36.0"
   }
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2
 }

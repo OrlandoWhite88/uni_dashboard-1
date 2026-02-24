@@ -1,19 +1,11 @@
 "use client";
 
 import React from "react";
-<<<<<<< HEAD:src/pages/Settings.tsx
-import Layout from "@/components/Layout";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useUsageLimits } from "@/hooks/use-usage-limits";
-import { useAuth, useUser } from "@clerk/clerk-react";
-=======
 import { ArrowLeft, CheckCircle2, CreditCard, Zap, Building2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CustomButton from "@/components/ui/CustomButton";
 import { useUsageLimits } from "@/hooks/use-usage-limits";
-import { useAuth } from "@clerk/nextjs";
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/settings/page.tsx
+import { useAuth, useUser } from "@clerk/nextjs";
 import { createCheckoutSession } from "@/lib/stripeService";
 import Pricing from "@/components/Pricing";
 
@@ -38,11 +30,9 @@ const SettingsPage = () => {
     setIsUpgrading(true);
     
     try {
-      // Create success and cancel URLs with proper encoding
       const successUrl = `${window.location.origin}/settings?success=true`;
       const cancelUrl = `${window.location.origin}/settings?canceled=true`;
       
-      // Create a checkout session with Stripe
       const session = await createCheckoutSession(
         userPlan?.stripe_customer_id || userId,
         successUrl,
@@ -57,8 +47,6 @@ const SettingsPage = () => {
       }
       
       console.log('Redirecting to:', session.url);
-      
-      // Redirect to Stripe checkout
       window.location.href = session.url;
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -72,23 +60,18 @@ const SettingsPage = () => {
     }
   };
 
-  // Check for URL parameters and stored checkout session after returning from Stripe
   React.useEffect(() => {
     const checkStripeRedirect = async () => {
-      // Import functions we need
       const { updateUserPlan } = await import('@/lib/supabaseService');
       const { getStoredCheckoutSession, clearStoredCheckoutSession, validateCheckoutSession } = await import('@/lib/stripeService');
     
-      // Check URL parameters first
       const urlParams = new URLSearchParams(window.location.search);
       console.log('URL parameters on page load:', Object.fromEntries(urlParams.entries()));
       
-      // Check URL parameters and stored session
       const hasSuccessParam = urlParams.get('success') === 'true';
       const hasCanceledParam = urlParams.get('canceled') === 'true';
       const storedSession = getStoredCheckoutSession();
       
-      // Log detailed info for debugging
       console.log('Checking checkout status:', { 
         hasSuccessParam, 
         hasCanceledParam,
@@ -96,23 +79,17 @@ const SettingsPage = () => {
         userId
       });
       
-      // Clear stored session if canceled
       if (hasCanceledParam) {
         console.log('Subscription process was canceled by user.');
-        clearStoredCheckoutSession(); // Clear session on cancel
+        clearStoredCheckoutSession();
         alert('Subscription canceled. You can try again anytime.');
         return;
       }
       
-      // Only proceed with upgrade if success conditions are met: 
-      // 1. Success URL parameter is present
-      // 2. We have a stored checkout session
-      // 3. The session is valid (not expired, properly formatted)
       if (hasSuccessParam && storedSession && validateCheckoutSession(hasSuccessParam)) {
         console.log('Subscription successful! Updating plan and reloading usage data.');
-        clearStoredCheckoutSession(); // Clear session to prevent duplicate processing
+        clearStoredCheckoutSession();
         
-        // Track conversion with Google Ads
         if (typeof window !== 'undefined' && (window as any).gtag) {
           (window as any).gtag('event', 'conversion', {
             'send_to': 'AW-16933718921',
@@ -120,7 +97,6 @@ const SettingsPage = () => {
           console.log('Google Ads conversion tracking event fired');
         }
         
-        // Update user plan in Supabase
         if (!userId) {
           console.warn('Cannot update plan: No user ID available');
           return;
@@ -129,14 +105,11 @@ const SettingsPage = () => {
         try {
           console.log('Updating user plan for user:', userId);
           
-          // Update the plan in Supabase - add subscription timestamp and unique checkout ID
           const timestamp = new Date();
-          // Determine the plan type based on the checkout session or default to free for new users
           const planType = storedSession && storedSession.includes('starter') ? 'starter' :
                           storedSession && storedSession.includes('growth') ? 'growth' :
                           storedSession && storedSession.includes('enterprise') ? 'enterprise' : 'free';
           
-          // Get user email and name from Clerk for updating the plan
           const email = user?.emailAddresses?.[0]?.emailAddress;
           const name = user?.fullName;
           
@@ -144,7 +117,7 @@ const SettingsPage = () => {
             plan_type: planType,
             subscribed_at: timestamp,
             updated_at: timestamp,
-            stripe_customer_id: 'cus_' + Math.random().toString(36).substring(2, 10), // Temporary ID for test mode
+            stripe_customer_id: 'cus_' + Math.random().toString(36).substring(2, 10),
             last_checkout_session: storedSession || 'direct_success',
             email: email,
             name: name
@@ -152,20 +125,17 @@ const SettingsPage = () => {
           
           console.log('Plan updated successfully:', updatedPlan);
           
-          // Force a complete page reload to ensure all data is fresh
           if (updatedPlan) {
             alert('Subscription successful! Your plan has been upgraded.');
             console.log('Reloading page to refresh data...');
-            setTimeout(() => window.location.reload(), 500); // Add slight delay to ensure DB updates propagate
+            setTimeout(() => window.location.reload(), 500);
           } else {
-            // Fallback to just reloading the data if the update failed
             console.warn('Plan update may not have succeeded, trying to reload data');
             reloadUsageData();
             alert('Subscription successful! Refreshing your account data...');
           }
         } catch (error) {
           console.error('Error updating user plan:', error);
-          console.error('Error details:', error);
           alert('Your payment was successful, but we had trouble updating your account. Please contact support.');
         }
       } else if (hasSuccessParam && !storedSession) {
@@ -174,19 +144,15 @@ const SettingsPage = () => {
         return;
       }
       
-      // Clear URL parameters to prevent multiple processing
       if (urlParams.has('success') || urlParams.has('canceled') || urlParams.has('t')) {
         console.log('Clearing URL parameters');
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     };
     
-    // Execute the checkout verification function
     checkStripeRedirect();
-  }, [userId]); // Only depend on userId to prevent multiple executions
-<<<<<<< HEAD:src/pages/Settings.tsx
+  }, [userId]);
 
-  // Create pricing plans with current user state
   const getCurrentPricingPlans = () => {
     const currentPlan = userPlan?.plan_type || 'free';
     
@@ -267,28 +233,17 @@ const SettingsPage = () => {
       },
     ];
   };
-
-  return (
-    <Layout className="pt-28 pb-16">
-      <div className="max-w-6xl mx-auto">
-=======
   
   return (
-    <div className="max-w-4xl mx-auto">
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/settings/page.tsx
+    <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex items-center">
           <button 
             onClick={() => router.push('/product')} 
             className="mr-4 p-2 rounded-full hover:bg-secondary/80 transition-colors"
           >
             <ArrowLeft size={20} />
-<<<<<<< HEAD:src/pages/Settings.tsx
-          </Link>
-          <h1 className="text-2xl font-semibold">Settings & Pricing</h1>
-=======
           </button>
-          <h1 className="text-2xl font-semibold">Settings</h1>
->>>>>>> 72137904331d5e2c81861c43cf8072852de0d7b2:src/app/settings/page.tsx
+          <h1 className="text-2xl font-semibold">Settings & Pricing</h1>
         </div>
 
         <div className="space-y-8">
