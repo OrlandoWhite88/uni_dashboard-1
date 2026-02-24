@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import BulkImportFiles from "@/_legacy_pages/BulkImportFiles";
-import BatchClassify from "@/_legacy_pages/BatchClassify";
+import BulkImportFiles from "@/components/BulkImportFiles";
+import BatchClassify from "@/components/BatchClassify";
 
 const BulkImportPage = () => {
   const [csvFile, setCsvFile] = useState<string | ArrayBuffer>("");
